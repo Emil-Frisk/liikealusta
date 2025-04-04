@@ -265,8 +265,8 @@ async def create_app():
             pitch_value = float(request.args.get('pitch'))
             roll_value = float(request.args.get('roll'))
             
-            # Tarkistetaan että annettu pitch -kulma on välillä -8 <-> 8
-            pitch_value = max(-8, min(pitch_value, 8))
+            # Tarkistetaan että annettu pitch -kulma on välillä -8.5 <-> 8.5
+            pitch_value = max(-8.5, min(pitch_value, 8.5))
 
             # Laske MaxRoll pitch -kulman avulla
             MaxRoll = 0.002964 * pitch_value**4 + 0.000939 * pitch_value**3 - 0.424523 * pitch_value**2 - 0.05936 * pitch_value + 15.2481
@@ -278,7 +278,9 @@ async def create_app():
             roll_value = max(MinRoll, min(roll_value, MaxRoll))
 
             # Valitse käytettävä Roll -lauseke
-            if roll_value == 0:
+            dif = roll_value - 0
+            if dif == 0:
+            # if roll_value == 0:
                 Relaatio = 1
             elif pitch_value < -2:
                 Relaatio = 0.984723 * (1.5144)**roll_value
@@ -306,11 +308,11 @@ async def create_app():
             modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
             modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
 
-            position_client_left = math.floor(modbus_percentile_left * app.clients.app_config.MODBUSCTRL_MAX)
-            position_client_right = math.floor(modbus_percentile_right * app.clients.app_config.MODBUSCTRL_MAX)
+            position_client_left = math.floor(modbus_percentile_left * app.app_config.MODBUSCTRL_MAX)
+            position_client_right = math.floor(modbus_percentile_right * app.app_config.MODBUSCTRL_MAX)
 
-            await app.clients.client_right.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_right, slave=app.app_config.SLAVE_ID)
-            await app.clients.client_left.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_left, slave=app.app_config.SLAVE_ID)
+            await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
+            await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
             
         except Exception as e:
                 app.logger.error("Error with pitch and roll calculations!")

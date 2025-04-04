@@ -160,8 +160,8 @@ def convert_vel_rpm_revs(rpm):
         return tuple with higher register value first
         8.24 format
         """
-        if rpm < 0 or rpm > 120:
-                rpm = 120
+        if rpm < 0 or rpm > 350:
+                rpm = 350
         
         revs = rpm/60.0
         decimal, whole = math.modf(revs)
@@ -175,8 +175,8 @@ def convert_acc_rpm_revs(rpm):
         return tuple with higher register value first
         12.20 format
         """
-        if rpm < 0 or rpm > 120:
-                rpm = 120
+        if rpm < 0 or rpm > 750:
+                rpm = 750
         
         revs = rpm/60.0
         decimal, whole = math.modf(revs)
