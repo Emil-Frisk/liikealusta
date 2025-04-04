@@ -275,14 +275,25 @@ async def create_app():
 
         # Määritä servomoottorien pituudet
 
-        # Vasen servomoottori
-        VasenServo = (2 * Keskipituus * Relaatio) / (1 + Relaatio)
+        # Vasen servomoottori kierroksina
+        VasenServo = ((2 * Keskipituus * Relaatio) / (1 + Relaatio)) / (0.2 * 25.4)
 
-        # Oikea moottori
-        OikeaServo = (2 * Keskipituus) / (1 + Relaatio)
+        # Oikea servomoottori kierroksina
+        OikeaServo = ((2 * Keskipituus) / (1 + Relaatio)) / (0.2 * 25.4)
 
-        #await app.clients.client_right.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_right, slave=app.app_config.SLAVE_ID)
-        #await app.clients.client_left.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_left, slave=app.app_config.SLAVE_ID)
+        ## Percentile = x - pos_min / (pos_max - pos_min)
+        POS_MIN_REVS = 0.393698024
+        POS_MAX_REVS = 28.937007874015748031496062992126
+        modbus_percentile_left = (VasenServo - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
+        modbus_percentile_right = (OikeaServo - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
+        modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
+        modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
+
+        position_client_left = math.floor(modbus_percentile_left * app.clients.app_config.MODBUSCTRL_MAX)
+        position_client_right = math.floor(modbus_percentile_right * app.clients.app_config.MODBUSCTRL_MAX)
+
+        await app.clients.client_right.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_right, slave=app.app_config.SLAVE_ID)
+        await app.clients.client_left.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_left, slave=app.app_config.SLAVE_ID)
         
     except Exception as e:
             app.logger.error("Error with pitch and roll calculations!")
