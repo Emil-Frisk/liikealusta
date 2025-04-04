@@ -1,8 +1,12 @@
 import math
 
 # Saadaan syötteinä Roll ja Pitch -kulmat
-Pitch = -2.5
-Roll = 10.0
+#Pitch = -2.5
+#Roll = 10.0
+User_Imput = input("Anna pitch -kulma: ")
+Pitch = float(User_Imput)
+User_Imput = input("Anna roll -kulma: ")
+Roll = float(User_Imput)
 
 # Tarkistetaan että annettu pitch -kulma on välillä -8 <-> 8
 Pitch = max(-8, min(Pitch, 8))
