@@ -127,15 +127,21 @@ class ServerStartupGUI(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
     def shutdown_server(self):
+        """Shutdown the server using command line (curl)."""
         try:
-            response = subprocess.run(["curl", "-X", "POST", "http://localhost:5000/shutdown"], capture_output=True, text=True)
+            response = subprocess.run(
+                ["curl", "-X", "POST", "http://localhost:5000/shutdown"],
+                capture_output=True,
+                text=True
+            )
+
             if response.returncode == 0:
                 QMessageBox.information(self, "Success", "Server shutdown successfully!")
                 self.shutdown_button.setEnabled(False)
             else:
-                QMessageBox.warning(self, "Warning", "Failed to shutdown server!")
+                QMessageBox.warning(self, "Warning", f"Failed to shutdown server! Error: {response.stderr}")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")    
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
