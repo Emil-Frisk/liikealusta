@@ -241,6 +241,52 @@ async def create_app():
         except Exception as e:
             app.logger.error("Failed to stop motors?") # Mitäs sitten :D
 
+    @app.route('/setvalues', methods=['GET'])
+    async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
+    try:
+        # Get the two float arguments from the query parameters
+        pitch_value = float(request.args.get('pitch'))
+        roll_value = float(request.args.get('roll'))
+        
+        # Tarkistetaan että annettu pitch -kulma on välillä -8 <-> 8
+        pitch_value = max(-8, min(pitch_value, 8))
+
+        # Laske MaxRoll pitch -kulman avulla
+        MaxRoll = 0.002964 * pitch_value**4 + 0.000939 * pitch_value**3 - 0.424523 * pitch_value**2 - 0.05936 * pitch_value + 15.2481
+
+        # Laske MinRoll MaxRoll -arvon avulla
+        MinRoll = -1 * MaxRoll
+
+        # Verrataan Roll -kulmaa MaxRoll ja MinRoll -arvoihin
+        roll_value = max(MinRoll, min(roll_value, MaxRoll))
+
+        # Valitse käytettävä Roll -lauseke
+        if roll_value == 0:
+            Relaatio = 1
+        elif pitch_value < -2:
+            Relaatio = 0.984723 * (1.5144)**roll_value
+        elif pitch_value > 2:
+            Relaatio = 0.999843 * (1.08302)**roll_value
+        else:    
+            Relaatio = 1.0126 * (1.22807)**roll_value
+
+        # Laske keskipituus
+        Keskipituus = 0.027212 * (pitch_value)**2 + 8.73029 * pitch_value + 73.9818
+
+        # Määritä servomoottorien pituudet
+
+        # Vasen servomoottori
+        VasenServo = (2 * Keskipituus * Relaatio) / (1 + Relaatio)
+
+        # Oikea moottori
+        OikeaServo = (2 * Keskipituus) / (1 + Relaatio)
+
+        #await app.clients.client_right.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_right, slave=app.app_config.SLAVE_ID)
+        #await app.clients.client_left.write_register(address=app.app_config.MODBUS_ANALOG_POSITION, value=position_client_left, slave=app.app_config.SLAVE_ID)
+        
+    except Exception as e:
+            app.logger.error("Error with pitch and roll calculations!")
+
     return app
 if __name__ == '__main__':
     async def run_app():
