@@ -17,9 +17,22 @@ import time
 async def shutdown_test(app):    
     """Gracefully shuts down the server."""
     app.logger.info("Shutdown request received. Cleaning up...")
-    
-    await app.clients.reset_motors()
 
+    try:
+        success = await app.clients.stop()
+        if not success:
+            app.logger.error("Stopping motors was not successful, will not shutdown server")
+            return
+    except Exception as e:
+        app.logger.error("Stopping motors was not successful, will not shutdown server")
+        return
+    
+    response = await app.clients.wait_for_motors_to_stop()
+    if not response:
+        app.logger.error("Stopping motors was not successful, will not shutdown server")
+
+    await app.clients.reset_motors()
+ 
     # Stop fault poller task if running
     if hasattr(app, 'monitor_task') and app.monitor_task:
         app.monitor_task.cancel()
@@ -187,11 +200,8 @@ async def create_app():
         MODBUSCTRL_MAX = app.app_config.MODBUSCTRL_MAX
 
         if (asd == "q"):
-            a = 10
             await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=MODBUSCTRL_MAX, slave=app.app_config.SLAVE_ID)
             await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=MODBUSCTRL_MAX, slave=app.app_config.SLAVE_ID)
-
-
 
         if (pitch == "+"): # forward
             (position_client_left, position_client_right) = await get_modbuscntrl_val(app.clients, app.app_config)
