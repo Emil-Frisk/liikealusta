@@ -205,7 +205,7 @@ class ModbusClients:
     
     async def get_vel(self):
         """
-        Gets velocity from both registers returns None if error
+        Gets VEL32_HIGH register for both motors
         """
         try:
             left_response = await  self.client_left.read_holding_registers(
@@ -226,7 +226,7 @@ class ModbusClients:
             return left_response.registers[0], right_response.registers[0]
 
         except Exception as e:
-                self.logger.error(f"Exception reading fault registers: {str(e)}")
+                self.logger.error(f"Exception reading velocity registers: {str(e)}")
                 return None, None
 
 
@@ -846,6 +846,40 @@ class ModbusClients:
             self.logger.error(f"Unexpected error while setting analog modbuscntrl value: {str(e)}")
             return False
     
+    async def wait_for_motors_to_stop(self) -> bool:
+        """ Polls for motors to stop returns True or False"""
+        try:
+            waiting_duration = 30
+            start_time = time.time()
+            elapsed_time = 0
+            while elapsed_time <= waiting_duration:
+                response_left, response_right = await self.get_vel()
+                if response_left == None or response_right == None:
+                    await asyncio.sleep(0.2)
+                    elapsed_time = time.time() - start_time
+                    self.logger.error(f"Failed to get current motor velocity:")
+                    continue
+                
+                ### get the whole number
+                velocity_left = response_left >> 8
+                velocity_right = response_right >> 8
+
+                # Success
+                if velocity_left == 0 and velocity_right == 0:
+                    self.logger.info(f"Both motors have successfully stopped:")
+                    await asyncio.sleep(0.5) ### add some safety buffer 
+                    return True
+                
+                await asyncio.sleep(0.2)
+                elapsed_time = time.time() - start_time
+            
+            self.logger.error(f"Waiting for motors to stop was not successful within the time limit of: {waiting_duration}")
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Unexpected error while waiting for motors to stop: {e}")
+            return False
+
     async def set_host_command_mode(self, value: int) -> bool:
         """
         Sets both of the motors host command mode to value
