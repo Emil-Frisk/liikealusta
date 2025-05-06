@@ -1,5 +1,6 @@
 from pymodbus.client import ModbusTcpClient
 import os
+import difflib
 
 server_url = "http://127.0.0.1:5001/"
 right_client = "192.168.0.212"
@@ -24,6 +25,29 @@ def get_unique_filename(base_filename, extension=".txt"):
 def start():
     pass
 
+def compare_files(file1, file2):
+    """ Compare the files using difflib """
+    differ = difflib.Differ()
+    diff = list(differ.compare(file1, file2))
+    
+    # Write differences to the output file
+    with open("changed_lines.txt", 'w', encoding='utf-8') as out_file:
+        differences_found = False
+        for line in diff:
+            if line.startswith('- ') or line.startswith('+ '):
+                # Line removed (-), added (+), or changed (one of each)
+                differences_found = True
+                out_file.write(f"{line}\n")
+            elif line.startswith('? '):
+                # Indicates specific differences in a line (optional)
+                differences_found = True
+                out_file.write(f"Difference hint: {line}\n")
+        
+        if not differences_found:
+            out_file.write("No differences found between the files.\n")
+    print(f"Comparison complete.")
+    
+
 
 """"Reads all Tritex II register and writes them to a new file"""
 def crawl():
@@ -41,6 +65,7 @@ def crawl():
                 if not success:
                     file.write(f"Register ID: {next_register} - Data: NA\n")
                     continue
+    print(f"Crawling compelete.")
                     
                 
             
