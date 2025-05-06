@@ -9,8 +9,9 @@ left_client =  ModbusTcpClient(host="192.168.0.211", port=server_port)
 base_filename = "Registers data"
 extension = ".txt"
 
+
+"""Generate a unique filename by appending a number if the file exists."""
 def get_unique_filename(base_filename, extension=".txt"):
-    """Generate a unique filename by appending a number if the file exists."""
     counter = 0
     new_name = f"{base_filename}{extension}"
     
@@ -23,10 +24,12 @@ def get_unique_filename(base_filename, extension=".txt"):
 def start():
     pass
 
+
+""""Reads all Tritex II register and writes them to a new file"""
 def crawl():
     filename = get_unique_filename(base_filename, extension)
     start_i = 2
-    with open(filename, "a") as file:
+    with open(filename, "a", encoding="utf-8") as file:
         for i in range(12564):
             success = False
             next_register = start_i + i
@@ -36,7 +39,7 @@ def crawl():
                 success = True
             except Exception as e:
                 if not success:
-                    file.write(f"Error writing file: {e}\n")
+                    file.write(f"Error reading register {next_register}: {e}\n")
                     continue
                     
                 
