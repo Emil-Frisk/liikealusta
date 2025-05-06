@@ -27,24 +27,20 @@ def start():
 
 def compare_files(file1, file2):
     """ Compare the files using difflib """
+    with open(file1) as f1, open(file2) as f2:
+        file1_lines = f1.readlines()
+        file2_lines = f2.readlines()
+
+    # Create a Differ object and compare the files
     differ = difflib.Differ()
-    diff = list(differ.compare(file1, file2))
+    diff = list(differ.compare(file1_lines, file2_lines))
     
     # Write differences to the output file
     with open("changed_lines.txt", 'w', encoding='utf-8') as out_file:
-        differences_found = False
         for line in diff:
-            if line.startswith('- ') or line.startswith('+ '):
-                # Line removed (-), added (+), or changed (one of each)
-                differences_found = True
-                out_file.write(f"{line}\n")
-            elif line.startswith('? '):
-                # Indicates specific differences in a line (optional)
-                differences_found = True
-                out_file.write(f"Difference hint: {line}\n")
-        
-        if not differences_found:
-            out_file.write("No differences found between the files.\n")
+            if line.startswith(('-', '+', '?')):  # Include only added, removed, or hint lines
+                out_file.write(line.strip())
+    
     print(f"Comparison complete.")
     
 
