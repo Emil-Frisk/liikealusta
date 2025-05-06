@@ -33,6 +33,10 @@ def main():
             if user_input == 'k':
                 pass
             if user_input == 'p':
+                #bandwidth
+                response_left = client_leFt.read_holding_registers(address=7201, count=1)
+                response_left = client_leFt.read_holding_registers(address=7231, count=1)
+
                 #Factory IPEAK - 1919
                 response_left = client_leFt.read_holding_registers(address=9204, count=1)
                 response_right = client_right.read_holding_registers(address=9204, count=1)
@@ -145,9 +149,11 @@ def main():
 
             if user_input == "å":
                 ### mode 1 user low
-                response_left = client_leFt.read_holding_registers(address=7202, count=2) 
-                combine(response_left.registers)
-
+                
+                lau()
+            if user_input == "ä":
+                ### mode 1 user low
+                pau()
             if (user_input == "s"):
                 requests.get(SERVER_URL+"stop")
             if (user_input == "x"):
@@ -167,14 +173,33 @@ def main():
     except Exception as e:
         print(e)
 
+def lau():
+    start_regiser = 7232
+    for i in range(11):
+       next_register = start_regiser + (i*2)
+        ###
+       response_left = client_leFt.read_holding_registers(address=next_register, count=2) 
+       combine(response_left.registers) 
+
+def pau():
+    start_regiser = 7401
+    for i in range(7):
+       if i >=5:
+           next_register = start_regiser + (i*2)
+           response_left = client_leFt.read_holding_registers(address=next_register, count=2) 
+           combine(response_left.registers)
+       else:
+           next_register = start_regiser + (i)
+           response_left = client_leFt.read_holding_registers(address=next_register, count=2) 
+           combine(response_left.registers)
+
 def combine(registers):
     low_bum = registers[0]
     high_num = registers[1]
     shifted = high_num << 16
-    # test = shifted | low_bum
-    test = shifted
-    a = 10
+    test = shifted | low_bum
     b=wtf(test, 31)
+    print(str(b)+"\n")
     c=200
 
 def wtf(value, bits):
