@@ -1,17 +1,46 @@
 from pymodbus.client import ModbusTcpClient
+import os
 
 server_url = "http://127.0.0.1:5001/"
 right_client = "192.168.0.212"
 server_port = 502
 left_client =  ModbusTcpClient(host="192.168.0.211", port=server_port) 
 
+base_filename = "Registers data"
+extension = ".txt"
 
+def get_unique_filename(base_filename, extension=".txt"):
+    """Generate a unique filename by appending a number if the file exists."""
+    counter = 0
+    new_name = f"{base_filename}{extension}"
+    
+    while os.path.exists(new_name):
+        counter += 1
+        new_name = f"{base_filename}({counter}){extension}"
+    
+    return new_name
 
 def start():
+    pass
 
 def crawl():
+    filename = get_unique_filename(base_filename, extension)
     start_i = 2
-    for i in range(12564):
-        next_register = start_i + i
-        left_client.read_holding_registers(count=1, address=i)
+    with open(filename, "a") as file:
+        for i in range(12564):
+            success = False
+            next_register = start_i + i
+            try:
+                result = left_client.read_holding_registers(count=1, address=i)
+                file.write(f"Register ID: {next_register} - Data: {result}\n")
+                success = True
+            except Exception as e:
+                if not success:
+                    file.write(f"Error writing file: {e}\n")
+                    continue
+                    
+                
+            
+
+        
 
