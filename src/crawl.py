@@ -70,6 +70,7 @@ def crawl():
                 
             
 if __name__ == "__main__":
-    crawl() 
+    # crawl() 
+    compare_files("Registers data.txt","Registers data(1).txt")
         
 
