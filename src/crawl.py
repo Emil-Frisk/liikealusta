@@ -55,16 +55,17 @@ def crawl():
             next_register = start_i + i
             try:
                 result = left_client.read_holding_registers(count=1, address=i)
-                file.write(f"Register ID: {next_register} - Data: {result}\n")
+                file.write(f"Register ID: {next_register} - Data: {result.registers[0]}\n")
                 success = True
             except Exception as e:
                 if not success:
-                    file.write(f"Error reading register {next_register}: {e}\n")
+                    file.write(f"Register ID: {next_register} - Data: NA\n")
                     continue
     print(f"Crawling compelete.")
                     
                 
             
-
+if __name__ == "__main__":
+    crawl() 
         
 
