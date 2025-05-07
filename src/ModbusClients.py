@@ -71,11 +71,11 @@ class ModbusClients:
             self.logger.error(f"Error connecting to clients {str(e)}")
             return None
 
-    # def check_and_reset_tids(self):
-    #     for client in [self.client_left, self.client_right]:
-    #         if client and client.ctx.next_tid >= self.config.LAST_TID:
-    #             client.ctx.next_tid = self.config.START_TID
-    #             self.logger.debug(f"Reset TID for client")
+    def check_and_reset_tids(self):
+        for client in [self.client_left, self.client_right]:
+            if client and client.ctx.next_tid >= self.config.LAST_TID:
+                client.ctx.next_tid = self.config.START_TID
+                self.logger.debug(f"Reset TID for client")
 
     async def reset_motors(self):
         """ 

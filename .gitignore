@@ -6,3 +6,4 @@ venv
 .env
 .venv
 Registers data*
+changed_lines*
