@@ -3,7 +3,8 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
+from PyQt6.QtGui import QFont
 from setup_logging import setup_logging
 
 CONFIG_FILE = "config.json"
@@ -16,6 +17,10 @@ class ServerStartupGUI(QWidget):
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 350)
         
+        # Set font
+        font = QFont("Arial", 14)
+        self.setFont(font)
+        
         self.main_layout = QVBoxLayout()
 
         # Create Tab Widget
@@ -24,17 +29,17 @@ class ServerStartupGUI(QWidget):
 
         # General Tab
         self.general_tab = QWidget()
-        self.general_layout = QVBoxLayout()
+        self.general_layout = QFormLayout()
 
-        # IP Field for Servo Arm 1
-        self.general_layout.addWidget(QLabel("Servo Arm 1 IP:"))
-        self.ip_input1 = QLineEdit()
-        self.general_layout.addWidget(self.ip_input1)
+        # Speed Field
+        self.speed_input = QSpinBox()
+        self.speed_input.setRange(1, 500)
+        self.general_layout.addRow("Velocity (RPM):", self.speed_input)
 
-        # IP Field for Servo Arm 2
-        self.general_layout.addWidget(QLabel("Servo Arm 2 IP:"))
-        self.ip_input2 = QLineEdit()
-        self.general_layout.addWidget(self.ip_input2)
+        # Acceleration Field
+        self.accel_input = QSpinBox()
+        self.accel_input.setRange(1, 1000)
+        self.general_layout.addRow("Acceleration (RPM):", self.accel_input)
 
         # Add general layout to general tab
         self.general_tab.setLayout(self.general_layout)
@@ -42,25 +47,20 @@ class ServerStartupGUI(QWidget):
 
         # Advanced Tab
         self.advanced_tab = QWidget()
-        self.advanced_layout = QVBoxLayout()
+        self.advanced_layout = QFormLayout()
 
         # Update Frequency Field (1-70 Hz)
-        self.advanced_layout.addWidget(QLabel("Update Frequency (Hz):"))
         self.freq_input = QSpinBox()
         self.freq_input.setRange(1, 70)
-        self.advanced_layout.addWidget(self.freq_input)
+        self.advanced_layout.addRow("Update Frequency (Hz):", self.freq_input)
 
-        # Speed Field
-        self.advanced_layout.addWidget(QLabel("Velocity (RPM):"))
-        self.speed_input = QSpinBox()
-        self.speed_input.setRange(1, 500)
-        self.advanced_layout.addWidget(self.speed_input)
+        # IP Field for Servo Arm 1
+        self.ip_input1 = QLineEdit()
+        self.advanced_layout.addRow("Servo Arm 1 IP:", self.ip_input1)
 
-        # Acceleration Field
-        self.advanced_layout.addWidget(QLabel("Acceleration (RPM):"))
-        self.accel_input = QSpinBox()
-        self.accel_input.setRange(1, 1000)
-        self.advanced_layout.addWidget(self.accel_input)
+        # IP Field for Servo Arm 2
+        self.ip_input2 = QLineEdit()
+        self.advanced_layout.addRow("Servo Arm Servo 2 IP:", self.ip_input2)
 
         # Add advanced layout to advanced tab
         self.advanced_tab.setLayout(self.advanced_layout)
