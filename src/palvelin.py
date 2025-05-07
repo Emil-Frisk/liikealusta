@@ -103,7 +103,9 @@ def convert_to_revs(pfeedback):
 async def init(app):
     try:
         logger = setup_logging("server", "server.log")
+        app.logger = logger
         module_manager = ModuleManager(logger)
+        app.module_manager = module_manager
         config = handle_launch_params()
         clients = ModbusClients(config=config, logger=logger)
 
@@ -112,17 +114,19 @@ async def init(app):
 
         # Connect to both drivers
         connected = await clients.connect() 
+        app.clients = clients
 
         if not connected:  
-            sys.exit(1)
+            logger.error(f"""ould not form a connection to both motors,
+                          Left motors ips: {config.SERVER_IP_LEFT}, 
+                          Right motors ips: {config.SERVER_IP_RIGHT}, 
+                         shutting down the server """)
+            cleanup(app)
 
         app.app_config = config
-        app.logger = logger
         
-        app.module_manager = module_manager
         app.is_process_done = True
         app.fault_poller_pid = fault_poller_pid
-        app.clients = clients
 
         atexit.register(lambda: cleanup(app))
         
