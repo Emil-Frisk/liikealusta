@@ -264,10 +264,6 @@ async def create_app():
         except Exception as e:
             app.logger.error("Failed to stop motors?") # Mitäs sitten :D
 
-    @app.route('/asd')
-    async def asd():
-        print("terve")
-
     @app.route('/setvalues', methods=['GET'])
     async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
         try:

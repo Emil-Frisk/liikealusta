@@ -21,15 +21,15 @@ def IEG_MODE_bitmask_default(number):
         return number & mask
 
 # Only allows the needed bits
-# def is_fault_critical(number):
-#         mask = (1 << CONTINIOUS_CURRENT_BIT) | (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
-#         number = number & 0xFFFF
-#         return (number & mask) != 0
-
 def is_fault_critical(number):
-        mask = (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
+        mask = (1 << CONTINIOUS_CURRENT_BIT) | (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
         number = number & 0xFFFF
         return (number & mask) != 0
+
+# def is_fault_critical(number):
+#         mask = (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
+#         number = number & 0xFFFF
+#         return (number & mask) != 0
 
 def IEG_MODE_bitmask_alternative(number):
         mask = (1 << FAULT_RESET_BIT) | (1 << ALTERNATE_MODE_BIT) |(1 << ENABLE_MAINTAINED_BIT) 

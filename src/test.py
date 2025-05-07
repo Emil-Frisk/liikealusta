@@ -15,8 +15,10 @@ def bit_high_low(number, low_bit):
     register_val_low = number & bit_mask
     return (register_val_high, register_val_low)
 
-result = bit_high_low(1919, 7)
+result = bit_high_low(781, 7)
 result2 = bit_high_low(40, 4)
+
+d = 384 >> 7
 
 a = 3 << 7
 b = a // 2
