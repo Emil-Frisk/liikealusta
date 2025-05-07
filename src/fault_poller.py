@@ -6,8 +6,12 @@ from ModbusClients import ModbusClients
 from launch_params import handle_launch_params
 import asyncio
 from utils import is_fault_critical
+import requests
+
+SERVER_URL = "http://127.0.0.1:5001/"
 
 async def main():
+    
     logger = setup_logging("faul_poller", "faul_poller.log")
     config = handle_launch_params()
     clients = ModbusClients(config=config, logger=logger)
@@ -34,6 +38,8 @@ async def main():
                     logger.info("Fault cleared")
                 else:
                     logger.error("CRITICAL FAULT DETECTED")
+                    # shuts downs the server
+                    requests.get(SERVER_URL+"shutdown") 
     except KeyboardInterrupt:
         logger.info("Polling stopped by user")
     except Exception as e:
