@@ -238,8 +238,8 @@ async def create_app():
             await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
         elif (roll == "+"):
             (position_client_left, position_client_right) = await get_modbuscntrl_val(app.clients, app.app_config)
-            position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX* 0.10)) 
-            position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.10)) 
+            position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX* 0.20)) 
+            position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.20)) 
 
             position_client_left = min(MODBUSCTRL_MAX, position_client_left)
             position_client_right = max(0, position_client_right)
