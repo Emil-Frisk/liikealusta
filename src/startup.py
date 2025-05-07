@@ -99,6 +99,10 @@ class ServerStartupGUI(QWidget):
             raise FileNotFoundError(f"Python executable not found at: {venv_python}")
         return str(venv_python)
 
+    def get_base_path(self):
+        # Use sys._MEIPASS for PyInstaller executable, fallback to script directory
+        return getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))    
+
     def start_server(self):
         ip1 = self.ip_input1.text().strip()
         ip2 = self.ip_input2.text().strip()
@@ -112,9 +116,12 @@ class ServerStartupGUI(QWidget):
 
         self.save_config(ip1, ip2, freq, speed, accel)
         
-        try:
+        try:   
+            base_path = self.get_base_path()
+            server_path = Path(base_path) / "src" / "palvelin.py"
             venv_python = self.get_venv_python()
             server_path = self.project_root / "src" / "palvelin.py"
+            server_path = os.path.join(base_path, "/palvelin.py")
             #cmd = f'start /B "" "{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --freq "{freq}" --speed "{speed}" --accel "{accel}"'
             cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
             self.process = subprocess.Popen(
