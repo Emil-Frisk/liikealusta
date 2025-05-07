@@ -14,7 +14,7 @@ import sys
 import os
 import time
 
-async def shutdown_test(app):    
+async def shutdown_server(app):    
     """Gracefully shuts down the server."""
     app.logger.info("Shutdown request received. Cleaning up...")
 
@@ -253,7 +253,7 @@ async def create_app():
     async def shutdown():
         """Shuts down the server when called."""
         app.logger.info("Shutdown request received.")
-        await shutdown_test(app)
+        await shutdown_server(app)
 
     @app.route('/stop', methods=['get'])
     async def stop_motors():

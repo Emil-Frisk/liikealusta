@@ -132,6 +132,37 @@ def combine_to_20bit(sixteen_bit, four_bit):
     
     return result
 
+def get_twos_complement(bit, value):
+       is_highest_bit_on = value & 1 << (bit - 1)
+
+       if is_highest_bit_on:
+                base = 2**(bit-1)
+                lower = value & 0x7F
+                return (lower - base)
+                
+       return value
+       
+def get_vel32_revs(high, low):
+       whole_value_bits = high >> 8
+       decimal_high_bits = high & 0xFF
+       decimal_scaled = combine_to_24bit(low, decimal_high_bits)
+
+       decimal_revs = decimal_scaled/(2**24-1)
+       if decimal_revs == 1.0:
+               decimal_revs = 0.99
+
+       vel_whole_num_revs = get_twos_complement(8, whole_value_bits)
+       combined_revs = vel_whole_num_revs+decimal_revs
+       return combined_revs
+
+
+test1 = get_vel32_revs(3000,65535)
+test2 = get_vel32_revs(65535,65535)
+test3 = get_vel32_revs(128,2000)
+test4 = get_vel32_revs(31000,20000)
+
+a = 10
+
 def combine_8_8bit(whole, decimal):
        whole = whole & 0xFF
        decimal = decimal & 0xFF

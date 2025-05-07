@@ -24,10 +24,7 @@ async def send_message(websocket):
 async def main():
     server = await websockets.serve(handle_connection, "localhost", 8765)
     print("WebSocket server started on ws://localhost:8765")
-    async with websockets.connect("ws://localhost:8765") as ws:
-        await send_message(ws)
     await server.wait_closed()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
