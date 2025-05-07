@@ -26,17 +26,9 @@ async def shutdown_test(app):
     except Exception as e:
         app.logger.error("Stopping motors was not successful, will not shutdown server")
         return
-    
-    response = await app.clients.wait_for_motors_to_stop()
-    if not response:
-        app.logger.error("Stopping motors was not successful, will not shutdown server")
+    await asyncio.sleep(5)
 
     await app.clients.reset_motors()
- 
-    # Stop fault poller task if running
-    if hasattr(app, 'monitor_task') and app.monitor_task:
-        app.monitor_task.cancel()
-        await asyncio.sleep(1)  # Allow task to cancel properly
 
     # Cleanup Modbus clients
     if hasattr(app, 'clients') and app.clients:
