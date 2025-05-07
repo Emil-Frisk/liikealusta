@@ -14,7 +14,7 @@ import sys
 import os
 import time
 
-async def shutdown_test(app):    
+async def shutdown_server(app):    
     """Gracefully shuts down the server."""
     app.logger.info("Shutdown request received. Cleaning up...")
 
@@ -26,17 +26,9 @@ async def shutdown_test(app):
     except Exception as e:
         app.logger.error("Stopping motors was not successful, will not shutdown server")
         return
-    
-    response = await app.clients.wait_for_motors_to_stop()
-    if not response:
-        app.logger.error("Stopping motors was not successful, will not shutdown server")
+    await asyncio.sleep(5)
 
     await app.clients.reset_motors()
- 
-    # Stop fault poller task if running
-    if hasattr(app, 'monitor_task') and app.monitor_task:
-        app.monitor_task.cancel()
-        await asyncio.sleep(1)  # Allow task to cancel properly
 
     # Cleanup Modbus clients
     if hasattr(app, 'clients') and app.clients:
@@ -253,7 +245,7 @@ async def create_app():
     async def shutdown():
         """Shuts down the server when called."""
         app.logger.info("Shutdown request received.")
-        await shutdown_test(app)
+        await shutdown_server(app)
 
     @app.route('/stop', methods=['get'])
     async def stop_motors():
@@ -263,10 +255,6 @@ async def create_app():
                 pass # do something crazy :O
         except Exception as e:
             app.logger.error("Failed to stop motors?") # Mitäs sitten :D
-
-    @app.route('/asd')
-    async def asd():
-        print("terve")
 
     @app.route('/setvalues', methods=['GET'])
     async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
