@@ -3,7 +3,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget
 from setup_logging import setup_logging
 
 CONFIG_FILE = "config.json"
@@ -16,35 +16,55 @@ class ServerStartupGUI(QWidget):
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 350)
         
-        self.layout = QVBoxLayout()
+        self.main_layout = QVBoxLayout()
+
+        # Create Tab Widget
+        self.tabs = QTabWidget()
+        self.main_layout.addWidget(self.tabs)
+
+        # General Tab
+        self.general_tab = QWidget()
+        self.general_layout = QVBoxLayout()
 
         # IP Field for Servo Arm 1
-        self.layout.addWidget(QLabel("Servo Arm 1 IP:"))
+        self.general_layout.addWidget(QLabel("Servo Arm 1 IP:"))
         self.ip_input1 = QLineEdit()
-        self.layout.addWidget(self.ip_input1)
+        self.general_layout.addWidget(self.ip_input1)
 
         # IP Field for Servo Arm 2
-        self.layout.addWidget(QLabel("Servo Arm 2 IP:"))
+        self.general_layout.addWidget(QLabel("Servo Arm 2 IP:"))
         self.ip_input2 = QLineEdit()
-        self.layout.addWidget(self.ip_input2)
+        self.general_layout.addWidget(self.ip_input2)
+
+        # Add general layout to general tab
+        self.general_tab.setLayout(self.general_layout)
+        self.tabs.addTab(self.general_tab, "General")
+
+        # Advanced Tab
+        self.advanced_tab = QWidget()
+        self.advanced_layout = QVBoxLayout()
 
         # Update Frequency Field (1-70 Hz)
-        self.layout.addWidget(QLabel("Update Frequency (Hz):"))
+        self.advanced_layout.addWidget(QLabel("Update Frequency (Hz):"))
         self.freq_input = QSpinBox()
         self.freq_input.setRange(1, 70)
-        self.layout.addWidget(self.freq_input)
+        self.advanced_layout.addWidget(self.freq_input)
 
         # Speed Field
-        self.layout.addWidget(QLabel("Velocity (RPM):"))
+        self.advanced_layout.addWidget(QLabel("Velocity (RPM):"))
         self.speed_input = QSpinBox()
-        self.speed_input.setRange(1, 500)  # Adjust range as needed
-        self.layout.addWidget(self.speed_input)
+        self.speed_input.setRange(1, 500)
+        self.advanced_layout.addWidget(self.speed_input)
 
         # Acceleration Field
-        self.layout.addWidget(QLabel("Acceleration (RPM):"))
+        self.advanced_layout.addWidget(QLabel("Acceleration (RPM):"))
         self.accel_input = QSpinBox()
-        self.accel_input.setRange(1, 1000)  # Adjust range as needed
-        self.layout.addWidget(self.accel_input)
+        self.accel_input.setRange(1, 1000)
+        self.advanced_layout.addWidget(self.accel_input)
+
+        # Add advanced layout to advanced tab
+        self.advanced_tab.setLayout(self.advanced_layout)
+        self.tabs.addTab(self.advanced_tab, "Advanced")
 
         # Load last used values
         self.load_config()
@@ -52,15 +72,15 @@ class ServerStartupGUI(QWidget):
         # Start Button
         self.start_button = QPushButton("Start Server")
         self.start_button.clicked.connect(self.start_server)
-        self.layout.addWidget(self.start_button)
+        self.main_layout.addWidget(self.start_button)
         
         # Shutdown Button (Initially Disabled)
         self.shutdown_button = QPushButton("Shutdown Server")
         self.shutdown_button.setEnabled(False)
         self.shutdown_button.clicked.connect(self.shutdown_server)
-        self.layout.addWidget(self.shutdown_button)
+        self.main_layout.addWidget(self.shutdown_button)
         
-        self.setLayout(self.layout)
+        self.setLayout(self.main_layout)
 
     def load_config(self):
         try:
