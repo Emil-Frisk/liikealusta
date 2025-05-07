@@ -115,8 +115,8 @@ async def init(app):
         config = handle_launch_params()
         clients = ModbusClients(config=config, logger=logger)
 
-        # fault_poller_pid = module_manager.launch_module("fault_poller")
-        # app.monitor_task = asyncio.create_task(monitor_fault_poller(app))
+        fault_poller_pid = module_manager.launch_module("fault_poller")
+        app.monitor_task = asyncio.create_task(monitor_fault_poller(app))
 
         # Connect to both drivers
         connected = await clients.connect() 
@@ -129,7 +129,7 @@ async def init(app):
         
         app.module_manager = module_manager
         app.is_process_done = True
-        # app.fault_poller_pid = fault_poller_pid
+        app.fault_poller_pid = fault_poller_pid
         app.clients = clients
 
         atexit.register(lambda: cleanup(app))

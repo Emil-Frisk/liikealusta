@@ -46,7 +46,7 @@ class Config:
     START_TID: int = 10001 # first TID will be startTID + 1
     LAST_TID: int = 20000
     CONNECTION_TRY_COUNT = 5
-    ACC = 750   
-    VEL = 350
+    ACC = 123   
+    VEL = 321
 
 
