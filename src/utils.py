@@ -21,15 +21,15 @@ def IEG_MODE_bitmask_default(number):
         return number & mask
 
 # Only allows the needed bits
-# def is_fault_critical(number):
-#         mask = (1 << CONTINIOUS_CURRENT_BIT) | (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
-#         number = number & 0xFFFF
-#         return (number & mask) != 0
-
 def is_fault_critical(number):
-        mask = (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
+        mask = (1 << CONTINIOUS_CURRENT_BIT) | (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
         number = number & 0xFFFF
         return (number & mask) != 0
+
+# def is_fault_critical(number):
+#         mask = (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
+#         number = number & 0xFFFF
+#         return (number & mask) != 0
 
 def IEG_MODE_bitmask_alternative(number):
         mask = (1 << FAULT_RESET_BIT) | (1 << ALTERNATE_MODE_BIT) |(1 << ENABLE_MAINTAINED_BIT) 
@@ -131,6 +131,37 @@ def combine_to_20bit(sixteen_bit, four_bit):
     result = (four_bit << 16) | sixteen_bit
     
     return result
+
+def get_twos_complement(bit, value):
+       is_highest_bit_on = value & 1 << (bit - 1)
+
+       if is_highest_bit_on:
+                base = 2**(bit-1)
+                lower = value & 0x7F
+                return (lower - base)
+                
+       return value
+       
+def get_vel32_revs(high, low):
+       whole_value_bits = high >> 8
+       decimal_high_bits = high & 0xFF
+       decimal_scaled = combine_to_24bit(low, decimal_high_bits)
+
+       decimal_revs = decimal_scaled/(2**24-1)
+       if decimal_revs == 1.0:
+               decimal_revs = 0.99
+
+       vel_whole_num_revs = get_twos_complement(8, whole_value_bits)
+       combined_revs = vel_whole_num_revs+decimal_revs
+       return combined_revs
+
+
+test1 = get_vel32_revs(3000,65535)
+test2 = get_vel32_revs(65535,65535)
+test3 = get_vel32_revs(128,2000)
+test4 = get_vel32_revs(31000,20000)
+
+a = 10
 
 def combine_8_8bit(whole, decimal):
        whole = whole & 0xFF

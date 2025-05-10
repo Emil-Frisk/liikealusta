@@ -25,10 +25,11 @@ async def main():
     try:
         while(True):
             # await asyncio.sleep(config.POLLING_TIME_INTERVAL)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
             
             # clients.check_and_reset_tids()
-            if (await clients.check_fault_stauts()):
+            has_faulted = await clients.check_fault_stauts()
+            if (has_faulted):
                 # left_response, right_response = clients.get_recent_fault()
                 left_response, right_response = await clients.get_recent_fault()
                 print("Fault Poller fault status left: " + str(left_response))
