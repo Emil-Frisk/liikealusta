@@ -139,7 +139,6 @@ class ServerStartupGUI(QWidget):
             if getattr(sys, 'frozen', False):
                 server_path = os.path.join(base_path, "palvelin.exe")
                 venv_python = None
-                
             else:
                 server_path = os.path.join(base_path, "palvelin.py")
                 venv_python = self.find_venv_python()
