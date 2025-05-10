@@ -84,24 +84,22 @@ class ServerStartupGUI(QWidget):
                 "acceleration": accel
             }, f)
 
-    def get_project_root(self):
-        current_dir = Path(__file__).resolve().parent
-        for parent in current_dir.parents:
-            if (parent / ".venv").exists():
-                return parent
-        raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
+    def find_venv_python(self):
+            current_dir = Path(__file__).resolve().parent
+            for parent in current_dir.parents:
+                if (parent / ".venv").exists():
+                    return parent
+            # maybe return sys.executable parent, to use target computrers python without .venv?
+            raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
-    def get_venv_python(self):
-        project_root = self.get_project_root()
-        self.project_root = project_root
-        venv_python = project_root / ".venv" / "Scripts" / "python.exe"
-        if not venv_python.exists():
-            raise FileNotFoundError(f"Python executable not found at: {venv_python}")
-        return str(venv_python)
 
     def get_base_path(self):
-        # Use sys._MEIPASS for PyInstaller executable, fallback to script directory
-        return getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))    
+        if getattr(sys, 'frozen', False):
+                # PyInstaller context - return the directory of the executable
+                return str(Path(sys.executable).resolve().parent)
+        else:
+            # Normal context - return the directory of the script
+            return os.path.dirname(os.path.abspath(__file__))
 
     def start_server(self):
         ip1 = self.ip_input1.text().strip()
@@ -118,16 +116,24 @@ class ServerStartupGUI(QWidget):
         
         try:   
             base_path = self.get_base_path()
-            server_path = Path(base_path) / "src" / "palvelin.py"
-            venv_python = self.get_venv_python()
-            server_path = self.project_root / "src" / "palvelin.py"
-            server_path = os.path.join(base_path, "/palvelin.py")
-            #cmd = f'start /B "" "{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --freq "{freq}" --speed "{speed}" --accel "{accel}"'
-            cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
+            if getattr(sys, 'frozen', False):
+                server_path = os.path.join(base_path, "palvelin.exe")
+                venv_python = None
+                
+            else:
+                server_path = os.path.join(base_path, "palvelin.py")
+                venv_python = self.find_venv_python()
+            
+            if venv_python:
+                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
+            else: 
+                cmd = f'"{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
+
             self.process = subprocess.Popen(
                 cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
+
             self.logger.info(f"Server launched with PID: {self.process.pid}")
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.shutdown_button.setEnabled(True)
