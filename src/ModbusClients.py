@@ -1,12 +1,12 @@
 
 from pymodbus.client import AsyncModbusTcpClient
 from typing import List, Optional, Tuple, Union
-from utils import is_nth_bit_on
+from utils.utils import is_nth_bit_on
 import asyncio
 from pymodbus.exceptions import ConnectionException, ModbusIOException
 from time import sleep
 import time
-from utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
+from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
 
 class ModbusClients:
     def __init__(self, config, logger):
