@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
 from PyQt6.QtGui import QFont
-from setup_logging import setup_logging
+from utils.setup_logging import setup_logging
 
 CONFIG_FILE = "config.json"
 
@@ -14,6 +14,7 @@ class ServerStartupGUI(QWidget):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
         self.project_root = ""
+        
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 350)
         
@@ -79,12 +80,34 @@ class ServerStartupGUI(QWidget):
         self.shutdown_button.setEnabled(False)
         self.shutdown_button.clicked.connect(self.shutdown_server)
         self.main_layout.addWidget(self.shutdown_button)
+
+        self.set_styles()
         
         self.setLayout(self.main_layout)
 
+    def set_styles(self):
+        styles_path = os.path.join(Path(__file__).parent, "styles.json")
+        # Load the JSON from the file
+        try:
+            with open(styles_path, "r") as f:
+                data = json.load(f)
+
+            # Apply the styles to your buttons
+            for style in data["styles"]:
+                if "start_up_btn" in style:
+                    self.start_button.setStyleSheet(style["start_up_btn"])
+                if "shutdown_btn" in style:
+                    self.shutdown_button.setStyleSheet(style["shutdown_btn"])
+        except FileNotFoundError:
+            print(f"Error: styles.json not found at {styles_path}")
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+
     def load_config(self):
         try:
-            with open(CONFIG_FILE, "r") as f:
+            root = Path(__file__).parent
+            config_path = os.path.join(root, CONFIG_FILE)
+            with open(config_path, "r") as f:
                 config = json.load(f)
                 self.ip_input1.setText(config.get("servo_ip_1", ""))
                 self.ip_input2.setText(config.get("servo_ip_2", ""))

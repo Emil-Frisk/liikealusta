@@ -3,7 +3,7 @@ import asyncio
 from quart import Quart, request, make_response, jsonify
 from ModbusClients import ModbusClients
 import atexit
-from setup_logging import setup_logging
+from utils.setup_logging import setup_logging
 from launch_params import handle_launch_params
 from module_manager import ModuleManager
 import subprocess
