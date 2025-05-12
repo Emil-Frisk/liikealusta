@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
 from PyQt6.QtGui import QFont
+import requests
 from utils.setup_logging import setup_logging
 
 CONFIG_FILE = "config.json"
@@ -179,15 +180,18 @@ class ServerStartupGUI(QWidget):
             self.logger.info(f"Server launched with PID: {self.process.pid}")
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.shutdown_button.setEnabled(True)
+            self.start_button.setEnabled(False)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
     def shutdown_server(self):
         try:
-            response = subprocess.run(["curl", "-X", "GET", "http://localhost:5001/shutdown"], capture_output=True, text=True)
+            response = requests.get("http://localhost:5001/shutdown")
+            a = 10
             if response.returncode == 56:
                 QMessageBox.information(self, "Success", "Server shutdown successfully!")
                 self.shutdown_button.setEnabled(False)
+                self.start_button.setEnabled(True)
             else:
                 QMessageBox.warning(self, "Warning", "Failed to shutdown server!")
         except Exception as e:
