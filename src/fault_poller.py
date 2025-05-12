@@ -1,7 +1,7 @@
 import atexit
 from time import sleep
 from config import Config
-from setup_logging import setup_logging
+from utils.setup_logging import setup_logging
 from ModbusClients import ModbusClients
 from launch_params import handle_launch_params
 import asyncio

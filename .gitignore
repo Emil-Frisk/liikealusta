@@ -7,3 +7,5 @@ venv
 .venv
 Registers data*
 changed_lines*
+utils.egg-info
+drr.py
