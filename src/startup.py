@@ -108,7 +108,7 @@ class ServerStartupGUI(QWidget):
             current_dir = Path(__file__).resolve().parent
             for parent in current_dir.parents:
                 if (parent / ".venv").exists():
-                    return parent
+                        return os.path.join(parent, ".venv\Scripts\python.exe")
             # maybe return sys.executable parent, to use target computrers python without .venv?
             raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
