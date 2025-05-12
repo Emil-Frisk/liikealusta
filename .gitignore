@@ -7,5 +7,22 @@ venv
 .venv
 Registers data*
 changed_lines*
+
+# PyInstaller created folders
+build/
+dist/
+
+# Temporary and compiled files
+*.pyc
+__pycache__/
+*.pyz
+*.exe
+*.spec
+
+# Temporary zip files
+*.zip
+
+# Logs
+*.log
 utils.egg-info
 drr.py

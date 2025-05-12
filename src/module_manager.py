@@ -15,13 +15,19 @@ class ModuleManager:
         try:
             if args:
                 cmd.extend(args)
-                
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-            src_dir = os.path.join(base_dir, 'src')
-            file_path = os.path.join(src_dir, f"{module_path}.py")
 
-            cmd =  ['python', file_path]
-            
+            if getattr(sys, 'frozen', False):
+                # PyInstaller context - use the executable path
+                base_dir = os.path.dirname(sys.executable)
+                exefilepath = os.path.join(base_dir, f"{module_path}.exe")
+                cmd =  [exefilepath]
+            else:
+                # Normal context - use the script path   
+                base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+                src_dir = os.path.join(base_dir, 'src')
+                file_path = os.path.join(src_dir, f"{module_path}.py")
+                cmd =  ['python', file_path]
+
             process = subprocess.Popen(
                 cmd,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
@@ -56,7 +62,7 @@ class ModuleManager:
 
             print(f"process_name {process_name}")
 
-            if 'python' not in process_name:
+            if 'python' not in process_name and not process_name.endswith('.exe'):
                 self.logger.error(f"Process with PID {pid} is not a Python process: {process_name}")
                 del self.processes[pid]
                 return False
