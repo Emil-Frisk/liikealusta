@@ -1,10 +1,11 @@
 import logging
 import os
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 def setup_logging(name, filename):
     log_dir = "logs"
-    parent_log_dir = os.path.join(os.path.dirname(__file__), '..', 'logs')
+    parent_log_dir = os.path.join(Path(__file__).parent.parent.parent, "logs")
     if not os.path.exists(parent_log_dir):
         os.makedirs(parent_log_dir)
     

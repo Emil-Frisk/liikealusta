@@ -83,7 +83,8 @@ class ServerStartupGUI(QWidget):
         self.main_layout.addWidget(self.shutdown_button)
 
         self.set_styles()
-        
+
+
         self.setLayout(self.main_layout)
 
     def set_styles(self):
@@ -160,11 +161,12 @@ class ServerStartupGUI(QWidget):
         
         try:   
             base_path = self.get_base_path()
+            src_path = Path(__file__).parent.parent
             if getattr(sys, 'frozen', False):
                 server_path = os.path.join(base_path, "palvelin.exe")
                 venv_python = None
             else:
-                server_path = os.path.join(base_path, "palvelin.py")
+                server_path = os.path.join(src_path, "palvelin.py")
                 venv_python = self.find_venv_python()
             
             if venv_python:

@@ -39,7 +39,8 @@ async def shutdown_server(app):
         app.module_manager.cleanup_all()
 
     app.logger.info("Cleanup complete. Shutting down server.")
-    os._exit(0)
+    asyncio.create_task(close_server)
+    return True
 
 
 def cleanup(app):
