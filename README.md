@@ -43,6 +43,6 @@ Rajapinta on toteutettu flaskilla tehtyyn web-palvelimeen. Se koostuu 6 rajapinn
 <br>
 -startup.exe: pyinstaller --add-data "src;src" --add-data "requirements.txt;." -F --noconsole src/startup.py
 <br>
--palvelin.exe: pyinstaller --add-data "src;src" -F --noconsole src/palvelin.py
+-palvelin.exe: pyinstaller --add-data "src;src" --add-data "requirements.txt;." -F --noconsole src/palvelin.py
 <br>
--fault_poller.exe: pyinstaller --add-data "src;src" -F --noconsole src/fault_poller.py
+-fault_poller.exe: pyinstaller --add-data "src;src" --add-data "requirements.txt;." -F --noconsole src/fault_poller.py
