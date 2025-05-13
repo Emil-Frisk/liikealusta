@@ -6,6 +6,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
 from PyQt6.QtGui import QFont
 from setup_logging import setup_logging
+import runpy
 
 CONFIG_FILE = "config.json"
 
@@ -171,10 +172,15 @@ class ServerStartupGUI(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = ServerStartupGUI()
-    window.show()
-    sys.exit(app.exec())
+    if len(sys.argv) > 1 and sys.argv[1].endswith('.py'):
+        script_path = sys.argv[1]
+        sys.argv = sys.argv[1:]
+        runpy.run_path(script_path, run_name='__main__')
+    else:
+        app = QApplication(sys.argv)
+        window = ServerStartupGUI()
+        window.show()
+        sys.exit(app.exec())
 
 
     ### test
