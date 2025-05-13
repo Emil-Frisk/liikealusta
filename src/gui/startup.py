@@ -6,6 +6,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
 from PyQt6.QtGui import QFont
 import requests
+import runpy
 from utils.setup_logging import setup_logging
 
 CONFIG_FILE = "config.json"
