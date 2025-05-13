@@ -5,10 +5,67 @@ import subprocess
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
 from PyQt6.QtGui import QFont
+from PyQt6.QtCore import pyqtSignal, QObject
 import requests
+import asyncio
+import websockets
+import qasync
 from utils.setup_logging import setup_logging
 
 CONFIG_FILE = "config.json"
+
+class WebSocketClient(QObject):
+    # Signal to emit received messages to the GUI
+    message_received = pyqtSignal(str)
+
+    def __init__(self, uri="ws://localhost:6969"):
+        super().__init__()
+        self.uri = uri
+        self.websocket = None
+        self.running = False
+        self.loop = None
+
+    async def connect(self):
+        """Connect to the WebSocket server and listen for messages."""
+        try:
+            self.websocket = await websockets.connect(self.uri)
+            self.running = True
+            self.message_received.emit(f"Connected to {self.uri}")
+            await self.listen()
+        except Exception as e:
+            self.message_received.emit(f"WebSocket connection error: {str(e)}")
+            self.running = False
+
+    async def listen(self):
+        """Listen for incoming messages."""
+        try:
+            async for message in self.websocket:
+                self.message_received.emit(f"Received: {message}")
+        except websockets.ConnectionClosed as e:
+            self.message_received.emit(f"WebSocket disconnected: {e}")
+            self.running = False
+        except Exception as e:
+            self.message_received.emit(f"WebSocket error: {str(e)}")
+            self.running = False
+
+    async def send(self, message):
+        """Send a message to the server."""
+        if self.websocket and self.running:
+            try:
+                await self.websocket.send(message)
+                self.message_received.emit(f"Sent: {message}")
+            except Exception as e:
+                self.message_received.emit(f"Failed to send message: {str(e)}")
+
+    async def close(self):
+        """Close the WebSocket connection."""
+        if self.websocket:
+            try:
+                await self.websocket.close()
+                self.message_received.emit("WebSocket connection closed")
+                self.running = False
+            except Exception as e:
+                self.message_received.emit(f"Error closing WebSocket: {str(e)}")
 
 class ServerStartupGUI(QWidget):
     def __init__(self):
@@ -17,7 +74,7 @@ class ServerStartupGUI(QWidget):
         self.project_root = ""
         
         self.setWindowTitle("Server Startup")
-        self.setGeometry(100, 100, 400, 350)
+        self.setGeometry(100, 100, 400, 400)  # Adjusted height for message label
         
         # Set font
         font = QFont("Arial", 14)
@@ -68,6 +125,11 @@ class ServerStartupGUI(QWidget):
         self.advanced_tab.setLayout(self.advanced_layout)
         self.tabs.addTab(self.advanced_tab, "Advanced")
 
+        # Message Display Label
+        self.message_label = QLabel("WebSocket Messages: Not connected")
+        self.message_label.setWordWrap(True)
+        self.main_layout.addWidget(self.message_label)
+
         # Load last used values
         self.load_config()
 
@@ -86,14 +148,15 @@ class ServerStartupGUI(QWidget):
         
         self.setLayout(self.main_layout)
 
+        # Initialize WebSocket client
+        self.websocket_client = WebSocketClient()
+        self.websocket_client.message_received.connect(self.update_message_label)
+
     def set_styles(self):
         styles_path = os.path.join(Path(__file__).parent, "styles.json")
-        # Load the JSON from the file
         try:
             with open(styles_path, "r") as f:
                 data = json.load(f)
-
-            # Apply the styles to your buttons
             for style in data["styles"]:
                 if "start_up_btn" in style:
                     self.start_button.setStyleSheet(style["start_up_btn"])
@@ -129,21 +192,21 @@ class ServerStartupGUI(QWidget):
             }, f)
 
     def find_venv_python(self):
-            current_dir = Path(__file__).resolve().parent
-            for parent in current_dir.parents:
-                if (parent / ".venv").exists():
-                        return os.path.join(parent, ".venv\Scripts\python.exe")
-            # maybe return sys.executable parent, to use target computrers python without .venv?
-            raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
-
+        current_dir = Path(__file__).resolve().parent
+        for parent in current_dir.parents:
+            if (parent / ".venv").exists():
+                return os.path.join(parent, ".venv", "Scripts", "python.exe")
+        raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
     def get_base_path(self):
         if getattr(sys, 'frozen', False):
-                # PyInstaller context - return the directory of the executable
-                return str(Path(sys.executable).resolve().parent)
+            return str(Path(sys.executable).resolve().parent)
         else:
-            # Normal context - return the directory of the script
             return os.path.dirname(os.path.abspath(__file__))
+
+    async def start_websocket_client(self):
+        """Start the WebSocket client."""
+        await self.websocket_client.connect()
 
     def start_server(self):
         ip1 = self.ip_input1.text().strip()
@@ -181,27 +244,56 @@ class ServerStartupGUI(QWidget):
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.shutdown_button.setEnabled(True)
             self.start_button.setEnabled(False)
+
+            # Start WebSocket client after server starts
+            asyncio.ensure_future(self.start_websocket_client())
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
+    async def shutdown_websocket_client(self):
+        """Shutdown the WebSocket client."""
+        await self.websocket_client.close()
+
     def shutdown_server(self):
         try:
+            # First, close the WebSocket client
+            asyncio.run_coroutine_threadsafe(self.shutdown_websocket_client(), qasync.get_event_loop())
+
+            # Then attempt to shutdown the server
             response = requests.get("http://localhost:5001/shutdown")
-            a = 10
-            if response.returncode == 56:
+            if response.status_code == 200:  # Fixed: Check status_code, not returncode
                 QMessageBox.information(self, "Success", "Server shutdown successfully!")
                 self.shutdown_button.setEnabled(False)
                 self.start_button.setEnabled(True)
             else:
-                QMessageBox.warning(self, "Warning", "Failed to shutdown server!")
+                QMessageBox.warning(self, "Warning", f"Failed to shutdown server: {response.text}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
+    def update_message_label(self, message):
+        """Update the GUI label with WebSocket messages."""
+        self.message_label.setText(message)
+
+        # Example: Parse message and update GUI elements
+        if "Received: " in message:
+            try:
+                # Assuming server sends messages like "identity=1|data=value"
+                msg_content = message.split("Received: ")[1]
+                if "data=" in msg_content:
+                    value = msg_content.split("data=")[1].split("|")[0]
+                    # Update GUI based on data (e.g., set speed_input)
+                    self.speed_input.setValue(int(value))
+            except Exception as e:
+                self.logger.error(f"Error parsing message: {str(e)}")
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    # Initialize qasync event loop
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    
     window = ServerStartupGUI()
     window.show()
-    sys.exit(app.exec())
-
-
-    ### test
+    
+    with loop:
+        loop.run_forever()
