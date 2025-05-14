@@ -4,6 +4,8 @@ from typing import List, Optional, Tuple, Union
 from utils.utils import is_nth_bit_on
 import asyncio
 from pymodbus.exceptions import ConnectionException, ModbusIOException
+import math
+from utils.utils import convert_to_revs
 from time import sleep
 import time
 from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
@@ -1021,7 +1023,31 @@ class ModbusClients:
         except Exception as e:
             self.logger.error(f"Unexpected error while setting ieg mode value: {str(e)}")
             return False
-
-
         
-                    
+    async def get_modbuscntrl_val(self):
+        """
+        Gets the current revolutions of both motors and calculates with linear interpolation
+        the percentile where they are in the current max_rev - min_rev range.
+        After that we multiply it with the maxium modbuscntrl val (10k)
+        """
+        result = await self.get_current_revs()
+        if result is False:
+            return False
+
+        pfeedback_client_left, pfeedback_client_right = result
+
+        revs_left = convert_to_revs(pfeedback_client_left)
+        revs_right = convert_to_revs(pfeedback_client_right)
+
+        ## Percentile = x - pos_min / (pos_max - pos_min)
+        POS_MIN_REVS = 0.393698024
+        POS_MAX_REVS = 28.937007874015748031496062992126
+        modbus_percentile_left = (revs_left - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
+        modbus_percentile_right = (revs_right - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
+        modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
+        modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
+
+        position_client_left = math.floor(modbus_percentile_left * self.config.MODBUSCTRL_MAX)
+        position_client_right = math.floor(modbus_percentile_right * self.config.MODBUSCTRL_MAX)
+
+        return position_client_left, position_client_right

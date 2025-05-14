@@ -8,122 +8,13 @@ from launch_params import handle_launch_params
 from module_manager import ModuleManager
 import subprocess
 from time import sleep 
-from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs
+from services.monitor_service import create_hearthbeat_monitor_tasks
+from services.cleaunup import cleanup, close_tasks, shutdown_server
+from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs, convert_to_revs
 import math
 import sys
 import os
 import time
-
-async def shutdown_server(app):    
-    """Gracefully shuts down the server."""
-    app.logger.info("Shutdown request received. Cleaning up...")
-
-    try:
-        success = await app.clients.stop()
-        if not success:
-            app.logger.error("Stopping motors was not successful, will not shutdown server")
-            return
-    except Exception as e:
-        app.logger.error("Stopping motors was not successful, will not shutdown server")
-        return
-    await asyncio.sleep(5)
-
-    await app.clients.reset_motors()
-
-    # Cleanup Modbus clients
-    cleanup(app)
-    
-def close_tasks(app):
-    if hasattr(app, "monitor_fault_poller"):
-        app.monitor_fault_poller.cancel()
-        app.logger.info("Closed monitor fault poller")
-    if hasattr(app, "monitor_so_srv"):
-        app.monitor_so_srv.cancel()
-        app.logger.info("Closed monitor socket server")
-
-def cleanup(app):
-    app.logger.info("cleanup function executed!")
-    close_tasks(app)
-    app.module_manager.cleanup_all()
-    if app.clients is not None:
-        app.clients.cleanup()
-
-    app.logger.info("Cleanup complete. Shutting down server.")
-    os._exit(0)
-
-async def monitor_fault_poller(app):
-    """
-    Heathbeat monitor that makes sure fault poller
-    stays alive and if it dies it restarts it
-    """
-    while True:
-        if hasattr(app, 'fault_poller_pid'):
-            pid = app.fault_poller_pid
-            if pid and not psutil.pid_exists(pid):
-                app.logger.warning(f"fault_poller (PID: {pid}) is not running, restarting...")
-                new_pid = app.module_manager.launch_module("fault_poller")
-                app.fault_poller_pid = new_pid
-                app.logger.info(f"Restarted fault_poller with PID: {new_pid}")
-                del app.module_manager.processes[pid]
-        await asyncio.sleep(10)  # Check every 10 seconds
-
-async def monitor_socket_server(app):
-    """
-    Heathbeat monitor that makes sure socket server 
-    stays alive and if it dies it restarts it
-    """
-    while True:
-        if hasattr(app, 'so_srv_pid'):
-            pid = app.so_srv_pid
-            if pid and not psutil.pid_exists(pid):
-                app.logger.warning(f"socket server (PID: {pid}) is not running, restarting...")
-                new_pid = app.module_manager.launch_module("websocket_server")
-                app.so_srv_pid = new_pid
-                app.logger.info(f"Restarted websocket server with PID: {new_pid}")
-                del app.module_manager.processes[pid]
-        await asyncio.sleep(60)
-
-async def get_modbuscntrl_val(clients, config):
-        """
-        Gets the current revolutions of both motors and calculates with linear interpolation
-        the percentile where they are in the current max_rev - min_rev range.
-        After that we multiply it with the maxium modbuscntrl val (10k)
-        """
-        result = await clients.get_current_revs()
-        if result is False:
-            cleanup()
-
-        pfeedback_client_left, pfeedback_client_right = result
-
-        revs_left = convert_to_revs(pfeedback_client_left)
-        revs_right = convert_to_revs(pfeedback_client_right)
-
-        ## Percentile = x - pos_min / (pos_max - pos_min)
-        POS_MIN_REVS = 0.393698024
-        POS_MAX_REVS = 28.937007874015748031496062992126
-        modbus_percentile_left = (revs_left - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-        modbus_percentile_right = (revs_right - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-        modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
-        modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
-
-        position_client_left = math.floor(modbus_percentile_left * config.MODBUSCTRL_MAX)
-        position_client_right = math.floor(modbus_percentile_right * config.MODBUSCTRL_MAX)
-
-        return position_client_left, position_client_right
-
-
-def convert_to_revs(pfeedback):
-    decimal = pfeedback.registers[0] / 65535
-    num = pfeedback.registers[1]
-    return num + decimal
-
-async def create_hearthbeat_monitor_tasks(app, module_manager):
-    fault_poller_pid = module_manager.launch_module("fault_poller")
-    app.fault_poller_pid = fault_poller_pid
-    so_srv_pid = module_manager.launch_module("websocket_server")
-    app.so_srv_pid = so_srv_pid
-    app.monitor_fault_poller = asyncio.create_task(monitor_fault_poller(app))
-    app.monitor_so_srv = asyncio.create_task(monitor_socket_server(app))
 
 async def init(app):
     try:
@@ -183,7 +74,10 @@ async def init(app):
             if not await clients.set_analog_input_channel(2):
                 cleanup()
 
-            (position_client_left, position_client_right) = await get_modbuscntrl_val(clients, config)
+            response = await clients.get_modbuscntrl_val()
+            if not response:
+                cleanup()
+            (position_client_left, position_client_right) = response
 
             # modbus cntrl 0-10k
             if not await clients.set_analog_modbus_cntrl((position_client_left, position_client_right)):
@@ -218,7 +112,10 @@ async def create_app():
             await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=MODBUSCTRL_MAX, slave=app.app_config.SLAVE_ID)
 
         if (pitch == "+"): # forward
-            (position_client_left, position_client_right) = await get_modbuscntrl_val(app.clients, app.app_config)
+            response = await app.clients.get_modbuscntrl_val()
+            if not response:
+                app.logger.error("Failed to get modbuscntrl ")
+            (position_client_left, position_client_right) = response
 
             position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX * 0.15)) 
             position_client_right = math.floor(position_client_right + (MODBUSCTRL_MAX* 0.15)) 
@@ -230,7 +127,10 @@ async def create_app():
             await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
 
         elif (pitch == "-"): #backward
-            (position_client_left, position_client_right) = await get_modbuscntrl_val(app.clients, app.app_config)
+            response = await app.clients.get_modbuscntrl_val()
+            if not response:
+                app.logger.error("Failed to get modbuscntrl val")
+            (position_client_left, position_client_right) = response
 
             position_client_left = math.floor(position_client_left - (MODBUSCTRL_MAX* 0.15)) 
             position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.15)) 
@@ -241,7 +141,10 @@ async def create_app():
             await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
             await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
         elif (roll == "-"):# left
-            (position_client_left, position_client_right) = await get_modbuscntrl_val(app.clients, app.app_config)
+            response = await app.clients.get_modbuscntrl_val()
+            if not response:
+                app.logger.error("Failed to get modbuscntrl val")
+            (position_client_left, position_client_right) = response
             position_client_left = math.floor(position_client_left - (MODBUSCTRL_MAX* 0.08)) 
             position_client_right = math.floor(position_client_right + (MODBUSCTRL_MAX* 0.08)) 
 
@@ -251,7 +154,11 @@ async def create_app():
             await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
             await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
         elif (roll == "+"):
-            (position_client_left, position_client_right) = await get_modbuscntrl_val(app.clients, app.app_config)
+            response = await app.clients.get_modbuscntrl_val()
+            if not response:
+                app.logger.error("Failed to get modbuscntrl val")
+            (position_client_left, position_client_right) = response
+
             position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX* 0.20)) 
             position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.20)) 
 

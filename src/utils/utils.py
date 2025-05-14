@@ -20,6 +20,11 @@ def find_venv_python():
                         return os.path.join(parent, ".venv\Scripts\python.exe")
         raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
+def convert_to_revs(pfeedback):
+    decimal = pfeedback.registers[0] / 65535
+    num = pfeedback.registers[1]
+    return num + decimal
+
 def get_exe_temp_dir():
         return getattr(sys, "_MEIPASS")
 def extract_part(self, part, message):
