@@ -1,8 +1,8 @@
 import asyncio
 import os
 
-async def shutdown_server(app):    
-    """Gracefully shuts down the server."""
+async def disable_server(app):    
+    """stops and disables motors and closes sub processes"""
     app.logger.info("Shutdown request received. Cleaning up...")
 
     try:
@@ -17,9 +17,22 @@ async def shutdown_server(app):
 
     await app.clients.reset_motors()
 
-    # Cleanup Modbus clients
-    cleanup(app)
+    cleanup(app, False)
     
+async def shutdown_server_delay(app):
+    # Stop the Quart app's event loop
+    tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
+    for task in tasks:
+        task.cancel()
+    
+    # Stop the event loop
+    loop = asyncio.get_running_loop()
+    loop.stop()
+    loop.run_until_complete(loop.shutdown_asyncgens())
+    loop.close()
+    
+    app.logger.info("Server shutdown complete.")
+
 def close_tasks(app):
     if hasattr(app, "monitor_fault_poller"):
         app.monitor_fault_poller.cancel()
@@ -28,7 +41,7 @@ def close_tasks(app):
         app.monitor_so_srv.cancel()
         app.logger.info("Closed monitor socket server")
 
-def cleanup(app):
+def cleanup(app, shutdown=True):
     app.logger.info("cleanup function executed!")
     close_tasks(app)
     app.module_manager.cleanup_all()
@@ -36,4 +49,6 @@ def cleanup(app):
         app.clients.cleanup()
 
     app.logger.info("Cleanup complete. Shutting down server.")
-    os._exit(0)
+    if shutdown:
+        os._exit(0)
+    
