@@ -132,7 +132,6 @@ async def create_hearthbeat_monitor_tasks(app, module_manager):
     app.monitor_fault_poller = asyncio.create_task(monitor_fault_poller(app))
     app.monitor_so_srv = asyncio.create_task(monitor_socket_server(app))
 
-
 async def init(app):
     try:
         logger = setup_logging("server", "server.log")

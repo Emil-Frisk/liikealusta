@@ -13,6 +13,15 @@ ACTUATOR_TEMPERATURE = 8
 UVEL32_RESOLUTION = 1 / (2**24 - 1)
 UACC32_RESOLUTION = 1 / (2**20 - 1)
 
+def find_venv_python():
+        current_dir = Path(__file__).resolve().parent
+        for parent in current_dir.parents:
+                if (parent / ".venv").exists():
+                        return os.path.join(parent, ".venv\Scripts\python.exe")
+                raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
+
+def get_exe_temp_dir():
+        return getattr(sys, "_MEIPASS")
 def extract_part(self, part, message):
         # Escape the part parameter to handle special regex characters
         escaped_part = re.escape(part)
@@ -23,15 +32,6 @@ def extract_part(self, part, message):
             return match.group(1)
         else:
             return None
-def find_venv_python():
-        current_dir = Path(__file__).resolve().parent
-        for parent in current_dir.parents:
-                if (parent / ".venv").exists():
-                        return os.path.join(parent, ".venv\Scripts\python.exe")
-                raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
-
-def get_exe_temp_dir():
-        return getattr(sys, "_MEIPASS")
 
 def is_nth_bit_on(n, number):
             mask = 1 << n
