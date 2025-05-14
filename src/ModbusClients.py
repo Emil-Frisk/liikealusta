@@ -91,16 +91,20 @@ class ModbusClients:
         Returns tuple of (left_fault, right_fault), None if read fails
         """
         try:
-            left_response = await self.client_left.read_holding_registers(
+            responses = await asyncio.gather(
+                self.client_left.read_holding_registers(
                 address=self.config.RECENT_FAULT_ADDRESS,
                 count=1,
                 slave=self.config.SLAVE_ID
-            )
-            right_response = await self.client_right.read_holding_registers(
+            ),
+                self.client_right.read_holding_registers(
                 address=self.config.RECENT_FAULT_ADDRESS,
                 count=1,
                 slave=self.config.SLAVE_ID
-            )
+            ), return_exceptions=True)
+            
+
+            left_response, right_response = responses
 
             if left_response.isError() or right_response.isError():
                 self.logger.error("Error reading fault register")
@@ -1019,4 +1023,5 @@ class ModbusClients:
             return False
 
 
+        
                     

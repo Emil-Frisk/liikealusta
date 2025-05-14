@@ -1,4 +1,8 @@
 import math
+import sys
+from pathlib import Path
+import os
+import re
 
 FAULT_RESET_BIT = 15
 ENABLE_MAINTAINED_BIT = 1
@@ -9,6 +13,25 @@ ACTUATOR_TEMPERATURE = 8
 UVEL32_RESOLUTION = 1 / (2**24 - 1)
 UACC32_RESOLUTION = 1 / (2**20 - 1)
 
+def find_venv_python():
+        current_dir = Path(__file__).resolve().parent
+        for parent in current_dir.parents:
+                if (parent / ".venv").exists():
+                        return os.path.join(parent, ".venv\Scripts\python.exe")
+        raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
+
+def get_exe_temp_dir():
+        return getattr(sys, "_MEIPASS")
+def extract_part(self, part, message):
+        # Escape the part parameter to handle special regex characters
+        escaped_part = re.escape(part)
+        # Construct the regex pattern dynamically
+        pattern = rf'{escaped_part}([^|]*)\|'
+        match = re.search(pattern, message)
+        if match:
+            return match.group(1)
+        else:
+            return None
 
 def is_nth_bit_on(n, number):
             mask = 1 << n

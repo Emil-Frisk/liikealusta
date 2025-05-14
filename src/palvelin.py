@@ -42,9 +42,17 @@ async def shutdown_server(app):
     asyncio.create_task(close_server)
     return True
 
+def close_tasks(app):
+    if hasattr(app, "monitor_fault_poller"):
+        app.monitor_fault_poller.cancel()
+        app.logger.info("Closed monitor fault poller")
+    if hasattr(app, "monitor_so_srv"):
+        app.monitor_so_srv.cancel()
+        app.logger.info("Closed monitor socket server")
 
 def cleanup(app):
     app.logger.info("cleanup function executed!")
+    app.close_tasks(app)
     app.module_manager.cleanup_all()
     if app.clients is not None:
         app.clients.cleanup()
@@ -66,6 +74,22 @@ async def monitor_fault_poller(app):
                 app.logger.info(f"Restarted fault_poller with PID: {new_pid}")
                 del app.module_manager.processes[pid]
         await asyncio.sleep(10)  # Check every 10 seconds
+
+async def monitor_socket_server(app):
+    """
+    Heathbeat monitor that makes sure socket server 
+    stays alive and if it dies it restarts it
+    """
+    while True:
+        if hasattr(app, 'so_srv_pid'):
+            pid = app.so_srv_pid
+            if pid and not psutil.pid_exists(pid):
+                app.logger.warning(f"socket server (PID: {pid}) is not running, restarting...")
+                new_pid = app.module_manager.launch_module("websocket_server")
+                app.so_srv_pid = new_pid
+                app.logger.info(f"Restarted websocket server with PID: {new_pid}")
+                del app.module_manager.processes[pid]
+        await asyncio.sleep(60)
 
 async def get_modbuscntrl_val(clients, config):
         """
@@ -101,6 +125,14 @@ def convert_to_revs(pfeedback):
     num = pfeedback.registers[1]
     return num + decimal
 
+async def create_hearthbeat_monitor_tasks(app, module_manager):
+    fault_poller_pid = module_manager.launch_module("fault_poller")
+    app.fault_poller_pid = fault_poller_pid
+    so_srv_pid = module_manager.launch_module("websocket_server")
+    app.so_srv_pid = so_srv_pid
+    app.monitor_fault_poller = asyncio.create_task(monitor_fault_poller(app))
+    app.monitor_so_srv = asyncio.create_task(monitor_socket_server(app))
+
 async def init(app):
     try:
         logger = setup_logging("server", "server.log")
@@ -110,24 +142,21 @@ async def init(app):
         config = handle_launch_params()
         clients = ModbusClients(config=config, logger=logger)
 
-        fault_poller_pid = module_manager.launch_module("fault_poller")
-        app.monitor_task = asyncio.create_task(monitor_fault_poller(app))
+        create_hearthbeat_monitor_tasks(app, module_manager)
 
         # Connect to both drivers
         connected = await clients.connect() 
         app.clients = clients
 
         if not connected:  
-            logger.error(f"""ould not form a connection to both motors,
+            logger.error(f"""could not form a connection to both motors,
                           Left motors ips: {config.SERVER_IP_LEFT}, 
                           Right motors ips: {config.SERVER_IP_RIGHT}, 
                          shutting down the server """)
             cleanup(app)
 
         app.app_config = config
-        
         app.is_process_done = True
-        app.fault_poller_pid = fault_poller_pid
 
         atexit.register(lambda: cleanup(app))
         
@@ -167,10 +196,6 @@ async def init(app):
             # modbus cntrl 0-10k
             if not await clients.set_analog_modbus_cntrl((position_client_left, position_client_right)):
                 cleanup()
-
-            # TODO Ipeak pitää varmistaa vielä onhan 128 arvo = 1 Ampeeri 
-            # await clients.client_right.write_register(address=config.IPEAK,value=640,slave=config.SLAVE_ID)
-            # await clients.client_left.write_register(address=config.IPEAK,value=640,slave=config.SLAVE_ID)
 
             # # Finally - Ready for operation
             if not await clients.set_host_command_mode(config.ANALOG_POSITION_MODE):
