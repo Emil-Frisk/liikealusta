@@ -38,6 +38,7 @@ class WebSocketClient(QObject):
 
     async def listen(self):
         """Listen for incoming messages."""
+        ## TODO - retry connection on disconnect
         try:
             async for message in self.websocket:
                 self.message_received.emit(f"Received: {message}")
