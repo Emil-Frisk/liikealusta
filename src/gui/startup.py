@@ -6,8 +6,8 @@ from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
 from PyQt6.QtGui import QFont
 import requests
-import runpy
 from utils.setup_logging import setup_logging
+from utils.utils import get_exe_temp_dir,find_venv_python
 
 CONFIG_FILE = "config.json"
 
@@ -88,7 +88,12 @@ class ServerStartupGUI(QWidget):
         self.setLayout(self.main_layout)
 
     def set_styles(self):
-        styles_path = os.path.join(Path(__file__).parent, "styles.json")
+
+        if getattr(sys, 'frozen', False):
+            temp_file_path = get_exe_temp_dir()
+            styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
+        else:
+            styles_path = "C:\liikealusta\src\gui\styles.json"
         # Load the JSON from the file
         try:
             with open(styles_path, "r") as f:
@@ -129,15 +134,6 @@ class ServerStartupGUI(QWidget):
                 "acceleration": accel
             }, f)
 
-    def find_venv_python(self):
-            current_dir = Path(__file__).resolve().parent
-            for parent in current_dir.parents:
-                if (parent / ".venv").exists():
-                        return os.path.join(parent, ".venv\Scripts\python.exe")
-            # maybe return sys.executable parent, to use target computrers python without .venv?
-            raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
-
-
     def get_base_path(self):
         if getattr(sys, 'frozen', False):
                 # PyInstaller context - return the directory of the executable
@@ -146,6 +142,8 @@ class ServerStartupGUI(QWidget):
             # Normal context - return the directory of the script
             return os.path.dirname(os.path.abspath(__file__))
 
+
+    
     def start_server(self):
         ip1 = self.ip_input1.text().strip()
         ip2 = self.ip_input2.text().strip()
@@ -162,16 +160,21 @@ class ServerStartupGUI(QWidget):
         try:   
             base_path = self.get_base_path()
             if getattr(sys, 'frozen', False):
-                server_path = os.path.join(base_path, "palvelin.exe")
+                pythonexe = os.path.join(base_path, "startup.exe")
+                exe_temp_dir = get_exe_temp_dir()
+                self.logger.info(pythonexe)
+                
+                server_path = os.path.join(exe_temp_dir, "src\palvelin.py")
+                self.logger.info(server_path)
                 venv_python = None
             else:
                 server_path = os.path.join(base_path, "palvelin.py")
-                venv_python = self.find_venv_python()
+                venv_python = find_venv_python()
             
             if venv_python:
                 cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
             else: 
-                cmd = f'"{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
+                cmd = f'"C:\liikealusta\.venv\Scripts\python.exe" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
 
             self.process = subprocess.Popen(
                 cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
@@ -199,15 +202,10 @@ class ServerStartupGUI(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1].endswith('.py'):
-        script_path = sys.argv[1]
-        sys.argv = sys.argv[1:]
-        runpy.run_path(script_path, run_name='__main__')
-    else:
-        app = QApplication(sys.argv)
-        window = ServerStartupGUI()
-        window.show()
-        sys.exit(app.exec())
+    app = QApplication(sys.argv)
+    window = ServerStartupGUI()
+    window.show()
+    sys.exit(app.exec())
 
 
     ### test
