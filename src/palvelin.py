@@ -12,6 +12,68 @@ import math
 import sys
 import os
 import time
+import websockets
+
+class WebSocketClient():
+    def __init__(self,logger, uri="ws://localhost:6969"):
+        self.uri = uri
+        self.logger = logger
+        self.websocket = None
+        self.running = False
+        self.loop = None
+
+    async def connect(self):
+        """Connect to the WebSocket server and listen for messages."""
+        try_count = 0
+        max_tries = 10
+        while try_count < max_tries:
+            try:
+                self.websocket = await websockets.connect(self.uri)
+                self.running = True
+                await self.listen()
+            except ConnectionRefusedError as e:
+                self.logger.error(f"Connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
+                try_count += 1
+                await asyncio.sleep(5)
+            except Exception as e:
+                try_count +=1
+                self.logger(f"Client connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
+                await asyncio.sleep(5)
+        self.running = False
+
+    async def listen(self):
+        """Listen for incoming messages."""
+        ## TODO - implement recovery
+        try:
+            async for message in self.websocket:
+                self.logger.info(f"Received: {message}")
+        except websockets.ConnectionClosed as e:
+            self.logger.info(f"WebSocket disconnected: {e}")
+            self.connect()
+            self.running = False
+        except Exception as e:
+            self.connect()
+            self.logger.info(f"WebSocket error: {str(e)}")
+            self.running = False
+
+    async def send(self, message):
+        """Send a message to the GUI."""
+        if self.websocket and self.running:
+            try:
+                await self.websocket.send(message)
+                self.logger.info(f"Message sent from server to GUI: {message}")
+            except Exception as e:
+                self.logger.info(f"Failed to send message: {str(e)}")
+
+    async def close(self):
+        """Close the WebSocket connection."""
+        if self.websocket:
+            try:
+                await self.websocket.close()
+                self.logger.info("WebSocket connection closed")
+                self.running = False
+            except Exception as e:
+                self.logger.info(f"Error closing WebSocket: {str(e)}")
 
 async def shutdown_server(app):    
     """Gracefully shuts down the server."""
@@ -26,9 +88,9 @@ async def shutdown_server(app):
         app.logger.error("Stopping motors was not successful, will not shutdown server")
         return
     await asyncio.sleep(5)
-
     await app.clients.reset_motors()
-
+    # Send msg to GUI
+    await app.websocket_client.send()
     # Cleanup Modbus clients
     cleanup(app)
     
@@ -138,7 +200,11 @@ async def init(app):
         # Connect to both drivers
         connected = await clients.connect() 
         app.clients = clients
-
+        
+        # Initialize WebSocket client
+        app.websocket_client = WebSocketClient(logger=app.logger)
+        await app.websocket_client.connect()
+        
         if not connected:  
             logger.error(f"""could not form a connection to both motors,
                           Left motors ips: {config.SERVER_IP_LEFT}, 
