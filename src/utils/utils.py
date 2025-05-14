@@ -1,4 +1,5 @@
 import math
+import re
 
 FAULT_RESET_BIT = 15
 ENABLE_MAINTAINED_BIT = 1
@@ -9,6 +10,13 @@ ACTUATOR_TEMPERATURE = 8
 UVEL32_RESOLUTION = 1 / (2**24 - 1)
 UACC32_RESOLUTION = 1 / (2**20 - 1)
 
+def extract_identity(message):
+        match = re.search(r'identity=([^|]*)\|', message)
+        return match.group(1) if match else None
+
+def extract_receiver(message):
+        match = re.search(r'receiver=([^|]*)\|', message)
+        return match.group(1) if match else None
 
 def is_nth_bit_on(n, number):
             mask = 1 << n
