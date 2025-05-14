@@ -18,9 +18,10 @@ class WebSocketClient(QObject):
     # Signal to emit received messages to the GUI
     message_received = pyqtSignal(str)
 
-    def __init__(self, uri="ws://localhost:6969"):
+    def __init__(self,logger, uri="ws://localhost:6969"):
         super().__init__()
         self.uri = uri
+        self.logger = logger
         self.websocket = None
         self.running = False
         self.loop = None
@@ -36,12 +37,12 @@ class WebSocketClient(QObject):
                 self.message_received.emit(f"Connected to {self.uri}")
                 await self.listen()
             except ConnectionRefusedError as e:
-                print(f"Client failed to connect: Server not available, trying again soon...")
+                self.logger.error(f"Server not up yet; connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
                 try_count += 1
                 await asyncio.sleep(5)
             except Exception as e:
                 try_count +=1
-                self.message_received.emit(f"Client connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
+                self.logger(f"Client connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
                 await asyncio.sleep(5)
         
         self.message_received.emit(f"Client failed to connect to websocket server after max tries...")
@@ -55,8 +56,10 @@ class WebSocketClient(QObject):
                 self.message_received.emit(f"Received: {message}")
         except websockets.ConnectionClosed as e:
             self.message_received.emit(f"WebSocket disconnected: {e}")
+            self.connect()
             self.running = False
         except Exception as e:
+            self.connect()
             self.message_received.emit(f"WebSocket error: {str(e)}")
             self.running = False
 
@@ -161,7 +164,7 @@ class ServerStartupGUI(QWidget):
         self.setLayout(self.main_layout)
 
         # Initialize WebSocket client
-        self.websocket_client = WebSocketClient()
+        self.websocket_client = WebSocketClient(logger=self.logger)
         self.websocket_client.message_received.connect(self.update_message_label)
 
     def set_styles(self):
