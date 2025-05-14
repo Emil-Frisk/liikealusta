@@ -18,7 +18,7 @@ def find_venv_python():
         for parent in current_dir.parents:
                 if (parent / ".venv").exists():
                         return os.path.join(parent, ".venv\Scripts\python.exe")
-                raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
+        raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
 def get_exe_temp_dir():
         return getattr(sys, "_MEIPASS")
