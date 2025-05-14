@@ -14,7 +14,7 @@ import sys
 import os
 import time
 
-async def shutdown_server(app):    
+async def shutdown_test(app):    
     """Gracefully shuts down the server."""
     app.logger.info("Shutdown request received. Cleaning up...")
 
@@ -29,6 +29,7 @@ async def shutdown_server(app):
     await asyncio.sleep(5)
 
     await app.clients.reset_motors()
+
 
     # Cleanup Modbus clients
     if hasattr(app, 'clients') and app.clients:
@@ -136,9 +137,7 @@ async def create_hearthbeat_monitor_tasks(app, module_manager):
 async def init(app):
     try:
         logger = setup_logging("server", "server.log")
-        app.logger = logger
         module_manager = ModuleManager(logger)
-        app.module_manager = module_manager
         config = handle_launch_params()
         clients = ModbusClients(config=config, logger=logger)
 
@@ -146,7 +145,6 @@ async def init(app):
 
         # Connect to both drivers
         connected = await clients.connect() 
-        app.clients = clients
 
         if not connected:  
             logger.error(f"""could not form a connection to both motors,
@@ -260,8 +258,8 @@ async def create_app():
             await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
         elif (roll == "+"):
             (position_client_left, position_client_right) = await get_modbuscntrl_val(app.clients, app.app_config)
-            position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX* 0.20)) 
-            position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.20)) 
+            position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX* 0.10)) 
+            position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.10)) 
 
             position_client_left = min(MODBUSCTRL_MAX, position_client_left)
             position_client_right = max(0, position_client_right)
@@ -275,7 +273,7 @@ async def create_app():
     async def shutdown():
         """Shuts down the server when called."""
         app.logger.info("Shutdown request received.")
-        await shutdown_server(app)
+        await shutdown_test(app)
 
     @app.route('/stop', methods=['get'])
     async def stop_motors():
@@ -285,6 +283,10 @@ async def create_app():
                 pass # do something crazy :O
         except Exception as e:
             app.logger.error("Failed to stop motors?") # Mitäs sitten :D
+
+    @app.route('/asd')
+    async def asd():
+        print("terve")
 
     @app.route('/setvalues', methods=['GET'])
     async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
