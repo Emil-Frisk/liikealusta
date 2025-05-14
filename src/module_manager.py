@@ -70,16 +70,6 @@ class ModuleManager:
                 return False
 
             # First try graceful termination
-            if os.name == 'nt':  # Windows
-                process.send_signal(signal.CTRL_C_EVENT)
-            else:  # Unix-like
-                process.terminate()
-                
-            # Wait for process to exit
-            process.wait(timeout=5)
-            
-        except subprocess.TimeoutExpired:
-            # Force kill if it doesn't stop
             process.kill()
             self.logger.warning(f"Force killed process {process_info['module']} with PID {process.pid}")
 

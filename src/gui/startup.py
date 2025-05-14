@@ -283,8 +283,9 @@ class ServerStartupGUI(QWidget):
             loop.create_task(self.shutdown_websocket_client())
 
             # Then attempt to shutdown the server
-            requests.get("http://localhost:5001/shutdown")
-           
+            rseponse = subprocess.run(["curl", "-X", "GET", "http://localhost:5001/shutdown"], capture_output=True, text=True)
+            a=10
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 

@@ -31,10 +31,8 @@ async def shutdown_server(app):
     await app.clients.reset_motors()
 
     # Cleanup Modbus clients
-    cleanup()
+    cleanup(app)
     
-    os._exit(0)
-
 def close_tasks(app):
     if hasattr(app, "monitor_fault_poller"):
         app.monitor_fault_poller.cancel()
@@ -45,13 +43,13 @@ def close_tasks(app):
 
 def cleanup(app):
     app.logger.info("cleanup function executed!")
-    app.close_tasks(app)
+    close_tasks(app)
     app.module_manager.cleanup_all()
     if app.clients is not None:
         app.clients.cleanup()
 
     app.logger.info("Cleanup complete. Shutting down server.")
-    sys.exit(1)
+    os._exit(0)
 
 async def monitor_fault_poller(app):
     """
