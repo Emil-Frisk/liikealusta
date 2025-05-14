@@ -280,7 +280,7 @@ class ServerStartupGUI(QWidget):
             asyncio.run_coroutine_threadsafe(self.shutdown_websocket_client(), qasync.get_event_loop())
 
             # Then attempt to shutdown the server
-            response = requests.get("http://localhost:5001/shutdown")
+            response = subprocess.run(["curl", "-X", "GET", "http://localhost:5001/shutdown"], capture_output=True, text=True)
             if response.status_code == 200:  # Fixed: Check status_code, not returncode
                 QMessageBox.information(self, "Success", "Server shutdown successfully!")
                 self.shutdown_button.setEnabled(False)
