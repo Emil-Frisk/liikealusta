@@ -1,12 +1,12 @@
 
 from pymodbus.client import AsyncModbusTcpClient
 from typing import List, Optional, Tuple, Union
-from utils import is_nth_bit_on
+from utils.utils import is_nth_bit_on
 import asyncio
 from pymodbus.exceptions import ConnectionException, ModbusIOException
 from time import sleep
 import time
-from utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
+from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
 
 class ModbusClients:
     def __init__(self, config, logger):
@@ -91,16 +91,20 @@ class ModbusClients:
         Returns tuple of (left_fault, right_fault), None if read fails
         """
         try:
-            left_response = await self.client_left.read_holding_registers(
+            responses = await asyncio.gather(
+                self.client_left.read_holding_registers(
                 address=self.config.RECENT_FAULT_ADDRESS,
                 count=1,
                 slave=self.config.SLAVE_ID
-            )
-            right_response = await self.client_right.read_holding_registers(
+            ),
+                self.client_right.read_holding_registers(
                 address=self.config.RECENT_FAULT_ADDRESS,
                 count=1,
                 slave=self.config.SLAVE_ID
-            )
+            ), return_exceptions=True)
+            
+
+            left_response, right_response = responses
 
             if left_response.isError() or right_response.isError():
                 self.logger.error("Error reading fault register")

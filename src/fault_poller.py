@@ -5,7 +5,7 @@ from utils.setup_logging import setup_logging
 from ModbusClients import ModbusClients
 from launch_params import handle_launch_params
 import asyncio
-from utils import is_fault_critical
+from utils.utils import is_fault_critical
 import requests
 
 SERVER_URL = "http://127.0.0.1:5001/"

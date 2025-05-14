@@ -8,7 +8,7 @@ from launch_params import handle_launch_params
 from module_manager import ModuleManager
 import subprocess
 from time import sleep 
-from utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs
+from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs
 import math
 import sys
 import os
