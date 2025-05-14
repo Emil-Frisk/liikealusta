@@ -37,6 +37,7 @@ async def main():
                 if not is_fault_critical(left_response) and not is_fault_critical(right_response):
                     await clients.set_ieg_mode(65535)
                     logger.info("Fault cleared")
+                    await clients.set_ieg_mode(2)
                 else:
                     logger.error("CRITICAL FAULT DETECTED")
                     # shuts downs the server

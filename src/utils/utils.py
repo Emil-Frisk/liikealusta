@@ -31,6 +31,7 @@ def IEG_MODE_bitmask_default(number):
         number = number & 0xFFFF
         return number & mask
 
+
 # Only allows the needed bits
 def is_fault_critical(number):
         mask = (1 << CONTINIOUS_CURRENT_BIT) | (1 << BOARD_TEMPERATURE_BIT) | (1 << ACTUATOR_TEMPERATURE)
