@@ -10,6 +10,8 @@ import subprocess
 from time import sleep 
 from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.cleaunup import cleanup, close_tasks, shutdown_server
+from services.motor_service import configure_motor
+from services.motor_control import demo_control, rotate
 from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs, convert_to_revs
 import math
 import sys
@@ -42,54 +44,7 @@ async def init(app):
         app.is_process_done = True
 
         atexit.register(lambda: cleanup(app))
-        
-        await clients.set_host_command_mode(0)
-        ### TODO - posita myöhemmin kun fault pollerin toimimaan
-        await clients.set_ieg_mode(65535)
-        homed = await clients.home()
-        if homed: 
-            ## Prepare motor parameters for operation
-            ### If any of them are unsuccesful -> cleanup and shutdown
-
-            ### MAX POSITION LIMITS FOR BOTH MOTORS | 147 mm
-            if not await clients.set_analog_pos_max(61406, 28):
-                cleanup()
-
-            ### MIN POSITION LIMITS FOR BOTH MOTORS || 2 mm
-            if not await clients.set_analog_pos_min(25801, 0):
-                cleanup()
-
-            ### Velocity whole number is in 8.8 where decimal is in little endian format,
-            ### meaning smaller bits come first, so 1 rev would be 2^8
-            (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(config.VEL)
-            if not await clients.set_analog_vel_max(velocity_decimal, velocity_whole):
-                cleanup()
-
-            ### UACC32 whole number split in 12.4 format
-            (acc_whole, acc_decimal) =convert_acc_rpm_revs(config.ACC)
-            if not await clients.set_analog_acc_max(acc_decimal, acc_whole):
-                cleanup()
-
-            ## Analog input channel set to use modbusctrl (2)
-            if not await clients.set_analog_input_channel(2):
-                cleanup()
-
-            response = await clients.get_modbuscntrl_val()
-            if not response:
-                cleanup()
-            (position_client_left, position_client_right) = response
-
-            # modbus cntrl 0-10k
-            if not await clients.set_analog_modbus_cntrl((position_client_left, position_client_right)):
-                cleanup()
-
-            # # Finally - Ready for operation
-            if not await clients.set_host_command_mode(config.ANALOG_POSITION_MODE):
-                cleanup()
-
-            # Enable motors
-            if not await clients.set_ieg_mode(2):
-                cleanup()
+        await configure_motor(app.clients, config)
         
 
     except Exception as e:
@@ -104,71 +59,8 @@ async def create_app():
     async def write():
         pitch = request.args.get('pitch')
         roll = request.args.get('roll') 
-        asd = request.args.get('asd')   
-        MODBUSCTRL_MAX = app.app_config.MODBUSCTRL_MAX
-
-        if (asd == "q"):
-            await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=MODBUSCTRL_MAX, slave=app.app_config.SLAVE_ID)
-            await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=MODBUSCTRL_MAX, slave=app.app_config.SLAVE_ID)
-
-        if (pitch == "+"): # forward
-            response = await app.clients.get_modbuscntrl_val()
-            if not response:
-                app.logger.error("Failed to get modbuscntrl ")
-            (position_client_left, position_client_right) = response
-
-            position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX * 0.15)) 
-            position_client_right = math.floor(position_client_right + (MODBUSCTRL_MAX* 0.15)) 
-
-            position_client_right = min(MODBUSCTRL_MAX, position_client_right)
-            position_client_left = min(MODBUSCTRL_MAX, position_client_left)
-
-            await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
-            await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
-
-        elif (pitch == "-"): #backward
-            response = await app.clients.get_modbuscntrl_val()
-            if not response:
-                app.logger.error("Failed to get modbuscntrl val")
-            (position_client_left, position_client_right) = response
-
-            position_client_left = math.floor(position_client_left - (MODBUSCTRL_MAX* 0.15)) 
-            position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.15)) 
-
-            position_client_right = max(0, position_client_right)
-            position_client_left = max(0, position_client_left)
-
-            await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
-            await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
-        elif (roll == "-"):# left
-            response = await app.clients.get_modbuscntrl_val()
-            if not response:
-                app.logger.error("Failed to get modbuscntrl val")
-            (position_client_left, position_client_right) = response
-            position_client_left = math.floor(position_client_left - (MODBUSCTRL_MAX* 0.08)) 
-            position_client_right = math.floor(position_client_right + (MODBUSCTRL_MAX* 0.08)) 
-
-            position_client_right = min(MODBUSCTRL_MAX, position_client_right)
-            position_client_left = max(0, position_client_left)
-
-            await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
-            await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
-        elif (roll == "+"):
-            response = await app.clients.get_modbuscntrl_val()
-            if not response:
-                app.logger.error("Failed to get modbuscntrl val")
-            (position_client_left, position_client_right) = response
-
-            position_client_left = math.floor(position_client_left + (MODBUSCTRL_MAX* 0.20)) 
-            position_client_right = math.floor(position_client_right - (MODBUSCTRL_MAX* 0.20)) 
-
-            position_client_left = min(MODBUSCTRL_MAX, position_client_left)
-            position_client_right = max(0, position_client_right)
-
-            await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
-            await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
-        else:
-            app.logger.error("Wrong parameter use direction (l | r)")
+        
+        await demo_control(pitch, roll)
     
     @app.route('/shutdown', methods=['get'])
     async def shutdown():
@@ -187,62 +79,11 @@ async def create_app():
 
     @app.route('/setvalues', methods=['GET'])
     async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
-        try:
-            # Get the two float arguments from the query parameters
-            pitch_value = float(request.args.get('pitch'))
-            roll_value = float(request.args.get('roll'))
-            
-            # Tarkistetaan että annettu pitch -kulma on välillä -8.5 <-> 8.5
-            pitch_value = max(-8.5, min(pitch_value, 8.5))
+        # Get the two float arguments from the query parameters
+        pitch = float(request.args.get('pitch'))
+        roll = float(request.args.get('roll'))
+        await rotate(pitch, roll)
 
-            # Laske MaxRoll pitch -kulman avulla
-            MaxRoll = 0.002964 * pitch_value**4 + 0.000939 * pitch_value**3 - 0.424523 * pitch_value**2 - 0.05936 * pitch_value + 15.2481
-
-            # Laske MinRoll MaxRoll -arvon avulla
-            MinRoll = -1 * MaxRoll
-
-            # Verrataan Roll -kulmaa MaxRoll ja MinRoll -arvoihin
-            roll_value = max(MinRoll, min(roll_value, MaxRoll))
-
-            # Valitse käytettävä Roll -lauseke
-            dif = roll_value - 0
-            if dif == 0:
-            # if roll_value == 0:
-                Relaatio = 1
-            elif pitch_value < -2:
-                Relaatio = 0.984723 * (1.5144)**roll_value
-            elif pitch_value > 2:
-                Relaatio = 0.999843 * (1.08302)**roll_value
-            else:    
-                Relaatio = 1.0126 * (1.22807)**roll_value
-
-            # Laske keskipituus
-            Keskipituus = 0.027212 * (pitch_value)**2 + 8.73029 * pitch_value + 73.9818
-
-            # Määritä servomoottorien pituudet
-
-            # Vasen servomoottori kierroksina
-            VasenServo = ((2 * Keskipituus * Relaatio) / (1 + Relaatio)) / (0.2 * 25.4)
-
-            # Oikea servomoottori kierroksina
-            OikeaServo = ((2 * Keskipituus) / (1 + Relaatio)) / (0.2 * 25.4)
-
-            ## Percentile = x - pos_min / (pos_max - pos_min)
-            POS_MIN_REVS = 0.393698024
-            POS_MAX_REVS = 28.937007874015748031496062992126
-            modbus_percentile_left = (VasenServo - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-            modbus_percentile_right = (OikeaServo - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-            modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
-            modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
-
-            position_client_left = math.floor(modbus_percentile_left * app.app_config.MODBUSCTRL_MAX)
-            position_client_right = math.floor(modbus_percentile_right * app.app_config.MODBUSCTRL_MAX)
-
-            await app.clients.client_right.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_right, slave=app.app_config.SLAVE_ID)
-            await app.clients.client_left.write_register(address=app.app_config.ANALOG_MODBUS_CNTRL, value=position_client_left, slave=app.app_config.SLAVE_ID)
-            
-        except Exception as e:
-                app.logger.error("Error with pitch and roll calculations!")
 
     return app
 if __name__ == '__main__':
