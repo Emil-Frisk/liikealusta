@@ -285,7 +285,7 @@ class ServerStartupGUI(QWidget):
             # Then attempt to shutdown the server
             rseponse = subprocess.run(["curl", "-X", "GET", "http://localhost:5001/shutdown"], capture_output=True, text=True)
             a=10
-
+            
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
