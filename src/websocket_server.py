@@ -1,10 +1,18 @@
 import asyncio
 import websockets
-from utils.utils import extract_identity, extract_receiver
+from utils.utils import extract_part
+
+
 
 class CommunicationHub:
     def __init__(self):
         self.clients = {}
+
+    def extract_parts(self, message):
+        receiver = extract_part("receiver=", message=message)
+        identity = extract_part("identity=", message=message)
+        message = extract_part("message=", message=message)
+        return (identity, receiver, message)
 
     async def handle_client(self, websocket, path=None):
         # Store client metadata
@@ -15,20 +23,18 @@ class CommunicationHub:
         try:
             async for message in websocket:
                 print(f"Received: {message}", flush=True)
-                identity = extract_identity(message)
+                (receiver, identity, message) = self.extract_parts()
                 if identity:
                     client_info["identity"] = identity
                     print(f"Updated identity for {websocket.remote_address}: {identity}", flush=True)
 
-                receiver = extract_receiver(message)
                 if receiver:
                     print(f"Receiver: {receiver}", flush=True)
 
-                # Send response to clients with identity "1"
-                response = "Message received"
+                # Send response to clients with identity receiver
                 for client, info in self.clients.items():
-                    if info["identity"] == "1":
-                        await client.send(response)
+                    if info["identity"] == receiver:
+                        await client.send(message)
 
         except websockets.ConnectionClosed as e:
             print(f"Client {websocket.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}", flush=True)
