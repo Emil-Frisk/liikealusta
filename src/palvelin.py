@@ -31,16 +31,9 @@ async def shutdown_server(app):
     await app.clients.reset_motors()
 
     # Cleanup Modbus clients
-    if hasattr(app, 'clients') and app.clients:
-        app.clients.cleanup()
-
-    # Cleanup modules
-    if hasattr(app, 'module_manager') and app.module_manager:
-        app.module_manager.cleanup_all()
-
-    app.logger.info("Cleanup complete. Shutting down server.")
-    asyncio.create_task(close_server)
-    return True
+    cleanup()
+    
+    os._exit(0)
 
 def close_tasks(app):
     if hasattr(app, "monitor_fault_poller"):
@@ -57,6 +50,7 @@ def cleanup(app):
     if app.clients is not None:
         app.clients.cleanup()
 
+    app.logger.info("Cleanup complete. Shutting down server.")
     sys.exit(1)
 
 async def monitor_fault_poller(app):
@@ -142,7 +136,7 @@ async def init(app):
         config = handle_launch_params()
         clients = ModbusClients(config=config, logger=logger)
 
-        create_hearthbeat_monitor_tasks(app, module_manager)
+        await create_hearthbeat_monitor_tasks(app, module_manager)
 
         # Connect to both drivers
         connected = await clients.connect() 

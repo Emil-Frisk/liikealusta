@@ -57,7 +57,6 @@ class WebSocketClient(QObject):
                 self.message_received.emit(f"Received: {message}")
         except websockets.ConnectionClosed as e:
             self.message_received.emit(f"WebSocket disconnected: {e}")
-            self.connect()
             self.running = False
         except Exception as e:
             self.connect()
@@ -249,6 +248,7 @@ class ServerStartupGUI(QWidget):
                 self.logger.info(server_path)
                 venv_python = None
             else:
+                base_path = Path(base_path).parent
                 server_path = os.path.join(base_path, "palvelin.py")
                 venv_python = find_venv_python()
             
@@ -258,7 +258,7 @@ class ServerStartupGUI(QWidget):
                 cmd = f'"C:\liikealusta\.venv\Scripts\python.exe" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
 
             self.process = subprocess.Popen(
-                cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
+                cmd,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
 
@@ -279,16 +279,12 @@ class ServerStartupGUI(QWidget):
     def shutdown_server(self):
         try:
             # First, close the WebSocket client
-            asyncio.run_coroutine_threadsafe(self.shutdown_websocket_client(), qasync.get_event_loop())
+            loop = asyncio.get_event_loop()
+            loop.create_task(self.shutdown_websocket_client())
 
             # Then attempt to shutdown the server
-            response = requests.get("http://localhost:5001/shutdown")
-            if response.status_code == 200:  # Fixed: Check status_code, not returncode
-                QMessageBox.information(self, "Success", "Server shutdown successfully!")
-                self.shutdown_button.setEnabled(False)
-                self.start_button.setEnabled(True)
-            else:
-                QMessageBox.warning(self, "Warning", f"Failed to shutdown server: {response.text}")
+            requests.get("http://localhost:5001/shutdown")
+           
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
