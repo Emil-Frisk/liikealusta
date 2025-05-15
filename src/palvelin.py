@@ -55,7 +55,7 @@ async def create_app():
         roll = request.args.get('roll') 
         
         await demo_control(pitch, roll)
-        return "", 204
+        return jsonify(""), 204
     
     @app.route('/shutdown', methods=['get'])
     async def shutdown():
@@ -78,7 +78,7 @@ async def create_app():
                 pass # do something crazy :O
         except Exception as e:
             app.logger.error("Failed to stop motors?") # Mitäs sitten :D
-        return "", 204
+        return jsonify(""), 204
 
     @app.route('/setvalues', methods=['GET'])
     async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
@@ -86,7 +86,7 @@ async def create_app():
         pitch = float(request.args.get('pitch'))
         roll = float(request.args.get('roll'))
         await rotate(pitch, roll)
-        return "", 204
+        return jsonify(""), 204
 
     @app.route('/updatevalues', methods=['get'])
     async def update_input_values():
@@ -109,6 +109,8 @@ async def create_app():
             print(values)
             if values:
                 await set_motor_values(values,app.clients)
+            
+            return jsonify(""), 204
         except ValueError as e:
             return jsonify({"status": "error", "message": "Velocity and Acceleration has to be positive integers"}), 400
         except Exception as e:
