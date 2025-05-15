@@ -89,6 +89,9 @@ async def create_app():
         roll = float(request.args.get('roll'))
         await rotate(pitch, roll)
 
+    @app.route('/updatevalues', methods=['GET'])
+    async def update_input_values():
+        velocity = 
     return app
 if __name__ == '__main__':
     async def run_app():

@@ -57,6 +57,7 @@ class WebSocketClient(QObject):
                 self.message_received.emit(f"Received: {message}")
         except websockets.ConnectionClosed as e:
             self.message_received.emit(f"WebSocket disconnected: {e}")
+            self.connect()
             self.running = False
         except Exception as e:
             self.connect()
@@ -160,8 +161,7 @@ class ServerStartupGUI(QWidget):
         self.main_layout.addWidget(self.shutdown_button)
 
         self.set_styles()
-
-
+        
         self.setLayout(self.main_layout)
 
         # Initialize WebSocket client
@@ -238,7 +238,6 @@ class ServerStartupGUI(QWidget):
         
         try:   
             base_path = self.get_base_path()
-            src_path = Path(__file__).parent.parent
             if getattr(sys, 'frozen', False):
                 pythonexe = os.path.join(base_path, "startup.exe")
                 exe_temp_dir = get_exe_temp_dir()
@@ -248,7 +247,6 @@ class ServerStartupGUI(QWidget):
                 self.logger.info(server_path)
                 venv_python = None
             else:
-                base_path = Path(base_path).parent
                 server_path = os.path.join(base_path, "palvelin.py")
                 venv_python = find_venv_python()
             
@@ -258,7 +256,7 @@ class ServerStartupGUI(QWidget):
                 cmd = f'"C:\liikealusta\.venv\Scripts\python.exe" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
 
             self.process = subprocess.Popen(
-                cmd,
+                cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
 
@@ -279,13 +277,16 @@ class ServerStartupGUI(QWidget):
     def shutdown_server(self):
         try:
             # First, close the WebSocket client
-            loop = asyncio.get_event_loop()
-            loop.create_task(self.shutdown_websocket_client())
+            asyncio.run_coroutine_threadsafe(self.shutdown_websocket_client(), qasync.get_event_loop())
 
             # Then attempt to shutdown the server
-            rseponse = subprocess.run(["curl", "-X", "GET", "http://localhost:5001/shutdown"], capture_output=True, text=True)
-            a=10
-            
+            response = subprocess.run(["curl", "-X", "GET", "http://localhost:5001/shutdown"], capture_output=True, text=True)
+            if response.status_code == 200:  # Fixed: Check status_code, not returncode
+                QMessageBox.information(self, "Success", "Server shutdown successfully!")
+                self.shutdown_button.setEnabled(False)
+                self.start_button.setEnabled(True)
+            else:
+                QMessageBox.warning(self, "Warning", f"Failed to shutdown server: {response.text}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
