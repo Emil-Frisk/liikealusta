@@ -2,6 +2,7 @@ import math
 import sys
 from pathlib import Path
 import os
+import asyncio
 import re
 
 FAULT_RESET_BIT = 15
@@ -12,6 +13,17 @@ BOARD_TEMPERATURE_BIT = 7
 ACTUATOR_TEMPERATURE = 8
 UVEL32_RESOLUTION = 1 / (2**24 - 1)
 UACC32_RESOLUTION = 1 / (2**20 - 1)
+
+def get_all_tasks(exclude):
+        loop = asyncio.get_running_loop()
+        remaining_tasks = []
+        for task in asyncio.all_tasks():
+                if task.get_name() != exclude:
+                        print("added tasks to remaining_tasks list")
+                        remaining_tasks.append(task)
+                        
+        return remaining_tasks
+       
 
 def find_venv_python():
         current_dir = Path(__file__).resolve().parent

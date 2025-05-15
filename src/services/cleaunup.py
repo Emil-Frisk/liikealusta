@@ -21,10 +21,8 @@ async def disable_server(app):
     
 async def shutdown_server_delay(app):
     # Stop the Quart app's event loop
-    tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
-    for task in tasks:
-        task.cancel()
     
+
     # Stop the event loop
     loop = asyncio.get_running_loop()
     loop.stop()

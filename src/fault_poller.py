@@ -19,7 +19,8 @@ async def main():
     connected = await clients.connect()
     if (not connected):
         return
-        
+    
+    # await client.connect()
     logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
 
     try:
@@ -47,6 +48,8 @@ async def main():
         logger.error(f"Unexpected error in polling loop: {str(e)}")
     finally:
         clients.cleanup()
+        ### websocket client close
+        ### clean tasks
 
 if __name__ == "__main__":
     asyncio.run(main())

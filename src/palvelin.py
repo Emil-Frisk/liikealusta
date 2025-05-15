@@ -28,10 +28,6 @@ async def init(app):
         connected = await clients.connect() 
         app.clients = clients
         
-        # Initialize WebSocket client
-        app.websocket_client = WebSocketClient(logger=app.logger)
-        await app.websocket_client.connect()
-        
         if not connected:  
             logger.error(f"""could not form a connection to both motors,
                           Left motors ips: {config.SERVER_IP_LEFT}, 
@@ -94,7 +90,8 @@ async def create_app():
 
     @app.route('/updatevalues', methods=['GET'])
     async def update_input_values():
-        velocity = 
+        pass
+        # velocity = 
     return app
 if __name__ == '__main__':
     async def run_app():

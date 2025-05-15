@@ -37,6 +37,7 @@ class WebSocketClient(QObject):
                 self.running = True
                 self.message_received.emit(f"Connected to {self.uri}")
                 await self.listen()
+                break
             except ConnectionRefusedError as e:
                 self.logger.error(f"Server not up yet; connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
                 try_count += 1
@@ -46,8 +47,9 @@ class WebSocketClient(QObject):
                 self.logger(f"Client connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
                 await asyncio.sleep(5)
         
-        self.message_received.emit(f"Client failed to connect to websocket server after max tries...")
-        self.running = False
+        if not self.running == True:
+            self.message_received.emit(f"Client failed to connect to websocket server after max tries...")
+            self.running = False
 
     async def listen(self):
         """Listen for incoming messages."""
