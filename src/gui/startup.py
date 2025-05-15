@@ -90,7 +90,7 @@ class ServerStartupGUI(QWidget):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
         self.project_root = ""
-        
+        self.is_server_running = False #Track the server status
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400)  # Adjusted height for message label
         
@@ -152,8 +152,9 @@ class ServerStartupGUI(QWidget):
         self.load_config()
 
         # Start Button
+        
         self.start_button = QPushButton("Start Server")
-        self.start_button.clicked.connect(self.start_server)
+        self.start_button.clicked.connect(self.handle_button_click)
         self.main_layout.addWidget(self.start_button)
         
         # Shutdown Button (Initially Disabled)
@@ -169,6 +170,15 @@ class ServerStartupGUI(QWidget):
         # Initialize WebSocket client
         self.websocket_client = WebSocketClient(logger=self.logger)
         self.websocket_client.message_received.connect(self.update_message_label)
+
+        # store initial values of the input fields
+        self.stored_values = {
+            'ip_input1': self.ip_input1.text(),
+            'ip_input2': self.ip_input2.text(),
+            'speed_input': self.speed_input.value(),
+            'accel_input': self.accel_input.value(),
+            'freq_input': self.freq_input.value()
+        }
 
     def set_styles(self):
 
@@ -224,7 +234,49 @@ class ServerStartupGUI(QWidget):
     async def start_websocket_client(self):
         """Start the WebSocket client."""
         await self.websocket_client.connect()
+        
+    def update_stored_values(self):
+        """Update stored values to reflect current input field values."""
+        self.stored_values = {
+            'ip_input1': self.ip_input1.text(),
+            'ip_input2': self.ip_input2.text(),
+            'speed_input': self.speed_input.value(),
+            'accel_input': self.accel_input.value(),
+            'freq_input': self.freq_input.value()
+        }
 
+    def handle_button_click(self):
+        if not self.is_server_running:
+           self.start_server()
+        else:
+            self.update_values()
+        
+    def update_values(self):
+            """Update only the values that have changed."""
+            changed_fields = {}
+            # Check text fields for changes
+            if self.speed_input.value() != self.stored_values['speed_input']:
+                changed_fields.update({"velocity": self.speed_input.value()})
+                self.logger.info(f"Updating Velocity to {self.speed_input.value()} RPM")      
+                      
+            if self.accel_input.value() != self.stored_values['accel_input']:
+                changed_fields.update({"acceleration": self.accel_input.value()})
+                self.logger.info(f"Updating Acceleration to {self.accel_input.value()} RPM")   
+                         
+            # if self.freq_input.value() != self.stored_values['freq_input']:
+            #     changed_fields.update({"frequency": self.freq_input.value()})
+            #     self.logger.info(f"Updating Frequency to {self.freq_input.value()} Hz")
+                
+            # Update values based on changes
+            if changed_fields:
+                # Update stored values after successful update
+                self.update_stored_values()
+                # Send values to server
+                requests.get("http://localhost:5001/updatevalues", changed_fields)
+
+        
+
+    
     def start_server(self):
         ip1 = self.ip_input1.text().strip()
         ip2 = self.ip_input2.text().strip()
@@ -249,6 +301,7 @@ class ServerStartupGUI(QWidget):
                 self.logger.info(server_path)
                 venv_python = None
             else:
+                base_path = Path(base_path).parent
                 server_path = os.path.join(base_path, "palvelin.py")
                 venv_python = find_venv_python()
             
@@ -265,10 +318,16 @@ class ServerStartupGUI(QWidget):
             self.logger.info(f"Server launched with PID: {self.process.pid}")
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.shutdown_button.setEnabled(True)
-            self.start_button.setEnabled(False)
+            # self.start_button.setEnabled(False)
 
             # Start WebSocket client after server starts
             asyncio.ensure_future(self.start_websocket_client())
+            
+            # Update inptu values
+            self.update_stored_values()
+            # Switch button logic to update values
+            self.is_server_running = True # server is running
+            self.start_button.setText("Update Values")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 

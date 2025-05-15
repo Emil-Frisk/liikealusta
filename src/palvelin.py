@@ -9,7 +9,7 @@ from module_manager import ModuleManager
 from time import sleep 
 from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.cleaunup import cleanup, close_tasks, disable_server, shutdown_server_delay
-from services.motor_service import configure_motor
+from services.motor_service import configure_motor,set_motor_values
 from services.motor_control import demo_control, rotate
 from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs, convert_to_revs
 
@@ -90,8 +90,10 @@ async def create_app():
 
     @app.route('/updatevalues', methods=['GET'])
     async def update_input_values():
-        pass
-        # velocity = 
+        values = request.args.to_dict()
+        if values:
+            await set_motor_values(values,app.clients)
+        
     return app
 if __name__ == '__main__':
     async def run_app():
