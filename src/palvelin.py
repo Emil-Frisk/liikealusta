@@ -64,7 +64,7 @@ async def create_app():
         await disable_server(app)
         
         # Schedule shutdown after response
-        asyncio.ensure_future(shutdown_server_delay(app))
+        asyncio.create_task(shutdown_server_delay(app))
         
         # Return success response immediately
         return jsonify({"status": "success"}), 200
@@ -88,12 +88,31 @@ async def create_app():
         await rotate(pitch, roll)
         return "", 204
 
-    @app.route('/updatevalues', methods=['GET'])
+    @app.route('/updatevalues', methods=['get'])
     async def update_input_values():
-        values = request.args.to_dict()
-        if values:
-            await set_motor_values(values,app.clients)
-        
+        try:
+            values = request.args.to_dict()
+
+            acc = values["acceleration"]
+            vel = values["velocity"]
+
+            acc = int(acc)
+            vel = int(vel)
+
+            if (vel < 0) or acc < 0:
+                raise ValueError
+            
+            values["acceleration"] = acc
+            values["velocity"] = vel
+            
+
+            print(values)
+            if values:
+                await set_motor_values(values,app.clients)
+        except ValueError as e:
+            return jsonify({"status": "error", "message": "Velocity and Acceleration has to be positive integers"}), 400
+        except Exception as e:
+            print(e)
     return app
 if __name__ == '__main__':
     async def run_app():

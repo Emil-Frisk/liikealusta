@@ -31,8 +31,7 @@ class ModuleManager:
                 cmd =  [venv_python, file_path]
 
             process = subprocess.Popen(
-                cmd,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+                cmd
             )
 
             pid = process.pid

@@ -248,21 +248,19 @@ class ModbusClients:
         while attempt_count < max_retries:
             try:
                 # Attempt to stop both motors in parallel
-                responses = await asyncio.gather(
-                    self.client_left.write_register(
-                        address=self.config.IEG_MOTION,
-                        value=4,
-                        slave=self.config.SLAVE_ID
-                    ),
-                    self.client_right.write_register(
-                        address=self.config.IEG_MOTION,
-                        value=4,
-                        slave=self.config.SLAVE_ID
-                    ),
-                    return_exceptions=True
+                
+                left_response = await self.client_left.write_register(
+                    address=self.config.IEG_MOTION,
+                    value=4,
+                    slave=self.config.SLAVE_ID
                 )
 
-                left_response, right_response = responses
+                right_response = await  self.client_right.write_register(
+                    address=self.config.IEG_MOTION,
+                    value=4,
+                    slave=self.config.SLAVE_ID
+                )
+
 
                 # Check for exceptions in the responses
                 if isinstance(left_response, Exception) or isinstance(right_response, Exception):
@@ -314,10 +312,15 @@ class ModbusClients:
         return False
 
     def cleanup(self):
-        self.logger.info(f"cleanup function executed at module {self.config.MODULE_NAME}")
-        if self.client_left is not None and self.client_right is not None:
-            self.client_left.close()
-            self.client_right.close()    
+        try:
+            self.logger.info(f"cleanup function executed at module {self.config.MODULE_NAME}")
+            if self.client_left is not None and self.client_right is not None:
+                self.client_left.close()
+                self.client_right.close()    
+                self.logger.info(f"closed down clients hehehe")
+            self.logger.info(f"didnt close down clients hehehe")
+        except Exception as e:
+            self.logger.info(f"error happened: {e}")
 
     async def home(self):
         try:

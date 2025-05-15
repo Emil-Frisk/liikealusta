@@ -2,15 +2,17 @@ from services.cleaunup import cleanup
 from utils.utils import convert_vel_rpm_revs, convert_to_revs, convert_acc_rpm_revs
 
 async def set_motor_values(values,clients):
-    if 'velocity' in values:
-        (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(values.velocity)
-        if not await clients.set_analog_vel_max(velocity_decimal, velocity_whole):
-            cleanup()
-    if 'acceleration' in values:
-        (acc_decimal, acc_whole) = convert_acc_rpm_revs(values.acceleration)
-        if not await clients.set_analog_acc_max(acc_decimal, acc_whole):
-            cleanup()
-    
+    try:
+        if 'velocity' in values:
+            (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(values["velocity"])
+            if not await clients.set_analog_vel_max(velocity_decimal, velocity_whole):
+                print("Velocity not uptaded successfully")
+        if 'acceleration' in values:
+            (acc_decimal, acc_whole) = convert_acc_rpm_revs(values["acceleration"])
+            if not await clients.set_analog_acc_max(acc_decimal, acc_whole):
+                print("Acceleration not uptaded successfully")
+    except Exception as e:
+        print(e)
     
 
 async def configure_motor(clients, config):
