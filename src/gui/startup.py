@@ -299,6 +299,7 @@ class ServerStartupGUI(QWidget):
                 self.logger.info(server_path)
                 venv_python = None
             else:
+                base_path = Path(base_path).parent
                 server_path = os.path.join(base_path, "palvelin.py")
                 venv_python = find_venv_python()
             
@@ -315,7 +316,7 @@ class ServerStartupGUI(QWidget):
             self.logger.info(f"Server launched with PID: {self.process.pid}")
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.shutdown_button.setEnabled(True)
-            self.start_button.setEnabled(False)
+            # self.start_button.setEnabled(False)
 
             # Start WebSocket client after server starts
             asyncio.ensure_future(self.start_websocket_client())
