@@ -6,7 +6,6 @@ import atexit
 from utils.setup_logging import setup_logging
 from launch_params import handle_launch_params
 from module_manager import ModuleManager
-import subprocess
 from time import sleep 
 from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.cleaunup import cleanup, close_tasks, disable_server, shutdown_server_delay
@@ -28,7 +27,11 @@ async def init(app):
         # Connect to both drivers
         connected = await clients.connect() 
         app.clients = clients
-
+        
+        # Initialize WebSocket client
+        app.websocket_client = WebSocketClient(logger=app.logger)
+        await app.websocket_client.connect()
+        
         if not connected:  
             logger.error(f"""could not form a connection to both motors,
                           Left motors ips: {config.SERVER_IP_LEFT}, 
