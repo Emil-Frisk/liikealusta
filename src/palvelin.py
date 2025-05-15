@@ -90,7 +90,8 @@ async def create_app():
 
     @app.route('/updatevalues', methods=['GET'])
     async def update_input_values():
-        velocity = 
+        pass
+        # velocity = 
     return app
 if __name__ == '__main__':
     async def run_app():
