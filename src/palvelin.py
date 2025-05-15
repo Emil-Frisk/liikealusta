@@ -9,8 +9,8 @@ from module_manager import ModuleManager
 from time import sleep 
 from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.cleaunup import cleanup, close_tasks, disable_server, shutdown_server_delay
-from services.motor_service import configure_motor
-from services.motor_control import demo_control, rotate, set_motor_values
+from services.motor_service import configure_motor,set_motor_values
+from services.motor_control import demo_control, rotate
 from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs, convert_to_revs
 
 async def init(app):
