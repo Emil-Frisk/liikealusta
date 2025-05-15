@@ -8,7 +8,7 @@ from launch_params import handle_launch_params
 from module_manager import ModuleManager
 from time import sleep 
 from services.monitor_service import create_hearthbeat_monitor_tasks
-from services.cleaunup import cleanup, close_tasks, shutdown_server, shutdown_server_delay
+from services.cleaunup import cleanup, close_tasks, disable_server, shutdown_server_delay
 from services.motor_service import configure_motor
 from services.motor_control import demo_control, rotate
 from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs, convert_to_revs
@@ -59,12 +59,13 @@ async def create_app():
         roll = request.args.get('roll') 
         
         await demo_control(pitch, roll)
+        return "", 204
     
     @app.route('/shutdown', methods=['get'])
     async def shutdown():
         """Shuts down the server when called."""
         app.logger.info("Shutdown request received.")
-        await shutdown_server(app)
+        await disable_server(app)
         
         # Schedule shutdown after response
         asyncio.ensure_future(shutdown_server_delay(app))
@@ -81,6 +82,7 @@ async def create_app():
                 pass # do something crazy :O
         except Exception as e:
             app.logger.error("Failed to stop motors?") # Mitäs sitten :D
+        return "", 204
 
     @app.route('/setvalues', methods=['GET'])
     async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
@@ -88,6 +90,7 @@ async def create_app():
         pitch = float(request.args.get('pitch'))
         roll = float(request.args.get('roll'))
         await rotate(pitch, roll)
+        return "", 204
 
     @app.route('/updatevalues', methods=['GET'])
     async def update_input_values():
