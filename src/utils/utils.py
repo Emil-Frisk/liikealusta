@@ -13,6 +13,9 @@ ACTUATOR_TEMPERATURE = 8
 UVEL32_RESOLUTION = 1 / (2**24 - 1)
 UACC32_RESOLUTION = 1 / (2**20 - 1)
 
+def started_from_exe():
+    return getattr(sys, 'frozen', False)
+
 def find_venv_python():
         current_dir = Path(__file__).resolve().parent
         for parent in current_dir.parents:

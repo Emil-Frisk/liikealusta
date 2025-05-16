@@ -12,7 +12,7 @@ import websockets
 import qasync
 from utils.setup_logging import setup_logging
 from services.network_service import make_request
-from utils.utils import get_exe_temp_dir,find_venv_python
+from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe
 
 CONFIG_FILE = "config.json"
 
@@ -183,7 +183,7 @@ class ServerStartupGUI(QWidget):
 
     def set_styles(self):
 
-        if getattr(sys, 'frozen', False):
+        if started_from_exe():
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
         else:
@@ -227,7 +227,7 @@ class ServerStartupGUI(QWidget):
             }, f)
 
     def get_base_path(self):
-        if getattr(sys, 'frozen', False):
+        if started_from_exe():
             return str(Path(sys.executable).resolve().parent)
         else:
             return os.path.dirname(os.path.abspath(__file__))
@@ -294,7 +294,7 @@ class ServerStartupGUI(QWidget):
         
         try:   
             base_path = self.get_base_path()
-            if getattr(sys, 'frozen', False):
+            if started_from_exe():
                 pythonexe = os.path.join(base_path, "startup.exe")
                 exe_temp_dir = get_exe_temp_dir()
                 self.logger.info(pythonexe)

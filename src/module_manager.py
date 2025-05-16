@@ -2,7 +2,7 @@ import subprocess
 import os
 import sys
 import signal
-from utils.utils import get_exe_temp_dir,find_venv_python
+from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe
 import time
 import psutil
 
@@ -17,7 +17,7 @@ class ModuleManager:
             if args:
                 cmd.extend(args)
 
-            if getattr(sys, 'frozen', False):
+            if started_from_exe():
                 # PyInstaller context - use the executable path
                 base_dir = os.path.dirname(sys.executable)
                 temp_exe_dir = get_exe_temp_dir()
