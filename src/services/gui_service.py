@@ -213,7 +213,7 @@ def get_base_path():
     if started_from_exe():
         return str(Path(sys.executable).resolve().parent)
     else:
-        return os.path.dirname(os.path.abspath(__file__))
+        return Path(os.path.abspath(__file__)).parent
     
 def update_stored_values(self):
     self.stored_values = {
@@ -261,14 +261,15 @@ def start_server(self):
     speed = self.speed_input.value()
     accel = self.accel_input.value()
 
-    if not ip1 or not ip2:
-        QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
-        return
+    # if not ip1 or not ip2:
+    #     QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
+    #     return
 
     self.save_config(ip1, ip2, freq, speed, accel)
     
     try:   
-        base_path = self.get_base_path()
+        base_path = get_base_path()
+        test = Path(os.path.abspath(__file__)).parent
         if started_from_exe():
             exe_temp_dir = get_exe_temp_dir()
             server_path = os.path.join(exe_temp_dir, "src\websocket_server.py")

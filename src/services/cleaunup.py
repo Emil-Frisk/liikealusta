@@ -30,9 +30,6 @@ def close_tasks(app):
     if hasattr(app, "monitor_fault_poller"):
         app.monitor_fault_poller.cancel()
         app.logger.info("Closed monitor fault poller")
-    if hasattr(app, "monitor_so_srv"):
-        app.monitor_so_srv.cancel()
-        app.logger.info("Closed monitor socket server")
 
 def cleanup(app, shutdown=True):
     #### TODO - fault poller ja skct wseruv  ei samma
@@ -43,6 +40,7 @@ def cleanup(app, shutdown=True):
         app.clients.cleanup()
 
     app.logger.info("Cleanup complete. Shutting down server.")
+    app.shutdown_ws_server()
     if shutdown:
         os._exit(0)
     
