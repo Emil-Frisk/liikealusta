@@ -20,6 +20,7 @@ class CommunicationHub:
         self.config = handle_launch_params()
         self.clients = ModbusClients(self.config, self.logger)
         self.is_process_done = False
+        self.server = None
     async def init(self):
         try:
             await create_hearthbeat_monitor_tasks(self, self.module_manage)
@@ -47,19 +48,19 @@ class CommunicationHub:
 
         return (identity, receiver, message)
     
-    async def handle_client(self, websocket, path=None):
+    async def handle_client(self, wsclient, path=None):
         # Store client metadata
         client_info = {"identity": "unknown"}
-        self.wsclients[websocket] = client_info
-        print(f"Client {websocket.remote_address} connected! Path: {path or '/'}", flush=True)
+        self.wsclients[wsclient] = client_info
+        print(f"Client {wsclient.remote_address} connected! Path: {path or '/'}", flush=True)
 
         try:
-            async for message in websocket:
+            async for message in wsclient:
                 print(f"Received: {message}", flush=True)
                 (receiver, identity, message) = self.extract_parts(message)
                 if identity:
                     client_info["identity"] = identity
-                    print(f"Updated identity for {websocket.remote_address}: {identity}", flush=True)
+                    print(f"Updated identity for {wsclient.remote_address}: {identity}", flush=True)
                 if receiver:
                     print(f"Receiver: {receiver}", flush=True)
 
@@ -82,21 +83,33 @@ class CommunicationHub:
                 
 
         except websockets.ConnectionClosed as e:
-            print(f"Client {websocket.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}", flush=True)
+            print(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}", flush=True)
         except Exception as e:
-            print(f"Unexpected error for client {websocket.remote_address} (identity: {client_info['identity']}): {e}", flush=True)
+            print(f"Unexpected error for client {wsclient.remote_address} (identity: {client_info['identity']}): {e}", flush=True)
         finally:
-            print(f"Cleaning up for client {websocket.remote_address} (identity: {client_info['identity']})", flush=True)
-            del self.wsclients[websocket]
+            print(f"Cleaning up for client {wsclient.remote_address} (identity: {client_info['identity']})", flush=True)
+            del self.wsclients[wsclient]
 
     async def start_server(self):
-        server = await websockets.serve(self.handle_client, "localhost", 6969)
+        self.server = await websockets.serve(self.handle_client, "localhost", 6969)
         print("WebSocket server running on ws://localhost:6969")
-        await server.wait_closed()
 
 async def main():
     hub = CommunicationHub()
     await hub.start_server()
 
+
+async def shutdown(self):
+    if hasattr(self, "server") and self.server != None:
+        try:
+            self.logger.info("Closing websocket server...")
+            self.server.close()
+            self.server.wait_closed()
+            self.logger.info("Websocket server closed successfully.")
+        except Exception as e:
+            print("Error closing webosocket server.")
+            self.logger.error("Error while closing the websocket server.")
+            
+        
 if __name__ == "__main__":
     asyncio.run(main())
