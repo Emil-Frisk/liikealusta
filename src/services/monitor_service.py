@@ -19,7 +19,7 @@ async def monitor_fault_poller(app):
 
 async def monitor_socket_server(app):
     """
-    Heathbeat monitor that makes sure socket server 
+    Heathbeat monitor that makes sure socket server     
     stays alive and if it dies it restarts it
     """
     while True:
