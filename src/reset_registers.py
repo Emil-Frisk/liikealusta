@@ -20,8 +20,6 @@ def main():
         except Exception as e:
             print(f"Reset failed: {e}")
             input()
-            
-
 
 if __name__ == "__main__":
      main()

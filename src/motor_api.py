@@ -3,11 +3,11 @@ import atexit
 import os
 import websockets
 from ModbusClients import ModbusClients
-from launch_params import handle_launch_params
 from module_manager import ModuleManager
 from services.cleaunup import cleanup
 from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.motor_service import configure_motor
+from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
 from utils.utils import extract_part
 from services.websocket_methods import shutdown,stop_motors,calculate_pitch_and_roll,update_input_values,demo_control

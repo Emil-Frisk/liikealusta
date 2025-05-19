@@ -4,26 +4,24 @@ from services.motor_service import configure_motor,set_motor_values
 from services.motor_control import demo_control, rotate
 from services.validation_service import validate_update_values
 
-
-
-async def shutdown(app):
+async def shutdown(self):
     """Shuts down the server when called."""
-    app.logger.info("Shutdown request received.")
-    await disable_server(app)
+    self.logger.info("Shutdown request received.")
+    await disable_server(self)
     
     # Schedule shutdown after response
-    asyncio.create_task(shutdown_server_delay(app))
+    asyncio.create_task(shutdown_server_delay(self))
     
     # Return success response immediately
     return {"status": "success"}
 
-async def stop_motors(app):
+async def stop_motors(self):
     try:
-        success = await app.clients.stop()
+        success = await self.clients.stop()
         if not success:
             pass # do something crazy :O
     except Exception as e:
-        app.logger.error("Failed to stop motors?") # Mitäs sitten :D
+        self.logger.error("Failed to stop motors?") # Mitäs sitten :D
     return {"status": "success"}
 
 async def calculate_pitch_and_roll(pitch, roll):#serverosote/endpoint?nimi=value&nimi2=value2
@@ -31,14 +29,14 @@ async def calculate_pitch_and_roll(pitch, roll):#serverosote/endpoint?nimi=value
     
     await rotate(pitch, roll)
 
-async def update_input_values(app,acceleration,velocity):
+async def update_input_values(self,acceleration,velocity):
     try:
         values = {acceleration: acceleration, velocity: velocity}
         if not validate_update_values(values):
             raise ValueError()
 
         if values:
-            await set_motor_values(values,app.clients)
+            await set_motor_values(values,self.clients)
             return {"status":"success"}
     except ValueError as e:
         return {"status": "error", "message": "Velocity and Acceleration has to be positive integers"}

@@ -1,46 +1,46 @@
 import asyncio
 import os
 
-async def disable_server(app):    
+async def disable_server(self):    
     """stops and disables motors and closes sub processes"""
-    app.logger.info("Shutdown request received. Cleaning up...")
+    self.logger.info("Shutdown request received. Cleaning up...")
 
     try:
-        success = await app.clients.stop()
+        success = await self.clients.stop()
         if not success:
-            app.logger.error("Stopping motors was not successful, will not shutdown server")
+            self.logger.error("Stopping motors was not successful, will not shutdown server")
             return
     except Exception as e:
-        app.logger.error("Stopping motors was not successful, will not shutdown server")
+        self.logger.error("Stopping motors was not successful, will not shutdown server")
         return
     await asyncio.sleep(5)
 
-    await app.clients.reset_motors()
+    await self.clients.reset_motors()
 
-    await cleanup(app, False)
+    await cleanup(self, False)
     
-async def shutdown_server_delay(app):
-    # Stop the Quart app's event loop
+async def shutdown_server_delay(self):
+    # Stop the Quart self's event loop
     await asyncio.sleep(1)
     
-    app.logger.info("Server shutdown complete.")
+    self.logger.info("Server shutdown complete.")
     os._exit(0)
 
-def close_tasks(app):
-    if hasattr(app, "monitor_fault_poller"):
-        app.monitor_fault_poller.cancel()
-        app.logger.info("Closed monitor fault poller")
+def close_tasks(self):
+    if hasattr(self, "monitor_fault_poller"):
+        self.monitor_fault_poller.cancel()
+        self.logger.info("Closed monitor fault poller")
 
-async def cleanup(app, shutdown=True):
+async def cleanup(self, shutdown=True):
     #### TODO - fault poller ja skct wseruv  ei samma
-    app.logger.info("cleanup function executed!")
-    close_tasks(app)
-    app.module_manager.cleanup_all()
-    if app.clients is not None:
-        app.clients.cleanup()
+    self.logger.info("cleanup function executed!")
+    close_tasks(self)
+    self.module_manager.cleanup_all()
+    if self.clients is not None:
+        self.clients.cleanup()
 
-    app.logger.info("Cleanup complete. Shutting down server.")
-    await app.shutdown_ws_server()
+    self.logger.info("Cleanup complete. Shutting down server.")
+    await self.shutdown_ws_server()
     if shutdown:
         os._exit(0)
     

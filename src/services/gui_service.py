@@ -244,12 +244,12 @@ def start_server(self):
         test = Path(os.path.abspath(__file__)).parent
         if started_from_exe():
             exe_temp_dir = get_exe_temp_dir()
-            server_path = os.path.join(exe_temp_dir, "src\websocket_server.py")
+            server_path = os.path.join(exe_temp_dir, "src\motor_api.py")
             self.logger.info(server_path)
             venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
         else:
             base_path = Path(base_path).parent
-            server_path = os.path.join(base_path, "websocket_server.py")
+            server_path = os.path.join(base_path, "motor_api.py")
             venv_python = find_venv_python()
         
         if venv_python:
