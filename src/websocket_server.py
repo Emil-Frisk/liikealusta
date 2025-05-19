@@ -27,7 +27,7 @@ class CommunicationHub:
             # Connect to both drivers
             connected = await self.clients.connect() 
             
-            if not connected:  
+            if not connected:
                 self.logger.error(f"""could not form a connection to both motors,
                             Left motors ips: {self.config.SERVER_IP_LEFT}, 
                             Right motors ips: {self.config.SERVER_IP_RIGHT}, 
