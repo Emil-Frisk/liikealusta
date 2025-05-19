@@ -24,9 +24,9 @@ class ServerStartupGUI(QWidget):
     def get_base_path(self):
         gui_service.get_base_path()
 
-    async def start_websocket_client(self):
+    def start_websocket_client(self):
         """Start the WebSocket client."""
-        await self.websocket_client.connect()
+        asyncio.create_task(self.websocket_client.connect())
         
     def update_stored_values(self):
         gui_service.update_stored_values(self)
@@ -40,9 +40,9 @@ class ServerStartupGUI(QWidget):
     def start_server(self):
         gui_service.start_server(self)
         
-    async def shutdown_websocket_client(self):
+    def shutdown_websocket_client(self):
         """Shutdown the WebSocket client."""
-        await self.websocket_client.close()
+        asyncio.create_task(self.websocket_client.close())
 
     def shutdown_server(self):
         gui_service.shutdown_server(self)
