@@ -47,6 +47,20 @@ class WebSocketClient(QObject):
             except Exception as e:
                 self.message_received.emit(f"Failed to send message: {str(e)}")
 
+    async def listen(self):
+        """Listen for incoming messages."""
+        try:
+            async for message in self.websocket:
+                self.message_received.emit(f"Received: {message}")
+        except websockets.ConnectionClosed as e:
+            self.message_received.emit(f"WebSocket disconnected: {e}")
+            self.connect()
+            self.running = False
+        except Exception as e:
+            self.connect()
+            self.message_received.emit(f"WebSocket error: {str(e)}")
+            self.running = False
+
     async def close(self):
         """Close the WebSocket connection."""
         if self.websocket:
