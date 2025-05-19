@@ -14,7 +14,7 @@ from utils.utils import extract_part
 
 class CommunicationHub:
     def __init__(self):
-        self.clients = {}
+        self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
         self.module_manage = ModuleManager(self.logger)
         self.config = handle_launch_params()
@@ -50,7 +50,7 @@ class CommunicationHub:
     async def handle_client(self, websocket, path=None):
         # Store client metadata
         client_info = {"identity": "unknown"}
-        self.clients[websocket] = client_info
+        self.wsclients[websocket] = client_info
         print(f"Client {websocket.remote_address} connected! Path: {path or '/'}", flush=True)
 
         try:
@@ -76,7 +76,7 @@ class CommunicationHub:
                     pass
                     
                 # Send response to clients with identity receiver
-                for client, info in self.clients.items():
+                for client, info in self.wsclients.items():
                     if info["identity"] == receiver:
                         await client.send(message)
                 
@@ -87,7 +87,7 @@ class CommunicationHub:
             print(f"Unexpected error for client {websocket.remote_address} (identity: {client_info['identity']}): {e}", flush=True)
         finally:
             print(f"Cleaning up for client {websocket.remote_address} (identity: {client_info['identity']})", flush=True)
-            del self.clients[websocket]
+            del self.wsclients[websocket]
 
     async def start_server(self):
         server = await websockets.serve(self.handle_client, "localhost", 6969)
