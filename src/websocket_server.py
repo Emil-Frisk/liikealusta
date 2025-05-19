@@ -41,10 +41,12 @@ class CommunicationHub:
             self.logger.error(f"Initialization failed: {e}")
 
 
-    def extract_parts(self, message): # example message: "receiver=startup|identity=fault_poller|message=CRITICAL FAULT!"
+    def extract_parts(self, message): # example message: "receiver=startup|identity=fault_poller|message=CRITICAL FAULT!|pitch=40.3"
         receiver = extract_part("receiver=", message=message)
         identity = extract_part("identity=", message=message)
         message = extract_part("message=", message=message)
+        pitch = extract_part("pitch=", message=message)
+        roll = extract_part("roll=", message=message)
 
         return (identity, receiver, message)
     
@@ -96,6 +98,7 @@ class CommunicationHub:
 
 async def main():
     hub = CommunicationHub()
+    await hub.init()
     await hub.start_server()
 
 
