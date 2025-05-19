@@ -1,6 +1,5 @@
 import subprocess
 
-
 def construct_get_request_params(obj): 
     data_string = ""
     for i, (key, val) in enumerate(obj.items()):
@@ -10,8 +9,6 @@ def construct_get_request_params(obj):
             data_string += f"&{key}={val}"
     
     return data_string
-
-
 
 def make_request(url, obj=None, method="GET"):
     try:

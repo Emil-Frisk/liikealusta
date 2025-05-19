@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from utils.setup_logging import setup_logging
-from services.WebSocketClient import WebSocketClient
+from services.WebSocketClientQT import WebsocketClientQT
 import os
 import sys
 import json
@@ -153,7 +153,7 @@ def init_gui(self):
     self.setLayout(self.main_layout)
 
     # Initialize WebSocket client
-    self.websocket_client = WebSocketClient(logger=self.logger)
+    self.websocket_client = WebsocketClientQT(logger=self.logger)
     self.websocket_client.message_received.connect(self.handle_client_message)
 
     # store initial values of the input fields

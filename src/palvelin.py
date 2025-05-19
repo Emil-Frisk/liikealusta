@@ -4,8 +4,8 @@ from quart import Quart, request, make_response, jsonify
 from ModbusClients import ModbusClients
 import atexit
 from utils.setup_logging import setup_logging
-from launch_params import handle_launch_params
-from module_manager import ModuleManager
+from utils.launch_params import handle_launch_params
+from services.module_manager import ModuleManager
 from time import sleep 
 from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.cleaunup import cleanup, close_tasks, disable_server, shutdown_server_delay
