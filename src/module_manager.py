@@ -2,6 +2,7 @@ import subprocess
 import os
 import sys
 import signal
+from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe
 import time
 import psutil
 
@@ -16,21 +17,21 @@ class ModuleManager:
             if args:
                 cmd.extend(args)
 
-            if getattr(sys, 'frozen', False):
+            if started_from_exe():
                 # PyInstaller context - use the executable path
                 base_dir = os.path.dirname(sys.executable)
-                exefilepath = os.path.join(base_dir, f"{module_path}.exe")
-                cmd =  [exefilepath]
+                temp_exe_dir = get_exe_temp_dir()
+                cmd =  ["C:\liikealusta\.venv\Scripts\python.exe", temp_exe_dir]
             else:
                 # Normal context - use the script path   
                 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
                 src_dir = os.path.join(base_dir, 'src')
                 file_path = os.path.join(src_dir, f"{module_path}.py")
-                cmd =  ['python', file_path]
+                venv_python = find_venv_python()
+                cmd =  [venv_python, file_path]
 
             process = subprocess.Popen(
-                cmd,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+                cmd
             )
 
             pid = process.pid
@@ -68,16 +69,6 @@ class ModuleManager:
                 return False
 
             # First try graceful termination
-            if os.name == 'nt':  # Windows
-                process.send_signal(signal.CTRL_C_EVENT)
-            else:  # Unix-like
-                process.terminate()
-                
-            # Wait for process to exit
-            process.wait(timeout=5)
-            
-        except subprocess.TimeoutExpired:
-            # Force kill if it doesn't stop
             process.kill()
             self.logger.warning(f"Force killed process {process_info['module']} with PID {process.pid}")
 

@@ -6,9 +6,16 @@ from ModbusClients import ModbusClients
 from launch_params import handle_launch_params
 import asyncio
 from utils.utils import is_fault_critical
+from websocket_client import WebsocketClient
 import requests
 
 SERVER_URL = "http://127.0.0.1:5001/"
+
+critical_fauls = {
+      1: "Current in the actuator was too large.",
+      128: "Board temperature is too high",
+      256: "Servo motor has reached too high temperature"
+}
 
 async def main():
     
@@ -19,8 +26,10 @@ async def main():
     connected = await clients.connect()
     if (not connected):
         return
-        
+    
+    # await client.connect()
     logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
+    client = WebsocketClient(logger=logger)
 
     try:
         while(True):
@@ -28,25 +37,37 @@ async def main():
             await asyncio.sleep(1)
             
             # clients.check_and_reset_tids()
-            has_faulted = await clients.check_fault_stauts()
+            result = await clients.check_fault_stauts()
+            if not result:
+                has_faulted = True
+            else:
+                has_faulted = False
+
+
             if (has_faulted):
                 # left_response, right_response = clients.get_recent_fault()
                 left_response, right_response = await clients.get_recent_fault()
                 print("Fault Poller fault status left: " + str(left_response))
                 # Check that its not a critical fault
+                (left_has_falted, right_has_faulted) = result
                 if not is_fault_critical(left_response) and not is_fault_critical(right_response):
                     await clients.set_ieg_mode(65535)
                     logger.info("Fault cleared")
                 else:
-                    logger.error("CRITICAL FAULT DETECTED")
-                    # shuts downs the server
-                    requests.get(SERVER_URL+"shutdown") 
+                    if left_has_falted:
+                        client.send(f"message=CRITICAL FAULT DETECTED: {critical_fauls[left_response]}|receiver=GUI|")
+                        logger.error(f"CRITICAL FAULT DETECTED: {critical_fauls[left_response]}")
+                    else:
+                        client.send(f"message=CRITICAL FAULT DETECTED: {critical_fauls[right_response]}|receiver=GUI|")
+                        logger.error(f"CRITICAL FAULT DETECTED: {critical_fauls[right_response]}")
     except KeyboardInterrupt:
         logger.info("Polling stopped by user")
     except Exception as e:
         logger.error(f"Unexpected error in polling loop: {str(e)}")
     finally:
         clients.cleanup()
+        ### websocket client close
+        ### clean tasks
 
 if __name__ == "__main__":
     asyncio.run(main())

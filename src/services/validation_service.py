@@ -1,0 +1,26 @@
+def validate_update_values(values):
+    acc = int(values["acceleration"])
+    vel = int(values["velocity"])
+    if (vel < 0) or acc < 0:
+        return False
+    return True
+
+def validate_pitch_and_roll_values(pitch,roll):
+    try:
+        # TODO validate values here
+        pitch = float(pitch)
+        roll = float(roll)
+        return True
+    except:
+        raise
+        
+        
+    
+async def validate_message(self,receiver, message):
+    if not message:
+        return (False, "Action message given, but no actual message found, example: message=<message>")
+    for client, info in self.wsclients.items():
+        if info["identity"] == receiver:
+            return (True, message)
+        return (False, "No receiver given in the message, example: receiver=<receiver>")
+

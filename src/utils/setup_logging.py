@@ -2,10 +2,15 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+import sys
+from utils.utils import started_from_exe
 
 def setup_logging(name, filename):
     log_dir = "logs"
-    parent_log_dir = os.path.join(Path(__file__).parent.parent.parent, "logs")
+    if started_from_exe():
+        parent_log_dir = os.path.join(os.path.dirname(sys.executable), "logs")
+    else:
+        parent_log_dir = os.path.join(Path(__file__).parent.parent.parent, "logs")
     if not os.path.exists(parent_log_dir):
         os.makedirs(parent_log_dir)
     
