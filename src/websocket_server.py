@@ -1,5 +1,6 @@
 import asyncio
 import atexit
+import os
 import websockets
 from ModbusClients import ModbusClients
 from launch_params import handle_launch_params
@@ -16,14 +17,14 @@ class CommunicationHub:
     def __init__(self):
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
-        self.module_manage = ModuleManager(self.logger)
+        self.module_manager = ModuleManager(self.logger)
         self.config = handle_launch_params()
         self.clients = ModbusClients(self.config, self.logger)
         self.is_process_done = False
         self.server = None
     async def init(self):
         try:
-            await create_hearthbeat_monitor_tasks(self, self.module_manage)
+            await create_hearthbeat_monitor_tasks(self, self.module_manager)
             # Connect to both drivers
             connected = await self.clients.connect() 
             
@@ -41,28 +42,33 @@ class CommunicationHub:
             self.logger.error(f"Initialization failed: {e}")
 
 
-    def extract_parts(self, message): # example message: "action=STOP|receiver=startup|identity=fault_poller|message=CRITICAL FAULT!|pitch=40.3"
-        receiver = extract_part("receiver=", message=message)
-        identity = extract_part("identity=", message=message)
-        message = extract_part("message=", message=message)
-        action = extract_part("action=", message=message)
-        pitch = extract_part("pitch=", message=message)
-        roll = extract_part("roll=", message=message)
-        acceleration = extract_part("acc=", message=message)
-        velocity = extract_part("vel", message=message)
+    def extract_parts(self, msg): # example message: "action=STOP|receiver=startup|identity=fault_poller|message=CRITICAL FAULT!|pitch=40.3"
+        receiver = extract_part("receiver=", message=msg)
+        identity = extract_part("identity=", message=msg)
+        message = extract_part("message=", message=msg)
+        action = extract_part("action=", message=msg)
+        pitch = extract_part("pitch=", message=msg)
+        roll = extract_part("roll=", message=msg)
+        acceleration = extract_part("acc=", message=msg)
+        velocity = extract_part("vel=", message=msg)
 
-        return (identity, receiver, message,action,pitch,roll,acceleration,velocity)
+        return (receiver, identity, message,action,pitch,roll,acceleration,velocity)
     
     async def shutdown_ws_server(self):
         if hasattr(self, "server") and self.server != None:
             try:
                 self.logger.info("Closing websocket server...")
                 self.server.close()
-                self.server.wait_closed()
+
+                await asyncio.wait_for(self.server.wait_closed(),5)
+
                 self.logger.info("Websocket server closed successfully.")
+            except TimeoutError:
+                os._exit(0) 
             except Exception as e:
                 print("Error closing webosocket server.")
                 self.logger.error("Error while closing the websocket server.")
+                os._exit(0) 
 
     async def handle_client(self, wsclient, path=None):
         # Store client metadata
@@ -72,7 +78,7 @@ class CommunicationHub:
 
         try:
             async for message in wsclient:
-                print(f"Received: {message}", flush=True)
+                print(f"Received: {message}")
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = self.extract_parts(message)
                 if not action:
                     wsclient.send("No action given, example action=<action>")

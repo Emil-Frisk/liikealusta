@@ -45,7 +45,7 @@ class ServerStartupGUI(QWidget):
         await self.websocket_client.close()
 
     def shutdown_server(self):
-        gui_service.shutdown_server()
+        gui_service.shutdown_server(self)
 
     def handle_client_message(self, message):
         gui_service.handle_client_message(self, message=message)

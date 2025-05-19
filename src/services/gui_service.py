@@ -306,8 +306,7 @@ def shutdown_server(self):
     try:
         # First, close the WebSocket client
         loop = asyncio.get_event_loop()
-        loop.create_task(self.shutdown_websocket_client())
-        loop.create_task(self.websocket_client.send("action=shutdown"))
+        loop.create_task(self.websocket_client.send("action=shutdown|"))
         # Then attempt to shutdown the server
         ### TODO - muuta tämä lähettämään socket message action instead
         # response = make_request("http://localhost:5001/shutdown")

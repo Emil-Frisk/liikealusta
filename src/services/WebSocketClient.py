@@ -54,10 +54,10 @@ class WebSocketClient(QObject):
                 self.message_received.emit(f"Received: {message}")
         except websockets.ConnectionClosed as e:
             self.message_received.emit(f"WebSocket disconnected: {e}")
-            self.connect()
+            await self.connect()
             self.running = False
         except Exception as e:
-            self.connect()
+            await self.connect()
             self.message_received.emit(f"WebSocket error: {str(e)}")
             self.running = False
 
