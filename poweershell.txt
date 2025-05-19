@@ -1,0 +1,2 @@
+Get-Process | Where-Object { $_.Path -like "*python.exe" }
+http://127.0.0.1:5001/updatevalues?acceleration=123&velocity=123
