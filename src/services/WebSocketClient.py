@@ -37,3 +37,22 @@ class WebSocketClient(QObject):
         if not self.running:
             self.message_received.emit(f"Client failed to connect to websocket server after max tries...")
             self.running = False
+
+    async def send(self, message):
+        """Send a message to the server."""
+        if self.websocket and self.running:
+            try:
+                await self.websocket.send(message)
+                self.message_received.emit(f"Sent: {message}")
+            except Exception as e:
+                self.message_received.emit(f"Failed to send message: {str(e)}")
+
+    async def close(self):
+        """Close the WebSocket connection."""
+        if self.websocket:
+            try:
+                await self.websocket.close()
+                self.message_received.emit("WebSocket connection closed")
+                self.running = False
+            except Exception as e:
+                self.message_received.emit(f"Error closing WebSocket: {str(e)}")
