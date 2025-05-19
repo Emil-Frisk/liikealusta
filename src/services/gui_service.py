@@ -12,39 +12,11 @@ import asyncio
 import subprocess
 from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe
 from utils.utils import extract_part
+from widgets.widgets import LabelButtonGroup
 
 CONFIG_FILE = "config.json"
 
 from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
-
-class LabelButtonGroup(QWidget):
-    def __init__(self, label_text="Label", button_text="Button", parent=None):
-        super().__init__(parent)
-        
-        # Create layout for the group
-        self.layout = QHBoxLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Create components
-        self.label = QLabel(label_text)
-        self.button = QPushButton(button_text)
-        
-        # Add components to layout
-        self.layout.addWidget(self.label)
-        self.layout.addWidget(self.button)
-        
-        # Set the layout
-        self.setLayout(self.layout)
-        
-    # Convenience methods to access inner components
-    def set_label_text(self, text):
-        self.label.setText(text)
-        
-    def set_button_text(self, text):
-        self.button.setText(text)
-        
-    def connect_button(self, function):
-        self.button.clicked.connect(function)
 
 def create_general_tab(self):
     # General Tab
