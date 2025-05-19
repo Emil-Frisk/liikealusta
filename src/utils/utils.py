@@ -32,7 +32,8 @@ def convert_to_revs(pfeedback):
 
 def get_exe_temp_dir():
         return getattr(sys, "_MEIPASS")
-def extract_part(self, part, message):
+
+def extract_part(part, message):
         # Escape the part parameter to handle special regex characters
         escaped_part = re.escape(part)
         # Construct the regex pattern dynamically

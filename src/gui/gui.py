@@ -32,13 +32,13 @@ class ServerStartupGUI(QWidget):
         gui_service.update_stored_values(self)
 
     def handle_button_click(self):
-        gui_service.handle_button_click()
+        gui_service.handle_button_click(self)
         
     def update_values(self):
         gui_service.update_values(self)
     
     def start_server(self):
-        gui_service.start_server()
+        gui_service.start_server(self)
         
     async def shutdown_websocket_client(self):
         """Shutdown the WebSocket client."""

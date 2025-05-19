@@ -53,6 +53,17 @@ class CommunicationHub:
 
         return (identity, receiver, message,action,pitch,roll,acceleration,velocity)
     
+    async def shutdown_ws_server(self):
+        if hasattr(self, "server") and self.server != None:
+            try:
+                self.logger.info("Closing websocket server...")
+                self.server.close()
+                self.server.wait_closed()
+                self.logger.info("Websocket server closed successfully.")
+            except Exception as e:
+                print("Error closing webosocket server.")
+                self.logger.error("Error while closing the websocket server.")
+
     async def handle_client(self, wsclient, path=None):
         # Store client metadata
         client_info = {"identity": "unknown"}
@@ -119,22 +130,18 @@ class CommunicationHub:
         print("WebSocket server running on ws://localhost:6969")
 
 async def main():
-    hub = CommunicationHub()
-    await hub.init()
-    await hub.start_server()
+    try:
+        
+        hub = CommunicationHub()
+        await hub.init()
+        await hub.start_server()
+        while True:
+            await asyncio.sleep(10)
 
-
-async def shutdown_ws_server(self):
-    if hasattr(self, "server") and self.server != None:
-        try:
-            self.logger.info("Closing websocket server...")
-            self.server.close()
-            self.server.wait_closed()
-            self.logger.info("Websocket server closed successfully.")
-        except Exception as e:
-            print("Error closing webosocket server.")
-            self.logger.error("Error while closing the websocket server.")
-            
+    except KeyboardInterrupt:
+        print("asd")
+    finally:
+        await shutdown(hub)
         
 if __name__ == "__main__":
     asyncio.run(main())
