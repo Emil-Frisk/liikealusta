@@ -78,13 +78,13 @@ class CommunicationHub:
                         if result:
                             await demo_control(pitch, roll, self)
                             
-                    if action == "shutdown":
+                    elif action == "shutdown":
                         result = await shutdown(self)
                         
-                    if action == "stop":
+                    elif action == "stop":
                         result = await stop_motors(self)
                         
-                    if action == "setvalues":
+                    elif action == "setvalues":
                         try:
                             result = validation_service.validate_pitch_and_roll_values(pitch, roll)
                             if result:
@@ -96,10 +96,10 @@ class CommunicationHub:
                             self.logger.error(f"Error while setting values: {e}")
                             print(f"Error while setting values: {e}")
 
-                    if action == "updatevalues":
+                    elif action == "updatevalues":
                         result = await update_input_values(self,acceleration,velocity)
                         
-                    if action == "message":
+                    elif action == "message":
                         (result, msg) = validation_service.validate_message(self,receiver,message)
                         if result:
                             receiver.send(msg)

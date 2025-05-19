@@ -4,6 +4,8 @@ from services.motor_service import configure_motor,set_motor_values
 from services.motor_control import demo_control, rotate
 from services.validation_service import validate_update_values
 
+
+
 async def shutdown(app):
     """Shuts down the server when called."""
     app.logger.info("Shutdown request received.")
