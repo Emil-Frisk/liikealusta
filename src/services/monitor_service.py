@@ -36,7 +36,7 @@ async def monitor_socket_server(app):
 async def create_hearthbeat_monitor_tasks(app, module_manager):
     fault_poller_pid = module_manager.launch_module("fault_poller")
     app.fault_poller_pid = fault_poller_pid
-    so_srv_pid = module_manager.launch_module("websocket_server")
-    app.so_srv_pid = so_srv_pid
+    # so_srv_pid = module_manager.launch_module("websocket_server")
+    # app.so_srv_pid = so_srv_pid
     app.monitor_fault_poller = asyncio.create_task(monitor_fault_poller(app))
-    app.monitor_so_srv = asyncio.create_task(monitor_socket_server(app))
+    # app.monitor_so_srv = asyncio.create_task(monitor_socket_server(app))

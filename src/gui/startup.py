@@ -295,26 +295,21 @@ class ServerStartupGUI(QWidget):
         try:   
             base_path = self.get_base_path()
             if started_from_exe():
-                pythonexe = os.path.join(base_path, "startup.exe")
                 exe_temp_dir = get_exe_temp_dir()
-                self.logger.info(pythonexe)
-                
-                server_path = os.path.join(exe_temp_dir, "src\palvelin.py")
+                server_path = os.path.join(exe_temp_dir, "src\websocket_server.py")
                 self.logger.info(server_path)
-                venv_python = None
+                venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
             else:
                 base_path = Path(base_path).parent
-                server_path = os.path.join(base_path, "palvelin.py")
+                server_path = os.path.join(base_path, "websocket_server.py")
                 venv_python = find_venv_python()
             
             if venv_python:
                 cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
             else: 
-                cmd = f'"C:\liikealusta\.venv\Scripts\python.exe" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
+                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
 
-            self.process = subprocess.Popen(
-                cmd
-            )
+            self.process = subprocess.Popen(cmd)
 
             self.logger.info(f"Server launched with PID: {self.process.pid}")
             QMessageBox.information(self, "Success", "Server started successfully!")
