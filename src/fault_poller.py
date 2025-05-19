@@ -6,6 +6,7 @@ from ModbusClients import ModbusClients
 from launch_params import handle_launch_params
 import asyncio
 from utils.utils import is_fault_critical
+from websocket_client import WebsocketClient
 import requests
 
 SERVER_URL = "http://127.0.0.1:5001/"
@@ -22,6 +23,7 @@ async def main():
     
     # await client.connect()
     logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
+    client = WebsocketClient(logger=logger)
 
     try:
         while(True):
@@ -39,6 +41,7 @@ async def main():
                     await clients.set_ieg_mode(65535)
                     logger.info("Fault cleared")
                 else:
+
                     logger.error("CRITICAL FAULT DETECTED")
                     # shuts downs the server
                     requests.get(SERVER_URL+"shutdown") 
