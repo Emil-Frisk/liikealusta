@@ -129,7 +129,16 @@ class CommunicationHub:
             print(f"Unexpected error for client {wsclient.remote_address} (identity: {client_info['identity']}): {e}", flush=True)
         finally:
             print(f"Cleaning up for client {wsclient.remote_address} (identity: {client_info['identity']})", flush=True)
-            del self.wsclients[wsclient]
+            await self.cleanup_client()
+
+    async def cleanup_client(self, client_socket):
+        print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
+        if client_socket in self.clients:
+            del self.clients[client_socket]
+        try:
+            await client_socket.close()
+        except Exception as e:
+            print(f"Error closing connection for {client_socket.remote_address}: {e}", flush=True)
 
     async def start_server(self):
         self.server = await websockets.serve(self.handle_client, "localhost", 6969)
