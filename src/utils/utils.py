@@ -5,6 +5,7 @@ import os
 import asyncio
 import re
 
+
 FAULT_RESET_BIT = 15
 ENABLE_MAINTAINED_BIT = 1
 ALTERNATE_MODE_BIT = 7

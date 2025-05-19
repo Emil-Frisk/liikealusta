@@ -182,7 +182,8 @@ class ModbusClients:
         or None if it fails
         """
         try:
-            result = False
+            left_faulted = False
+            right_faulted = False
             
             left_response = await self.client_left.read_holding_registers(
                 address=self.config.OEG_STATUS,
@@ -200,10 +201,13 @@ class ModbusClients:
                 return None
 
             # 4th bit 2^4 indicates if motor is in the fault state
-            if(is_nth_bit_on(3, left_response.registers[0]) or is_nth_bit_on(3, right_response.registers[0])):
-                 result = True
+            if(is_nth_bit_on(3, left_response.registers[0])):
+                 left_faulted = True
             
-            return result
+            if is_nth_bit_on(3, right_response.registers[0]):
+                right_faulted = True
+            
+            return (left_faulted, right_faulted)
 
         except Exception as e:
                 self.logger.error(f"Exception checking fault status: {str(e)}")
@@ -234,7 +238,6 @@ class ModbusClients:
         except Exception as e:
                 self.logger.error(f"Exception reading velocity registers: {str(e)}")
                 return None, None
-
 
     async def stop(self):
         """
