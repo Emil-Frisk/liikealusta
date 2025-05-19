@@ -11,7 +11,8 @@ import asyncio
 import websockets
 import qasync
 from utils.setup_logging import setup_logging
-from utils.utils import get_exe_temp_dir,find_venv_python
+from services.network_service import make_request
+from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe
 
 CONFIG_FILE = "config.json"
 
@@ -47,7 +48,7 @@ class WebSocketClient(QObject):
                 self.logger(f"Client connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
                 await asyncio.sleep(5)
         
-        if not self.running == True:
+        if not self.running:
             self.message_received.emit(f"Client failed to connect to websocket server after max tries...")
             self.running = False
 
@@ -182,7 +183,7 @@ class ServerStartupGUI(QWidget):
 
     def set_styles(self):
 
-        if getattr(sys, 'frozen', False):
+        if started_from_exe():
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
         else:
@@ -226,7 +227,7 @@ class ServerStartupGUI(QWidget):
             }, f)
 
     def get_base_path(self):
-        if getattr(sys, 'frozen', False):
+        if started_from_exe():
             return str(Path(sys.executable).resolve().parent)
         else:
             return os.path.dirname(os.path.abspath(__file__))
@@ -272,10 +273,11 @@ class ServerStartupGUI(QWidget):
                 # Update stored values after successful update
                 self.update_stored_values()
                 # Send values to server
-                requests.get("http://localhost:5001/updatevalues", changed_fields)
-
-        
-
+                try:
+                    response = make_request("http://localhost:5001/updatevalues", changed_fields)
+                    print("TÄSSÄ", response)
+                except Exception as e:
+                    a = e
     
     def start_server(self):
         ip1 = self.ip_input1.text().strip()
@@ -292,42 +294,35 @@ class ServerStartupGUI(QWidget):
         
         try:   
             base_path = self.get_base_path()
-            if getattr(sys, 'frozen', False):
-                pythonexe = os.path.join(base_path, "startup.exe")
+            if started_from_exe():
                 exe_temp_dir = get_exe_temp_dir()
-                self.logger.info(pythonexe)
-                
-                server_path = os.path.join(exe_temp_dir, "src\palvelin.py")
+                server_path = os.path.join(exe_temp_dir, "src\websocket_server.py")
                 self.logger.info(server_path)
-                venv_python = None
+                venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
             else:
                 base_path = Path(base_path).parent
-                server_path = os.path.join(base_path, "palvelin.py")
+                server_path = os.path.join(base_path, "websocket_server.py")
                 venv_python = find_venv_python()
             
             if venv_python:
                 cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
             else: 
-                cmd = f'"C:\liikealusta\.venv\Scripts\python.exe" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
+                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
 
-            self.process = subprocess.Popen(
-                cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-            )
+            self.process = subprocess.Popen(cmd)
 
             self.logger.info(f"Server launched with PID: {self.process.pid}")
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.shutdown_button.setEnabled(True)
             # self.start_button.setEnabled(False)
-
-            # Start WebSocket client after server starts
-            asyncio.ensure_future(self.start_websocket_client())
-            
+           
             # Update inptu values
             self.update_stored_values()
             # Switch button logic to update values
             self.is_server_running = True # server is running
             self.start_button.setText("Update Values")
+            # Start WebSocket client after server starts
+            asyncio.ensure_future(self.start_websocket_client())
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
@@ -338,11 +333,11 @@ class ServerStartupGUI(QWidget):
     def shutdown_server(self):
         try:
             # First, close the WebSocket client
-            asyncio.run_coroutine_threadsafe(self.shutdown_websocket_client(), qasync.get_event_loop())
-
+            loop = asyncio.get_event_loop()
+            loop.create_task(self.shutdown_websocket_client())
             # Then attempt to shutdown the server
-            response = subprocess.run(["curl", "-X", "GET", "http://localhost:5001/shutdown"], capture_output=True, text=True)
-            if response.status_code == 200:  # Fixed: Check status_code, not returncode
+            response = make_request("http://localhost:5001/shutdown")
+            if "success" in response.stdout:  # Fixed: Check status_code, not returncode
                 QMessageBox.information(self, "Success", "Server shutdown successfully!")
                 self.shutdown_button.setEnabled(False)
                 self.start_button.setEnabled(True)

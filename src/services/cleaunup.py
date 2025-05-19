@@ -21,15 +21,10 @@ async def disable_server(app):
     
 async def shutdown_server_delay(app):
     # Stop the Quart app's event loop
-    
-
-    # Stop the event loop
-    loop = asyncio.get_running_loop()
-    loop.stop()
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    loop.close()
+    await asyncio.sleep(1)
     
     app.logger.info("Server shutdown complete.")
+    os._exit(0)
 
 def close_tasks(app):
     if hasattr(app, "monitor_fault_poller"):
@@ -40,6 +35,7 @@ def close_tasks(app):
         app.logger.info("Closed monitor socket server")
 
 def cleanup(app, shutdown=True):
+    #### TODO - fault poller ja skct wseruv  ei samma
     app.logger.info("cleanup function executed!")
     close_tasks(app)
     app.module_manager.cleanup_all()
