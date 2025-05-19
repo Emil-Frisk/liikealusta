@@ -11,6 +11,7 @@ from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.cleaunup import cleanup, close_tasks, disable_server, shutdown_server_delay
 from services.motor_service import configure_motor,set_motor_values
 from services.motor_control import demo_control, rotate
+from services.validation_service import validate_update_values
 from utils.utils import is_nth_bit_on, IEG_MODE_bitmask_enable, convert_acc_rpm_revs, convert_vel_rpm_revs, convert_to_revs
 
 async def init(app):
@@ -55,7 +56,7 @@ async def create_app():
         roll = request.args.get('roll') 
         
         await demo_control(pitch, roll)
-        return "", 204
+        return jsonify(""), 204
     
     @app.route('/shutdown', methods=['get'])
     async def shutdown():
@@ -78,7 +79,7 @@ async def create_app():
                 pass # do something crazy :O
         except Exception as e:
             app.logger.error("Failed to stop motors?") # Mitäs sitten :D
-        return "", 204
+        return jsonify(""), 204
 
     @app.route('/setvalues', methods=['GET'])
     async def calculate_pitch_and_roll():#serverosote/endpoint?nimi=value&nimi2=value2
@@ -86,29 +87,19 @@ async def create_app():
         pitch = float(request.args.get('pitch'))
         roll = float(request.args.get('roll'))
         await rotate(pitch, roll)
-        return "", 204
+        return jsonify(""), 204
 
     @app.route('/updatevalues', methods=['get'])
     async def update_input_values():
         try:
             values = request.args.to_dict()
+            if not validate_update_values(values):
+                raise ValueError()
 
-            acc = values["acceleration"]
-            vel = values["velocity"]
-
-            acc = int(acc)
-            vel = int(vel)
-
-            if (vel < 0) or acc < 0:
-                raise ValueError
-            
-            values["acceleration"] = acc
-            values["velocity"] = vel
-            
-
-            print(values)
             if values:
                 await set_motor_values(values,app.clients)
+            
+            return jsonify(""), 204
         except ValueError as e:
             return jsonify({"status": "error", "message": "Velocity and Acceleration has to be positive integers"}), 400
         except Exception as e:

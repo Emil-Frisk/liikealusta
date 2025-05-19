@@ -2,7 +2,9 @@ import math
 import sys
 from pathlib import Path
 import os
+import asyncio
 import re
+
 
 FAULT_RESET_BIT = 15
 ENABLE_MAINTAINED_BIT = 1
@@ -12,6 +14,9 @@ BOARD_TEMPERATURE_BIT = 7
 ACTUATOR_TEMPERATURE = 8
 UVEL32_RESOLUTION = 1 / (2**24 - 1)
 UACC32_RESOLUTION = 1 / (2**20 - 1)
+
+def started_from_exe():
+    return getattr(sys, 'frozen', False)
 
 def find_venv_python():
         current_dir = Path(__file__).resolve().parent
