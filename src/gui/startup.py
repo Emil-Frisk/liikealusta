@@ -5,20 +5,95 @@ import subprocess
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox, QTabWidget, QFormLayout
 from PyQt6.QtGui import QFont
+from PyQt6.QtCore import pyqtSignal, QObject
 import requests
+import asyncio
+import websockets
+import qasync
 from utils.setup_logging import setup_logging
-from utils.utils import get_exe_temp_dir,find_venv_python
+from services.network_service import make_request
+from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe
 
 CONFIG_FILE = "config.json"
+
+class WebSocketClient(QObject):
+    # Signal to emit received messages to the GUI
+    message_received = pyqtSignal(str)
+
+    def __init__(self,logger, uri="ws://localhost:6969"):
+        super().__init__()
+        self.uri = uri
+        self.logger = logger
+        self.websocket = None
+        self.running = False
+        self.loop = None
+
+    async def connect(self):
+        """Connect to the WebSocket server and listen for messages."""
+        try_count = 0
+        max_tries = 10
+        while try_count < max_tries:
+            try:
+                self.websocket = await websockets.connect(self.uri)
+                self.running = True
+                self.message_received.emit(f"Connected to {self.uri}")
+                await self.listen()
+                break
+            except ConnectionRefusedError as e:
+                self.logger.error(f"Server not up yet; connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
+                try_count += 1
+                await asyncio.sleep(5)
+            except Exception as e:
+                try_count +=1
+                self.logger(f"Client connection error: {str(e)}, attempt: {try_count}/{max_tries} trying again soon")
+                await asyncio.sleep(5)
+        
+        if not self.running:
+            self.message_received.emit(f"Client failed to connect to websocket server after max tries...")
+            self.running = False
+
+    async def listen(self):
+        """Listen for incoming messages."""
+        ## TODO - implement recovery
+        try:
+            async for message in self.websocket:
+                self.message_received.emit(f"Received: {message}")
+        except websockets.ConnectionClosed as e:
+            self.message_received.emit(f"WebSocket disconnected: {e}")
+            self.connect()
+            self.running = False
+        except Exception as e:
+            self.connect()
+            self.message_received.emit(f"WebSocket error: {str(e)}")
+            self.running = False
+
+    async def send(self, message):
+        """Send a message to the server."""
+        if self.websocket and self.running:
+            try:
+                await self.websocket.send(message)
+                self.message_received.emit(f"Sent: {message}")
+            except Exception as e:
+                self.message_received.emit(f"Failed to send message: {str(e)}")
+
+    async def close(self):
+        """Close the WebSocket connection."""
+        if self.websocket:
+            try:
+                await self.websocket.close()
+                self.message_received.emit("WebSocket connection closed")
+                self.running = False
+            except Exception as e:
+                self.message_received.emit(f"Error closing WebSocket: {str(e)}")
 
 class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
         self.project_root = ""
-        
+        self.is_server_running = False #Track the server status
         self.setWindowTitle("Server Startup")
-        self.setGeometry(100, 100, 400, 350)
+        self.setGeometry(100, 100, 400, 400)  # Adjusted height for message label
         
         # Set font
         font = QFont("Arial", 14)
@@ -69,12 +144,18 @@ class ServerStartupGUI(QWidget):
         self.advanced_tab.setLayout(self.advanced_layout)
         self.tabs.addTab(self.advanced_tab, "Advanced")
 
+        # Message Display Label
+        self.message_label = QLabel("WebSocket Messages: Not connected")
+        self.message_label.setWordWrap(True)
+        self.main_layout.addWidget(self.message_label)
+
         # Load last used values
         self.load_config()
 
         # Start Button
+        
         self.start_button = QPushButton("Start Server")
-        self.start_button.clicked.connect(self.start_server)
+        self.start_button.clicked.connect(self.handle_button_click)
         self.main_layout.addWidget(self.start_button)
         
         # Shutdown Button (Initially Disabled)
@@ -87,9 +168,22 @@ class ServerStartupGUI(QWidget):
         
         self.setLayout(self.main_layout)
 
+        # Initialize WebSocket client
+        self.websocket_client = WebSocketClient(logger=self.logger)
+        self.websocket_client.message_received.connect(self.update_message_label)
+
+        # store initial values of the input fields
+        self.stored_values = {
+            'ip_input1': self.ip_input1.text(),
+            'ip_input2': self.ip_input2.text(),
+            'speed_input': self.speed_input.value(),
+            'accel_input': self.accel_input.value(),
+            'freq_input': self.freq_input.value()
+        }
+
     def set_styles(self):
 
-        if getattr(sys, 'frozen', False):
+        if started_from_exe():
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
         else:
@@ -98,8 +192,6 @@ class ServerStartupGUI(QWidget):
         try:
             with open(styles_path, "r") as f:
                 data = json.load(f)
-
-            # Apply the styles to your buttons
             for style in data["styles"]:
                 if "start_up_btn" in style:
                     self.start_button.setStyleSheet(style["start_up_btn"])
@@ -135,14 +227,57 @@ class ServerStartupGUI(QWidget):
             }, f)
 
     def get_base_path(self):
-        if getattr(sys, 'frozen', False):
-                # PyInstaller context - return the directory of the executable
-                return str(Path(sys.executable).resolve().parent)
+        if started_from_exe():
+            return str(Path(sys.executable).resolve().parent)
         else:
-            # Normal context - return the directory of the script
             return os.path.dirname(os.path.abspath(__file__))
 
+    async def start_websocket_client(self):
+        """Start the WebSocket client."""
+        await self.websocket_client.connect()
+        
+    def update_stored_values(self):
+        """Update stored values to reflect current input field values."""
+        self.stored_values = {
+            'ip_input1': self.ip_input1.text(),
+            'ip_input2': self.ip_input2.text(),
+            'speed_input': self.speed_input.value(),
+            'accel_input': self.accel_input.value(),
+            'freq_input': self.freq_input.value()
+        }
 
+    def handle_button_click(self):
+        if not self.is_server_running:
+           self.start_server()
+        else:
+            self.update_values()
+        
+    def update_values(self):
+            """Update only the values that have changed."""
+            changed_fields = {}
+            # Check text fields for changes
+            if self.speed_input.value() != self.stored_values['speed_input']:
+                changed_fields.update({"velocity": self.speed_input.value()})
+                self.logger.info(f"Updating Velocity to {self.speed_input.value()} RPM")      
+                      
+            if self.accel_input.value() != self.stored_values['accel_input']:
+                changed_fields.update({"acceleration": self.accel_input.value()})
+                self.logger.info(f"Updating Acceleration to {self.accel_input.value()} RPM")   
+                         
+            # if self.freq_input.value() != self.stored_values['freq_input']:
+            #     changed_fields.update({"frequency": self.freq_input.value()})
+            #     self.logger.info(f"Updating Frequency to {self.freq_input.value()} Hz")
+                
+            # Update values based on changes
+            if changed_fields:
+                # Update stored values after successful update
+                self.update_stored_values()
+                # Send values to server
+                try:
+                    response = make_request("http://localhost:5001/updatevalues", changed_fields)
+                    print("TÄSSÄ", response)
+                except Exception as e:
+                    a = e
     
     def start_server(self):
         ip1 = self.ip_input1.text().strip()
@@ -159,53 +294,82 @@ class ServerStartupGUI(QWidget):
         
         try:   
             base_path = self.get_base_path()
-            if getattr(sys, 'frozen', False):
-                pythonexe = os.path.join(base_path, "startup.exe")
+            if started_from_exe():
                 exe_temp_dir = get_exe_temp_dir()
-                self.logger.info(pythonexe)
-                
-                server_path = os.path.join(exe_temp_dir, "src\palvelin.py")
+                server_path = os.path.join(exe_temp_dir, "src\websocket_server.py")
                 self.logger.info(server_path)
-                venv_python = None
+                venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
             else:
-                server_path = os.path.join(base_path, "palvelin.py")
+                base_path = Path(base_path).parent
+                server_path = os.path.join(base_path, "websocket_server.py")
                 venv_python = find_venv_python()
             
             if venv_python:
                 cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
             else: 
-                cmd = f'"C:\liikealusta\.venv\Scripts\python.exe" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
+                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
 
-            self.process = subprocess.Popen(
-                cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-            )
+            self.process = subprocess.Popen(cmd)
 
             self.logger.info(f"Server launched with PID: {self.process.pid}")
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.shutdown_button.setEnabled(True)
-            self.start_button.setEnabled(False)
+            # self.start_button.setEnabled(False)
+           
+            # Update inptu values
+            self.update_stored_values()
+            # Switch button logic to update values
+            self.is_server_running = True # server is running
+            self.start_button.setText("Update Values")
+            # Start WebSocket client after server starts
+            asyncio.ensure_future(self.start_websocket_client())
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
+    async def shutdown_websocket_client(self):
+        """Shutdown the WebSocket client."""
+        await self.websocket_client.close()
+
     def shutdown_server(self):
         try:
-            response = requests.get("http://localhost:5001/shutdown")
-            a = 10
-            if response.returncode == 56:
+            # First, close the WebSocket client
+            loop = asyncio.get_event_loop()
+            loop.create_task(self.shutdown_websocket_client())
+            # Then attempt to shutdown the server
+            response = make_request("http://localhost:5001/shutdown")
+            if "success" in response.stdout:  # Fixed: Check status_code, not returncode
                 QMessageBox.information(self, "Success", "Server shutdown successfully!")
                 self.shutdown_button.setEnabled(False)
                 self.start_button.setEnabled(True)
             else:
-                QMessageBox.warning(self, "Warning", "Failed to shutdown server!")
+                QMessageBox.warning(self, "Warning", f"Failed to shutdown server: {response.text}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
+    def update_message_label(self, message):
+        """Update the GUI label with WebSocket messages."""
+        self.message_label.setText(message)
+
+        # Example: Parse message and update GUI elements
+        if "Received: " in message:
+            try:
+                # Assuming server sends messages like "identity=1|data=value"
+                msg_content = message.split("Received: ")[1]
+                if "data=" in msg_content:
+                    value = msg_content.split("data=")[1].split("|")[0]
+                    # Update GUI based on data (e.g., set speed_input)
+                    self.speed_input.setValue(int(value))
+            except Exception as e:
+                self.logger.error(f"Error parsing message: {str(e)}")
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    # Initialize qasync event loop
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    
     window = ServerStartupGUI()
     window.show()
-    sys.exit(app.exec())
-
-
-    ### test
+    
+    with loop:
+        loop.run_forever()
