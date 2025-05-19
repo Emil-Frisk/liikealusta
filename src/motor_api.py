@@ -3,7 +3,7 @@ import atexit
 import os
 import websockets
 from ModbusClients import ModbusClients
-from module_manager import ModuleManager
+from services.module_manager import ModuleManager
 from services.cleaunup import cleanup
 from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.motor_service import configure_motor
@@ -33,7 +33,7 @@ class CommunicationHub:
                             Left motors ips: {self.config.SERVER_IP_LEFT}, 
                             Right motors ips: {self.config.SERVER_IP_RIGHT}, 
                             shutting down the server """)
-                cleanup(self)
+                await cleanup(self)
             self.is_process_done = True
 
             atexit.register(lambda: cleanup(self))
@@ -146,7 +146,6 @@ class CommunicationHub:
 
 async def main():
     try:
-        
         hub = CommunicationHub()
         await hub.init()
         await hub.start_server()

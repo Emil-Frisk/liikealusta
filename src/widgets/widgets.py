@@ -12,6 +12,8 @@ class LabelButtonGroup(QWidget):
         self.label = QLabel(label_text)
         self.button = QPushButton(button_text)
         
+        self.connect_button(self.toggle_visibility)
+        
         # Add components to layout
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.button)
@@ -30,4 +32,4 @@ class LabelButtonGroup(QWidget):
         self.button.clicked.connect(function)
     
     def toggle_visibility(self):
-        self.layout.setVisible(False)
+        self.setVisible(not self.isVisible())

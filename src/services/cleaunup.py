@@ -40,7 +40,10 @@ async def cleanup(self, shutdown=True):
         self.clients.cleanup()
 
     self.logger.info("Cleanup complete. Shutting down server.")
-    await self.shutdown_ws_server()
+    
+    if hasattr(self, "shutdown_ws_server"):
+        await self.shutdown_ws_server()
+        
     if shutdown:
         os._exit(0)
     

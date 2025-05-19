@@ -76,12 +76,12 @@ def create_faults_tab(self):
     self.faults_tab = QWidget()
     self.faults_layout = QFormLayout()
 
-    # # Message Display Label
-    # self.default_fault_msg_lbl = QLabel("Servo motors have no faults currently")
-    # self.default_fault_msg_lbl.setWordWrap(True)
-    # self.default_fault_msg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    # self.faults_layout.addWidget(self.default_fault_msg_lbl)
-    # self.faults_layout.setAlignment(self.default_fault_msg_lbl, Qt.AlignmentFlag.AlignCenter)
+    # Message Display Label
+    self.default_fault_msg_lbl = QLabel("Servo motors have no faults currently")
+    self.default_fault_msg_lbl.setWordWrap(True)
+    self.default_fault_msg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    self.faults_layout.addWidget(self.default_fault_msg_lbl)
+    self.faults_layout.setAlignment(self.default_fault_msg_lbl, Qt.AlignmentFlag.AlignCenter)
 
     self.fault_group = LabelButtonGroup("msg", "Clear Fault")
     self.faults_layout.addWidget(self.fault_group)
