@@ -10,8 +10,6 @@ from services.motor_service import configure_motor
 from utils.setup_logging import setup_logging
 from utils.utils import extract_part
 
-
-
 class CommunicationHub:
     def __init__(self):
         self.clients = {}
@@ -26,7 +24,7 @@ class CommunicationHub:
             # Connect to both drivers
             connected = await self.clients.connect() 
             
-            if not connected:  
+            if not connected:
                 self.logger.error(f"""could not form a connection to both motors,
                             Left motors ips: {self.config.SERVER_IP_LEFT}, 
                             Right motors ips: {self.config.SERVER_IP_RIGHT}, 
