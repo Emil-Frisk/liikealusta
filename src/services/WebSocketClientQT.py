@@ -28,7 +28,7 @@ class WebsocketClientQT(QObject):
             self.is_running = True
             self.reconnect_count = 0
             self.logger.info(f"client connected to server: {self.uri}")
-            self.message_received.emit(f"Connected to {self.uri}")
+            self.message_received.emit(f"event=motor api started|Connected to {self.uri}")
             self._listen_task = asyncio.create_task(self._listen())
         except TimeoutError:
             await self.handle_connection_failure(f"Connection timed out after 10 seconds")

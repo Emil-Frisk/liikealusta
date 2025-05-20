@@ -10,7 +10,6 @@ class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         gui_service.init_gui(self)
-        a = 10
         self.fault_group.set_label_text("what")
 
     def set_styles(self):
