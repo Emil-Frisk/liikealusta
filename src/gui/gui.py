@@ -10,6 +10,7 @@ class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         gui_service.init_gui(self)
+        a = 10
         self.fault_group.set_label_text("what")
 
     def set_styles(self):
@@ -49,6 +50,9 @@ class ServerStartupGUI(QWidget):
 
     def handle_client_message(self, message):
         gui_service.handle_client_message(self, message=message)
+    
+    def clear_fault(self):
+        print("Clear fault was called")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -63,12 +63,14 @@ def create_server_buttons(self):
     # Start Button
     self.start_button = QPushButton("Start Server")
     self.start_button.clicked.connect(self.handle_button_click)
+    self.start_button.setStyleSheet(self.styles["start_up_btn"])
     self.main_layout.addWidget(self.start_button)
     
     # Shutdown Button (Initially Disabled)
     self.shutdown_button = QPushButton("Shutdown Server")
     self.shutdown_button.setEnabled(False)
     self.shutdown_button.clicked.connect(self.shutdown_server)
+    self.shutdown_button.setStyleSheet(self.styles["shutdown_btn"])
     self.main_layout.addWidget(self.shutdown_button)
 
 def create_faults_tab(self):
@@ -83,7 +85,8 @@ def create_faults_tab(self):
     self.faults_layout.addWidget(self.default_fault_msg_lbl)
     self.faults_layout.setAlignment(self.default_fault_msg_lbl, Qt.AlignmentFlag.AlignCenter)
 
-    self.fault_group = LabelButtonGroup("msg", "Clear Fault")
+    self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault")
+    self.fault_group.connect_button(self.clear_fault)
     self.faults_layout.addWidget(self.fault_group)
 
     # Add faults layout to advanced tab
@@ -105,6 +108,8 @@ def init_gui(self):
     self.setWindowTitle("Server Startup")
     self.setGeometry(100, 100, 400, 400)  # Adjusted height for message label
     
+    load_styles(self)
+
     # Set font
     font = QFont("Arial", 14)
     self.setFont(font)
@@ -120,7 +125,7 @@ def init_gui(self):
     # Load last used values
     self.load_config()
     create_server_buttons(self)
-    self.set_styles()
+    
     
     self.setLayout(self.main_layout)
 
@@ -137,21 +142,26 @@ def init_gui(self):
         'freq_input': self.freq_input.value()
     }
 
-def set_styles(self):
+def load_styles(self):
     try:
         if started_from_exe():
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
-        else:
-            styles_path = "C:\liikealusta\src\gui\styles.json"
+        else: # TODO - muuta tämä myöhemmin
+            # test = Path(__file__).parent.parent
+            styles_path = Path(__file__).parent.parent / "gui" / "styles.json"
+            a = 10
+            # styles_path = "/home/vichy/liikealusta/src/gui/styles.json/styles.json"
         # Load the JSON from the file
         with open(styles_path, "r") as f:
             data = json.load(f)
-        for style in data["styles"]:
-            if "start_up_btn" in style:
-                self.start_button.setStyleSheet(style["start_up_btn"])
-            if "shutdown_btn" in style:
-                self.shutdown_button.setStyleSheet(style["shutdown_btn"])
+        
+        styles = data["styles"]
+        self.styles = {}
+        for style in styles:
+            for key, val in style.items():
+                self.styles[key] = val
+
     except FileNotFoundError:
         print(f"Error: styles.json not found at {styles_path}")
     except json.JSONDecodeError as e:
