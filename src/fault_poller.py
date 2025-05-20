@@ -7,13 +7,6 @@ from utils.launch_params import handle_launch_params
 import asyncio
 from utils.utils import is_fault_critical, extract_part
 from services.websocket_client import WebsocketClient
-import requests
-
-SERVER_URL = "http://127.0.0.1:5001/"
-
-
-
-
 
 class FaultPoller():
     def __init__(self):
@@ -34,7 +27,6 @@ class FaultPoller():
         if event == "fault_cleared":
             self.has_faulted = False
 
-
     async def main(self):
         self.logger = setup_logging("faul_poller", "faul_poller.log")
         config = handle_launch_params()
@@ -46,7 +38,8 @@ class FaultPoller():
         
         # await client.connect()
         self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
-        client = WebsocketClient(logger=self.logger)
+        client = WebsocketClient(logger=self.logger, on_message=self.on_message)
+        await client.connect()
 
         try:
             while(True):
