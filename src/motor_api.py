@@ -94,6 +94,8 @@ class CommunicationHub:
                         result = validation_service.validate_pitch_and_roll_values(pitch,roll)
                         if result:
                             await demo_control(pitch, roll, self)
+                    elif identity == "GUI":
+                        pass
                             
                     elif action == "shutdown":
                         result = await shutdown(self)
@@ -132,7 +134,7 @@ class CommunicationHub:
             await self.cleanup_client()
 
     async def cleanup_client(self, client_socket):
-        print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
+        print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]['identity']})")
         if client_socket in self.clients:
             del self.clients[client_socket]
         try:

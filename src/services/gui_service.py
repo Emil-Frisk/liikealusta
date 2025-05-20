@@ -143,7 +143,8 @@ def set_styles(self):
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
         else:
-            styles_path = "C:\liikealusta\src\gui\styles.json"
+            base_path = Path(os.path.abspath(__file__)).parent.parent
+            styles_path = os.path.join(base_path, "gui", "styles.json")
         # Load the JSON from the file
         with open(styles_path, "r") as f:
             data = json.load(f)
