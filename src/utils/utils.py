@@ -34,6 +34,7 @@ def get_exe_temp_dir():
         return getattr(sys, "_MEIPASS")
 
 def extract_part(part, message):
+        # message.split(part)[1].split("|")[0]
         # Escape the part parameter to handle special regex characters
         escaped_part = re.escape(part)
         # Construct the regex pattern dynamically

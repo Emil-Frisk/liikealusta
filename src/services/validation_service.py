@@ -21,6 +21,6 @@ async def validate_message(self,receiver, message):
         return (False, "Action message given, but no actual message found, example: message=<message>")
     for client, info in self.wsclients.items():
         if info["identity"] == receiver:
-            return (True, message)
+            return (True, client, message)
         return (False, "No receiver given in the message, example: receiver=<receiver>")
 

@@ -22,6 +22,7 @@ class CommunicationHub:
         self.clients = ModbusClients(self.config, self.logger)
         self.is_process_done = False
         self.server = None
+
     async def init(self):
         try:
             await create_hearthbeat_monitor_tasks(self, self.module_manager)
@@ -88,6 +89,7 @@ class CommunicationHub:
                         client_info["identity"] = identity
                         print(f"Updated identity for {wsclient.remote_address}: {identity}", flush=True)
                     if receiver:
+
                         print(f"Receiver: {receiver}", flush=True)
                     
                     # "endpoints"
@@ -118,11 +120,24 @@ class CommunicationHub:
                         result = await update_input_values(self,acceleration,velocity)
                         
                     elif action == "message":
-                        (result, msg) = validation_service.validate_message(self,receiver,message)
+                        (result,receiver, msg) = validation_service.validate_message(self,receiver,message)
                         if result:
                             receiver.send(msg)
                         else:
                             wsclient.send(msg)
+                    elif action == "clearfault":
+                        try:
+                            if not await self.clients.set_ieg_mode(65535) or not await self.clients.set_ieg_mode(2):
+                                self.logger.error("Error clearing motors faults!")
+                                wsclient.send("event=error|message=Error clearing motors faults!|")
+                                continue
+
+                            ### success case
+                            wsclient.send("event=faultcleared|message=Fault cleared succesfully!|")
+
+                        except Exception as e:
+                            self.logger.error("Error clearing motors faults!")
+                            wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
 
         except websockets.ConnectionClosed as e:
             print(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}", flush=True)
@@ -133,7 +148,7 @@ class CommunicationHub:
             await self.cleanup_client()
 
     async def cleanup_client(self, client_socket):
-        print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
+        # print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
         if client_socket in self.clients:
             del self.clients[client_socket]
         try:

@@ -17,7 +17,7 @@ async def disable_server(self):
 
     await self.clients.reset_motors()
 
-    await cleanup(self, False)
+    await cleanup(self)
     
 async def shutdown_server_delay(self):
     # Stop the Quart self's event loop
