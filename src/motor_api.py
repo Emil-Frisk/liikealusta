@@ -74,6 +74,7 @@ class CommunicationHub:
         # Store client metadata
         client_info = {"identity": "unknown"}
         self.wsclients[wsclient] = client_info
+        
         print(f"Client {wsclient.remote_address} connected! Path: {path or '/'}", flush=True)
 
         try:
@@ -97,7 +98,7 @@ class CommunicationHub:
                             
                     elif action == "shutdown":
                         result = await shutdown(self)
-                        
+                        wsclient.send("event=shutdown|message=Server has been shutdown.|")
                     elif action == "stop":
                         result = await stop_motors(self)
                         
@@ -142,6 +143,7 @@ class CommunicationHub:
 
     async def start_server(self):
         self.server = await websockets.serve(self.handle_client, "localhost", 6969)
+        
         print("WebSocket server running on ws://localhost:6969")
 
 async def main():

@@ -271,13 +271,11 @@ def start_server(self):
 
         self.logger.info(f"Server launched with PID: {self.process.pid}")
         QMessageBox.information(self, "Success", "Server started successfully!")
-        self.shutdown_button.setEnabled(True)
-        # self.start_button.setEnabled(False)
+        self.start_button.setEnabled(False)
         
         # Update inptu values
         self.update_stored_values()
         # Switch button logic to update values
-        self.is_server_running = True # server is running
         self.start_button.setText("Update Values")
         # Start WebSocket client after server starts
         asyncio.ensure_future(self.start_websocket_client())
@@ -304,18 +302,26 @@ def shutdown_server(self):
 def handle_client_message(self, message):
     """Update the GUI label with WebSocket messages."""
     event = extract_part("event=", message=message)
+    clientmessage = extract_part("message=", message=message)
     if not event:
+        self.logger.error("No event specified in message.")
         self.message_label.setText(message)
+        return
+    if not clientmessage: 
+        self.logger.error("No client message specified in message.")
     elif event == "fault":
         pass
+    elif event == "connected":
+        self.shutdown_button.setEnabled(True)
+        self.start_button.setEnabled(True)
+        self.is_server_running = True # server is running
+    elif event == "shutdown":
+        self.is_server_running = False
+        self.shutdown_button.setEnabled(False)
 
-    if "Received: " in message:
-        try:
-            # Assuming server sends messages like "identity=1|data=value"
-            msg_content = message.split("Received: ")[1]
-            if "data=" in msg_content:
-                value = msg_content.split("data=")[1].split("|")[0]
-                # Update GUI based on data (e.g., set speed_input)
-                self.speed_input.setValue(int(value))
-        except Exception as e:
-            self.logger.error(f"Error parsing message: {str(e)}")
+
+
+        
+    
+
+
