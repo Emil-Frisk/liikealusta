@@ -132,7 +132,7 @@ class CommunicationHub:
             await self.cleanup_client()
 
     async def cleanup_client(self, client_socket):
-        print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
+        # print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
         if client_socket in self.clients:
             del self.clients[client_socket]
         try:

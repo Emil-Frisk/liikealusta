@@ -9,12 +9,6 @@ async def shutdown(self):
     self.logger.info("Shutdown request received.")
     await disable_server(self)
     
-    # Schedule shutdown after response
-    asyncio.create_task(shutdown_server_delay(self))
-    
-    # Return success response immediately
-    return {"status": "success"}
-
 async def stop_motors(self):
     try:
         success = await self.clients.stop()

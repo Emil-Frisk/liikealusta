@@ -171,6 +171,7 @@ def load_config(self):
     try:
         root = Path(__file__).parent
         config_path = os.path.join(root, CONFIG_FILE)
+        config_path = "C:\liikealusta\src\gui\config.json"
         with open(config_path, "r") as f:
             config = json.load(f)
             self.ip_input1.setText(config.get("servo_ip_1", ""))
