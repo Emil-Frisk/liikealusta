@@ -22,6 +22,7 @@ class CommunicationHub:
         self.clients = ModbusClients(self.config, self.logger)
         self.is_process_done = False
         self.server = None
+
     async def init(self):
         try:
             await create_hearthbeat_monitor_tasks(self, self.module_manager)
@@ -87,6 +88,7 @@ class CommunicationHub:
                         client_info["identity"] = identity
                         print(f"Updated identity for {wsclient.remote_address}: {identity}", flush=True)
                     if receiver:
+
                         print(f"Receiver: {receiver}", flush=True)
                     
                     # "endpoints"
