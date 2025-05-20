@@ -68,6 +68,7 @@ class FaultPoller():
                     (left_has_falted, right_has_faulted) = result
                     if not is_fault_critical(left_response) and not is_fault_critical(right_response):
                         await clients.set_ieg_mode(65535)
+                        await clients.set_ieg_mode(2)
                         self.logger.info("Fault cleared")
                     else:
                         if left_has_falted:
