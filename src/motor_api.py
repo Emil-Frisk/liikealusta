@@ -76,7 +76,7 @@ class CommunicationHub:
         client_info = {"identity": "unknown"}
         self.wsclients[wsclient] = client_info
         
-        print(f"Client {wsclient.remote_address} connected! Path: {path or '/'}", flush=True)
+        self.logger.info(f"Client {wsclient.remote_address} connected! Path: {path or '/'}")
 
         try:
             async for message in wsclient:
@@ -87,10 +87,9 @@ class CommunicationHub:
                 else: 
                     if identity:
                         client_info["identity"] = identity
-                        print(f"Updated identity for {wsclient.remote_address}: {identity}", flush=True)
+                        self.logger(f"Updated identity for {wsclient.remote_address}: {identity}")
                     if receiver:
-
-                        print(f"Receiver: {receiver}", flush=True)
+                        self.logger(f"Receiver: {receiver}")
                     
                     # "endpoints"
                     if action == "write":
@@ -140,11 +139,11 @@ class CommunicationHub:
                             wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
 
         except websockets.ConnectionClosed as e:
-            print(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}", flush=True)
+            self.logger(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:
-            print(f"Unexpected error for client {wsclient.remote_address} (identity: {client_info['identity']}): {e}", flush=True)
+            self.logger(f"Unexpected error for client {wsclient.remote_address} (identity: {client_info['identity']}): {e}")
         finally:
-            print(f"Cleaning up for client {wsclient.remote_address} (identity: {client_info['identity']})", flush=True)
+            self.logger(f"Cleaning up for client {wsclient.remote_address} (identity: {client_info['identity']})")
             await self.cleanup_client()
 
     async def cleanup_client(self, client_socket):
@@ -154,12 +153,12 @@ class CommunicationHub:
         try:
             await client_socket.close()
         except Exception as e:
-            print(f"Error closing connection for {client_socket.remote_address}: {e}", flush=True)
+            self.logger(f"Error closing connection for {client_socket.remote_address}: {e}")
 
     async def start_server(self):
         self.server = await websockets.serve(self.handle_client, "localhost", 6969)
         
-        print("WebSocket server running on ws://localhost:6969")
+        self.logger("WebSocket server running on ws://localhost:6969")
 
 async def main():
     try:
