@@ -53,6 +53,7 @@ class WebsocketClientQT(QObject):
             self.logger.info("Creating listening coroutine for client")
             while self.is_running:
                 response = await self.socket.recv()
+                a=10
                 self.message_received.emit(response)
                 if self.on_message:
                     self.on_message(response)
