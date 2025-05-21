@@ -61,7 +61,7 @@ class FaultPoller():
                     continue
 
                 ### simulated critical fault situation
-                if counter == 20:
+                if counter == 5:
                     await client.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[256]}|receiver=GUI|")
                     self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}")
                     self.has_faulted = True
