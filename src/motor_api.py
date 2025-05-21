@@ -173,9 +173,11 @@ class CommunicationHub:
             self.logger.error(f"Error closing connection for {client_socket.remote_address}: {e}")
 
     async def start_server(self):
-        self.server = await websockets.serve(self.handle_client, "localhost", 6969, ping_timeout=None)
-        
-        self.logger.info("WebSocket server running on ws://localhost:6969")
+        try:
+            self.server = await websockets.serve(self.handle_client, "localhost", 6969, ping_timeout=None)
+            self.logger.info("WebSocket serverwebsocket running on ws://localhost:6969")
+        except Exception as e:
+            self.logger(f"Error while launching  server{e}")
 
 async def main():
     try:
