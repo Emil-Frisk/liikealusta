@@ -18,13 +18,13 @@ def validate_pitch_and_roll_values(pitch,roll):
     
 def validate_message(self,receiver, message):
     if not message:
-        return (False, None, "Action message given, but no actual message found, example: message=<message>")
+        return (False, None, "event=error|message=Action message given, but no actual message found, example: message=<message>|")
     
     if not receiver:
-        return (False, None, "No receiver given in the message, example: receiver=<receiver>")
+        return (False, None, "event=error|message=No receiver given in the message, example: receiver=<receiver>|")
 
     for client, info in self.wsclients.items():
         if info["identity"] == receiver:
             return (True, client, message)
-        return (False, None, "No receiver was found in the server with this identity")
+        return (False, None, "event=error|message=No receiver was found in the server with this identity|")
 
