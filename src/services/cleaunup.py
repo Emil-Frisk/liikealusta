@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-async def disable_server(self):    
+async def disable_server(self, wsclient=None):    
     """stops and disables motors and closes sub processes"""
     self.logger.info("Shutdown request received. Cleaning up...")
 
@@ -13,11 +13,21 @@ async def disable_server(self):
     except Exception as e:
         self.logger.error("Stopping motors was not successful, will not shutdown server")
         return
+    #########################################################################################
+    #########################################################################################
+    ####NOTE DO NOT REMOVE THIS LINE -IMPORTANT FOR MOTORS TO HAVE TO TO STOP################
     await asyncio.sleep(5)
+    #########################################################################################
+    #########################################################################################
+    #########################################################################################
 
     await self.clients.reset_motors()
+    await asyncio.sleep(20)
 
-    await cleanup(self, False)
+    if wsclient:
+        await wsclient.send("event=shutdown|message=Server has been shutdown.|")
+
+    await cleanup(self)
     
 async def shutdown_server_delay(self):
     # Stop the Quart self's event loop
@@ -43,7 +53,4 @@ async def cleanup(self, shutdown=True):
     
     if hasattr(self, "shutdown_ws_server"):
         await self.shutdown_ws_server()
-        
-    if shutdown:
-        os._exit(0)
     

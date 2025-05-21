@@ -6,7 +6,7 @@ from PyQt6.QtCore import pyqtSignal, QObject
 class WebsocketClientQT(QObject):
     message_received = pyqtSignal(str)
     
-    def __init__(self, logger, uri="ws://localhost:6969", on_message=None, reconnect_interval = 5, max_reconnect_attempt=2):
+    def __init__(self, logger, identity="unknown", uri="ws://localhost:6969", on_message=None, reconnect_interval = 2.5, max_reconnect_attempt=10):
         super().__init__()
         self.uri = uri
         self.socket = None
@@ -17,6 +17,7 @@ class WebsocketClientQT(QObject):
         self.max_reconnect_attempt = max_reconnect_attempt
         self.reconnect_count  = 0
         self.logger = logger
+        self.identity = identity
         
     async def connect(self):
         try:
@@ -24,11 +25,13 @@ class WebsocketClientQT(QObject):
                 self.logger.info("Client is already connected, can't connect again")
                 return 
             
-            self.socket = await asyncio.wait_for(websockets.connect(self.uri), timeout=10) 
+            self.socket = await asyncio.wait_for(websockets.connect(self.uri, ping_timeout=None), timeout=10)
+            await self.socket.send(f"action=identify|identity={self.identity}|")
             self.is_running = True
             self.reconnect_count = 0
             self.logger.info(f"client connected to server: {self.uri}")
-            self.message_received.emit(f"Connected to {self.uri}")
+            self.message_received.emit(f"event=connected|message=Client connected to to server.|")
+            
             self._listen_task = asyncio.create_task(self._listen())
         except TimeoutError:
             await self.handle_connection_failure(f"Connection timed out after 10 seconds")
@@ -50,6 +53,8 @@ class WebsocketClientQT(QObject):
             self.logger.info("Creating listening coroutine for client")
             while self.is_running:
                 response = await self.socket.recv()
+                a=10
+                self.message_received.emit(response)
                 if self.on_message:
                     self.on_message(response)
         except ConnectionClosed:

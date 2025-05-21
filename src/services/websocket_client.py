@@ -3,7 +3,7 @@ import websockets
 from websockets.exceptions import ConnectionClosed
 
 class WebsocketClient():
-    def __init__(self, logger, uri="ws://localhost:6969", on_message=None, reconnect_interval = 5, max_reconnect_attempt=2):
+    def __init__(self, logger, identity="unknown", uri="ws://localhost:6969", on_message=None, reconnect_interval = 10, max_reconnect_attempt=5):
         self.uri = uri
         self.socket = None
         self.is_running = False
@@ -13,6 +13,7 @@ class WebsocketClient():
         self.max_reconnect_attempt = max_reconnect_attempt
         self.reconnect_count  = 0
         self.logger = logger
+        self.identity = identity
     
     async def connect(self):
         try:
@@ -20,7 +21,9 @@ class WebsocketClient():
                 self.logger.info("Client is already connected, can't connect again")
                 return 
             
-            self.socket = await asyncio.wait_for(websockets.connect(self.uri), timeout=10) 
+            self.socket = await asyncio.wait_for(websockets.connect(self.uri, ping_timeout=None), timeout=10) 
+            ### identify client to the server
+            await self.socket.send(f"action=identify|identity={self.identity}|")
             self.is_running = True
             self.reconnect_count = 0
             self.logger.info(f"client connected to server: {self.uri}")

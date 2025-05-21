@@ -18,6 +18,9 @@ CONFIG_FILE = "config.json"
 
 from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
 
+async def clear_fault(self):
+    await self.websocket_client.send("action=clearfault|")
+
 def create_general_tab(self):
     # General Tab
     self.general_tab = QWidget()
@@ -63,12 +66,14 @@ def create_server_buttons(self):
     # Start Button
     self.start_button = QPushButton("Start Server")
     self.start_button.clicked.connect(self.handle_button_click)
+    self.start_button.setStyleSheet(self.styles["start_up_btn"])
     self.main_layout.addWidget(self.start_button)
     
     # Shutdown Button (Initially Disabled)
     self.shutdown_button = QPushButton("Shutdown Server")
     self.shutdown_button.setEnabled(False)
     self.shutdown_button.clicked.connect(self.shutdown_server)
+    self.shutdown_button.setStyleSheet(self.styles["shutdown_btn"])
     self.main_layout.addWidget(self.shutdown_button)
 
 def create_faults_tab(self):
@@ -83,7 +88,8 @@ def create_faults_tab(self):
     self.faults_layout.addWidget(self.default_fault_msg_lbl)
     self.faults_layout.setAlignment(self.default_fault_msg_lbl, Qt.AlignmentFlag.AlignCenter)
 
-    self.fault_group = LabelButtonGroup("msg", "Clear Fault")
+    self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=False)
+    self.fault_group.connect_button(self.clear_fault)
     self.faults_layout.addWidget(self.fault_group)
 
     # Add faults layout to advanced tab
@@ -105,6 +111,8 @@ def init_gui(self):
     self.setWindowTitle("Server Startup")
     self.setGeometry(100, 100, 400, 400)  # Adjusted height for message label
     
+    load_styles(self)
+
     # Set font
     font = QFont("Arial", 14)
     self.setFont(font)
@@ -120,12 +128,12 @@ def init_gui(self):
     # Load last used values
     self.load_config()
     create_server_buttons(self)
-    self.set_styles()
+    
     
     self.setLayout(self.main_layout)
 
     # Initialize WebSocket client
-    self.websocket_client = WebsocketClientQT(logger=self.logger)
+    self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
     self.websocket_client.message_received.connect(self.handle_client_message)
 
     # store initial values of the input fields
@@ -137,21 +145,26 @@ def init_gui(self):
         'freq_input': self.freq_input.value()
     }
 
-def set_styles(self):
+def load_styles(self):
     try:
         if started_from_exe():
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
-        else:
-            styles_path = "C:\liikealusta\src\gui\styles.json"
+        else: # TODO - muuta tämä myöhemmin
+            # test = Path(__file__).parent.parent
+            styles_path = Path(__file__).parent.parent / "gui" / "styles.json"
+            a = 10
+            # styles_path = "/home/vichy/liikealusta/src/gui/styles.json/styles.json"
         # Load the JSON from the file
         with open(styles_path, "r") as f:
             data = json.load(f)
-        for style in data["styles"]:
-            if "start_up_btn" in style:
-                self.start_button.setStyleSheet(style["start_up_btn"])
-            if "shutdown_btn" in style:
-                self.shutdown_button.setStyleSheet(style["shutdown_btn"])
+        
+        styles = data["styles"]
+        self.styles = {}
+        for style in styles:
+            for key, val in style.items():
+                self.styles[key] = val
+
     except FileNotFoundError:
         print(f"Error: styles.json not found at {styles_path}")
     except json.JSONDecodeError as e:
@@ -161,6 +174,7 @@ def load_config(self):
     try:
         root = Path(__file__).parent
         config_path = os.path.join(root, CONFIG_FILE)
+        config_path = "C:\liikealusta\src\gui\config.json"
         with open(config_path, "r") as f:
             config = json.load(f)
             self.ip_input1.setText(config.get("servo_ip_1", ""))
@@ -261,16 +275,14 @@ def start_server(self):
 
         self.logger.info(f"Server launched with PID: {self.process.pid}")
         QMessageBox.information(self, "Success", "Server started successfully!")
-        self.shutdown_button.setEnabled(True)
-        # self.start_button.setEnabled(False)
+        self.start_button.setEnabled(False)
         
         # Update inptu values
         self.update_stored_values()
         # Switch button logic to update values
-        self.is_server_running = True # server is running
         self.start_button.setText("Update Values")
         # Start WebSocket client after server starts
-        asyncio.ensure_future(self.start_websocket_client())
+        self.start_websocket_client()
     except Exception as e:
         QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
@@ -279,6 +291,9 @@ def shutdown_server(self):
         # First, close the WebSocket client
         loop = asyncio.get_event_loop()
         loop.create_task(self.websocket_client.send("action=shutdown|"))
+        self.start_button.setText("Start Server")
+        self.start_button.setEnabled(False)
+        self.shutdown_button.setEnabled(False)
         # Then attempt to shutdown the server
         ### TODO - muuta tämä lähettämään socket message action instead
         # response = make_request("http://localhost:5001/shutdown")
@@ -294,18 +309,38 @@ def shutdown_server(self):
 def handle_client_message(self, message):
     """Update the GUI label with WebSocket messages."""
     event = extract_part("event=", message=message)
+    clientmessage = extract_part("message=", message=message)
     if not event:
-        self.message_label.setText(message)
+        self.logger.error("No event specified in message.")
+        return
+    if not clientmessage: 
+        self.logger.error("No client message specified in message.")
+        return
+    elif event == "error":
+        self.logger.error(message)
     elif event == "fault":
-        pass
+        self.logger.warning("Fault event has arrived to GUI!")
+        self.fault_group.toggle_visibility()
+        QMessageBox.warning(self, "Error", clientmessage)
+        self.fault_group.set_label_text(clientmessage)
+        ### TODO - show notification and update fault tab data
+    elif event == "faultcleared":
+        self.logger.info("Fault cleared event has reached gui")
+        QMessageBox.information(self, "Info", "fault was cleared successfully")
+        self.fault_group.toggle_visibility()
+    elif event == "connected":
+        self.shutdown_button.setEnabled(True)
+        self.start_button.setEnabled(True)
+        self.is_server_running = True # server is running
+        self.message_label.setText(clientmessage)
+    elif event == "shutdown":
+        self.is_server_running = False
+        self.start_button.setEnabled(True)
+        self.shutdown_button.setEnabled(False)
 
-    if "Received: " in message:
-        try:
-            # Assuming server sends messages like "identity=1|data=value"
-            msg_content = message.split("Received: ")[1]
-            if "data=" in msg_content:
-                value = msg_content.split("data=")[1].split("|")[0]
-                # Update GUI based on data (e.g., set speed_input)
-                self.speed_input.setValue(int(value))
-        except Exception as e:
-            self.logger.error(f"Error parsing message: {str(e)}")
+
+
+        
+    
+
+

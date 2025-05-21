@@ -49,6 +49,9 @@ class ServerStartupGUI(QWidget):
 
     def handle_client_message(self, message):
         gui_service.handle_client_message(self, message=message)
+    
+    def clear_fault(self):
+        asyncio.create_task(gui_service.clear_fault(self))
 
     def fault_reset(self):
         pass ### TODO - jatka tästä
