@@ -10,6 +10,7 @@ class LabelButtonGroup(QWidget):
         
         # Create components
         self.label = QLabel(label_text)
+        self.label.setWordWrap(True)
         self.button = QPushButton(button_text)
         if styles:
             self.button.setStyleSheet(styles["shutdown_btn"])
