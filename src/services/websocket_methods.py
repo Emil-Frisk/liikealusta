@@ -4,10 +4,10 @@ from services.motor_service import configure_motor,set_motor_values
 from services.motor_control import demo_control, rotate
 from services.validation_service import validate_update_values
 
-async def shutdown(self):
+async def shutdown(self, wsclient=None):
     """Shuts down the server when called."""
     self.logger.info("Shutdown request received.")
-    await disable_server(self)
+    await disable_server(self, wsclient)
     
 async def stop_motors(self):
     try:

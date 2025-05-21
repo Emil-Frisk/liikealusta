@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-async def disable_server(self):    
+async def disable_server(self, wsclient=None):    
     """stops and disables motors and closes sub processes"""
     self.logger.info("Shutdown request received. Cleaning up...")
 
@@ -16,6 +16,9 @@ async def disable_server(self):
     await asyncio.sleep(5)
 
     await self.clients.reset_motors()
+    
+    if wsclient:
+        await wsclient.send("event=shutdown|message=Server has been shutdown.|")
 
     await cleanup(self)
     
@@ -43,7 +46,4 @@ async def cleanup(self, shutdown=True):
     
     if hasattr(self, "shutdown_ws_server"):
         await self.shutdown_ws_server()
-        
-    if shutdown:
-        os._exit(0)
     

@@ -102,8 +102,8 @@ class CommunicationHub:
                         else:
                             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|") 
                     elif action == "shutdown":
-                        result = await shutdown(self)
-                        await wsclient.send("event=shutdown|message=Server has been shutdown.|")
+                        result = await shutdown(self, wsclient)
+                        
                     elif action == "stop":
                         result = await stop_motors(self)
                         
