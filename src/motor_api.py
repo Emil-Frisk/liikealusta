@@ -85,9 +85,6 @@ class CommunicationHub:
                 if not action:
                     await wsclient.send("event=error|message=No action given, example action=<action>|") 
                 else: 
-                    if identity:
-                        client_info["identity"] = identity.lower()
-                        self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
                     if receiver:
                         self.logger.info(f"Receiver: {receiver}")
                         receiver = receiver.lower()
@@ -98,7 +95,12 @@ class CommunicationHub:
                         result = validation_service.validate_pitch_and_roll_values(pitch,roll)
                         if result:
                             await demo_control(pitch, roll, self)
-                            
+                    elif action == "identify":
+                        if identity:
+                            client_info["identity"] = identity.lower()
+                            self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
+                        else:
+                            await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|") 
                     elif action == "shutdown":
                         result = await shutdown(self)
                         await wsclient.send("event=shutdown|message=Server has been shutdown.|")
