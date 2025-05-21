@@ -314,7 +314,8 @@ def handle_client_message(self, message):
     elif event == "error":
         self.logger.error(message)
     elif event == "fault":
-        pass
+        self.logger.warning("Fault event has arrived to GUI!")
+        ### TODO - show notification and update fault tab data
     elif event == "faultcleared":
         pass
     elif event == "connected":
