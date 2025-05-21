@@ -55,7 +55,6 @@ class CommunicationHub:
         velocity = extract_part("vel=", message=msg)
 
         ### if message has event append it to it
-        ## TODO jataka tästä
         if message and event:
             message = f"event={event}|message={message}|"
 
