@@ -321,7 +321,6 @@ def handle_client_message(self, message):
     elif event == "fault":
         self.logger.warning("Fault event has arrived to GUI!")
         self.fault_group.toggle_visibility()
-        self.fault_group.set_label_text(clientmessage)
         QMessageBox.warning(self, "Error", clientmessage)
         self.fault_group.set_label_text(clientmessage)
         ### TODO - show notification and update fault tab data
