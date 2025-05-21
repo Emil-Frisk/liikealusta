@@ -50,6 +50,10 @@ class ServerStartupGUI(QWidget):
     def handle_client_message(self, message):
         gui_service.handle_client_message(self, message=message)
 
+    def fault_reset(self):
+        pass ### TODO - jatka tästä
+        
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     # Initialize qasync event loop
