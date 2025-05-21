@@ -39,7 +39,7 @@ class FaultPoller():
         
         # await client.connect()
         self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
-        client = WebsocketClient(logger=self.logger, on_message=self.on_message)
+        client = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
         await client.connect()
 
         try:
