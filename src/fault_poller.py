@@ -32,7 +32,7 @@ class FaultPoller():
             self.logger.error(message)
 
         ### Lets fault poller continue the loop again
-        if event == "fault_cleared":
+        if event == "faultcleared":
             self.has_faulted = False
             self.logger.info("Fault has cleared starting polling loop again")
 

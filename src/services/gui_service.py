@@ -336,7 +336,7 @@ def handle_client_message(self, message):
     elif event == "shutdown":
         self.is_server_running = False
         self.start_button.setEnabled(True)
-        self.shutdown_button.setEnabled(True)
+        self.shutdown_button.setEnabled(False)
 
 
 
