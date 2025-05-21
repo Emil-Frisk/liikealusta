@@ -83,13 +83,14 @@ class CommunicationHub:
                 print(f"Received: {message}")
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = self.extract_parts(message)
                 if not action:
-                    await wsclient.send("No action given, example action=<action>")
+                    await wsclient.send("event=error|message=No action given, example action=<action>|") 
                 else: 
                     if identity:
-                        client_info["identity"] = identity
+                        client_info["identity"] = identity.lower()
                         self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
                     if receiver:
                         self.logger.info(f"Receiver: {receiver}")
+                        receiver = receiver.lower()
                     
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")

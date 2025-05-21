@@ -19,9 +19,17 @@ class FaultPoller():
 
     def on_message(self, msg):
         event = extract_part("event=", msg)
+        message = extract_part("message=", msg)
         if not event:
             self.logger.error("Client message does not have event specified in it.")
             return
+        
+        if not message:
+            self.logger.error("server did not specify message part")
+            return
+        
+        if event == "error":
+            self.logger.error(message)
 
         ### Lets fault poller continue the loop again
         if event == "fault_cleared":
@@ -43,13 +51,21 @@ class FaultPoller():
         await client.connect()
 
         try:
+            counter = 0
             while(True):
+                counter += 1
                 # await asyncio.sleep(config.POLLING_TIME_INTERVAL)
                 if self.has_faulted:
                     self.logger.info("Fault has not cleared yet...")
                     asyncio.sleep(5)
                     continue
-                    
+
+                ### simulated critical fault situation
+                if counter == 20:
+                    await client.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[256]}|receiver=GUI|")
+                    self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}")
+                    self.has_faulted = True
+                    continue
 
                 await asyncio.sleep(1)
                 

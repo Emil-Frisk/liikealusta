@@ -311,6 +311,8 @@ def handle_client_message(self, message):
     if not clientmessage: 
         self.logger.error("No client message specified in message.")
         return
+    elif event == "error":
+        self.logger.error(message)
     elif event == "fault":
         pass
     elif event == "faultcleared":
