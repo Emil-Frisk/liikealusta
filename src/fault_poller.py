@@ -57,7 +57,7 @@ class FaultPoller():
                 # await asyncio.sleep(config.POLLING_TIME_INTERVAL)
                 if self.has_faulted:
                     self.logger.info("Fault has not cleared yet...")
-                    asyncio.sleep(5)
+                    await asyncio.sleep(5)
                     continue
 
                 ### simulated critical fault situation
@@ -101,6 +101,7 @@ class FaultPoller():
             self.error(f"Unexpected error in polling loop: {str(e)}")
         finally:
             clients.cleanup()
+            self.logger.info("Fault poller has been closed")
             ### websocket client close
             ### clean tasks
 
