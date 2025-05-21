@@ -152,8 +152,8 @@ class CommunicationHub:
 
     async def cleanup_client(self, client_socket):
         # print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
-        if client_socket in self.clients:
-            del self.clients[client_socket]
+        if client_socket in self.wsclients:
+            del self.wsclients[client_socket]
         try:
             await client_socket.close()
         except Exception as e:

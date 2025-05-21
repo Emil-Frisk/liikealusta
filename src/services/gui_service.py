@@ -279,7 +279,7 @@ def start_server(self):
         # Switch button logic to update values
         self.start_button.setText("Update Values")
         # Start WebSocket client after server starts
-        asyncio.ensure_future(self.start_websocket_client())
+        self.start_websocket_client()
     except Exception as e:
         QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 

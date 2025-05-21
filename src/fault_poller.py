@@ -56,7 +56,6 @@ class FaultPoller():
                 counter += 1
                 # await asyncio.sleep(config.POLLING_TIME_INTERVAL)
                 if self.has_faulted:
-                    self.logger.info("Fault has not cleared yet...")
                     await asyncio.sleep(5)
                     continue
 
