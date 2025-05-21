@@ -123,8 +123,8 @@ class CommunicationHub:
                         result = await update_input_values(self,acceleration,velocity)
                         
                     elif action == "message":
-                        (result,receiver, msg) = validation_service.validate_message(self,receiver,message)
-                        if result:
+                        (success,receiver, msg) = validation_service.validate_message(self,receiver,message)
+                        if success:
                             await receiver.send(msg)
                         else:
                             await wsclient.send(msg)
