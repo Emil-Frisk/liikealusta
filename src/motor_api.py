@@ -50,11 +50,12 @@ class CommunicationHub:
         action = extract_part("action=", message=msg)
         pitch = extract_part("pitch=", message=msg)
         roll = extract_part("roll=", message=msg)
-        event = extract_part("roll=", message=msg)
+        event = extract_part("event=", message=msg)
         acceleration = extract_part("acc=", message=msg)
         velocity = extract_part("vel=", message=msg)
 
         ### if message has event append it to it
+        ## TODO jataka tästä
         if message and event:
             message = f"event={event}|message={message}|"
 

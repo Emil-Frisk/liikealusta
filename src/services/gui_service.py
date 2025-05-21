@@ -309,7 +309,6 @@ def handle_client_message(self, message):
     clientmessage = extract_part("message=", message=message)
     if not event:
         self.logger.error("No event specified in message.")
-        self.message_label.setText(message)
         return
     if not clientmessage: 
         self.logger.error("No client message specified in message.")
