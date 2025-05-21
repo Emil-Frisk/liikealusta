@@ -18,6 +18,9 @@ CONFIG_FILE = "config.json"
 
 from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
 
+async def clear_fault(self):
+    await self.websocket_client.send("action=clearfault|")
+
 def create_general_tab(self):
     # General Tab
     self.general_tab = QWidget()
@@ -85,7 +88,7 @@ def create_faults_tab(self):
     self.faults_layout.addWidget(self.default_fault_msg_lbl)
     self.faults_layout.setAlignment(self.default_fault_msg_lbl, Qt.AlignmentFlag.AlignCenter)
 
-    self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault")
+    self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=False)
     self.fault_group.connect_button(self.clear_fault)
     self.faults_layout.addWidget(self.fault_group)
 
@@ -317,11 +320,15 @@ def handle_client_message(self, message):
         self.logger.error(message)
     elif event == "fault":
         self.logger.warning("Fault event has arrived to GUI!")
+        self.fault_group.toggle_visibility()
+        self.fault_group.set_label_text(clientmessage)
         QMessageBox.warning(self, "Error", clientmessage)
         self.fault_group.set_label_text(clientmessage)
         ### TODO - show notification and update fault tab data
     elif event == "faultcleared":
-        pass
+        self.logger.info("Fault cleared event has reached gui")
+        QMessageBox.information(self, "Info", "fault was cleared successfully")
+        self.fault_group.toggle_visibility()
     elif event == "connected":
         self.shutdown_button.setEnabled(True)
         self.start_button.setEnabled(True)

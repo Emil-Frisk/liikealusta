@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
 
 class LabelButtonGroup(QWidget):
-    def __init__(self, styles = None, label_text="Label", button_text="Button", parent=None):
+    def __init__(self, styles = None, visible=True, label_text="Label", button_text="Button", parent=None):
         super().__init__(parent)
         
         # Create layout for the group
@@ -20,7 +20,7 @@ class LabelButtonGroup(QWidget):
         
         # Set the layout
         self.setLayout(self.layout)
-    
+        self.setVisible(visible)
 
     # Convenience methods to access inner components
     def set_label_text(self, text):
