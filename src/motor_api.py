@@ -127,7 +127,6 @@ class CommunicationHub:
 
                     elif action == "updatevalues":
                         result = await update_input_values(self,acceleration,velocity)
-                        
                     elif action == "message":
                         (success,receiver, msg) = validation_service.validate_message(self,receiver,message)
                         if success:
