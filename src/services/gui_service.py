@@ -317,7 +317,7 @@ def handle_client_message(self, message):
         self.logger.error(message)
     elif event == "fault":
         self.logger.warning("Fault event has arrived to GUI!")
-        QMessageBox.warning(self, clientmessage)
+        QMessageBox.warning(self, "Error", clientmessage)
         ### TODO - show notification and update fault tab data
     elif event == "faultcleared":
         pass
