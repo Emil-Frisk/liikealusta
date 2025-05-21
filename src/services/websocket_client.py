@@ -3,7 +3,7 @@ import websockets
 from websockets.exceptions import ConnectionClosed
 
 class WebsocketClient():
-    def __init__(self, logger, uri="ws://localhost:6969", on_message=None, reconnect_interval = 5, max_reconnect_attempt=2):
+    def __init__(self, logger, uri="ws://localhost:6969", on_message=None, reconnect_interval = 10, max_reconnect_attempt=5):
         self.uri = uri
         self.socket = None
         self.is_running = False

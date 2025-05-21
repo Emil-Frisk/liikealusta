@@ -26,6 +26,7 @@ class FaultPoller():
         ### Lets fault poller continue the loop again
         if event == "fault_cleared":
             self.has_faulted = False
+            self.logger.info("Fault has cleared starting polling loop again")
 
     async def main(self):
         self.logger = setup_logging("faul_poller", "faul_poller.log")
@@ -48,8 +49,7 @@ class FaultPoller():
                     self.logger.info("Fault has not cleared yet...")
                     asyncio.sleep(5)
                     continue
-                else:
-                    self.logger.info("Fault has cleared starting polling loop again")
+                    
 
                 await asyncio.sleep(1)
                 
