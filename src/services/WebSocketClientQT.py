@@ -26,7 +26,7 @@ class WebsocketClientQT(QObject):
                 return 
             
             self.socket = await asyncio.wait_for(websockets.connect(self.uri), timeout=10)
-            self.socket.send(f"identity={self}|")
+            await self.socket.send(f"identity={self}|")
             self.is_running = True
             self.reconnect_count = 0
             self.logger.info(f"client connected to server: {self.uri}")

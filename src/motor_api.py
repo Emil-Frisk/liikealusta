@@ -122,7 +122,7 @@ class CommunicationHub:
                     elif action == "message":
                         (result,receiver, msg) = validation_service.validate_message(self,receiver,message)
                         if result:
-                            receiver.send(msg)
+                            await receiver.send(msg)
                         else:
                             await wsclient.send(msg)
                     elif action == "clearfault":
