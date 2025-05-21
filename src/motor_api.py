@@ -83,7 +83,7 @@ class CommunicationHub:
                 print(f"Received: {message}")
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = self.extract_parts(message)
                 if not action:
-                    wsclient.send("No action given, example action=<action>")
+                    await wsclient.send("No action given, example action=<action>")
                 else: 
                     if identity:
                         client_info["identity"] = identity
@@ -99,7 +99,7 @@ class CommunicationHub:
                             
                     elif action == "shutdown":
                         result = await shutdown(self)
-                        wsclient.send("event=shutdown|message=Server has been shutdown.|")
+                        await wsclient.send("event=shutdown|message=Server has been shutdown.|")
                     elif action == "stop":
                         result = await stop_motors(self)
                         
@@ -123,20 +123,20 @@ class CommunicationHub:
                         if result:
                             receiver.send(msg)
                         else:
-                            wsclient.send(msg)
+                            await wsclient.send(msg)
                     elif action == "clearfault":
                         try:
                             if not await self.clients.set_ieg_mode(65535) or not await self.clients.set_ieg_mode(2):
                                 self.logger.error("Error clearing motors faults!")
-                                wsclient.send("event=error|message=Error clearing motors faults!|")
+                                await wsclient.send("event=error|message=Error clearing motors faults!|")
                                 continue
 
                             ### success case
-                            wsclient.send("event=faultcleared|message=Fault cleared succesfully!|")
+                            await wsclient.send("event=faultcleared|message=Fault cleared succesfully!|")
 
                         except Exception as e:
                             self.logger.error("Error clearing motors faults!")
-                            wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
+                            await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
 
         except websockets.ConnectionClosed as e:
             self.logger(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")

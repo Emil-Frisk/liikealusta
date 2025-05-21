@@ -72,10 +72,10 @@ class FaultPoller():
                         self.logger.info("Fault cleared")
                     else:
                         if left_has_falted:
-                            client.send(f"message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
+                            await client.send(f"message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}")
                         else:
-                            client.send(f"message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
+                            await client.send(f"message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}")
                         self.has_faulted = True
                         

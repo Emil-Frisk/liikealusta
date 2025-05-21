@@ -25,7 +25,7 @@ class WebsocketClientQT(QObject):
                 self.logger.info("Client is already connected, can't connect again")
                 return 
             
-            self.socket = await asyncio.wait_for(websockets.connect(self.uri), timeout=10) 
+            self.socket = await asyncio.wait_for(websockets.connect(self.uri), timeout=10)
             self.socket.send(f"identity={self}|")
             self.is_running = True
             self.reconnect_count = 0
