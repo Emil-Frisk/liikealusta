@@ -13,10 +13,17 @@ async def disable_server(self, wsclient=None):
     except Exception as e:
         self.logger.error("Stopping motors was not successful, will not shutdown server")
         return
+    #########################################################################################
+    #########################################################################################
+    ####NOTE DO NOT REMOVE THIS LINE -IMPORTANT FOR MOTORS TO HAVE TO TO STOP################
     await asyncio.sleep(5)
+    #########################################################################################
+    #########################################################################################
+    #########################################################################################
 
     await self.clients.reset_motors()
-    
+    await asyncio.sleep(20)
+
     if wsclient:
         await wsclient.send("event=shutdown|message=Server has been shutdown.|")
 
