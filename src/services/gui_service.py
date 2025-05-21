@@ -18,6 +18,9 @@ CONFIG_FILE = "config.json"
 
 from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
 
+async def clear_fault(self):
+    await self.websocket_client.send("action=clearfault|")
+
 def create_general_tab(self):
     # General Tab
     self.general_tab = QWidget()
@@ -318,6 +321,7 @@ def handle_client_message(self, message):
     elif event == "fault":
         self.logger.warning("Fault event has arrived to GUI!")
         self.fault_group.toggle_visibility()
+        self.fault_group.set_label_text(clientmessage)
         QMessageBox.warning(self, "Error", clientmessage)
         ### TODO - show notification and update fault tab data
     elif event == "faultcleared":
