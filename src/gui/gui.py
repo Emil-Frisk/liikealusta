@@ -51,7 +51,7 @@ class ServerStartupGUI(QWidget):
         gui_service.handle_client_message(self, message=message)
     
     def clear_fault(self):
-        print("Clear fault was called")
+        pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

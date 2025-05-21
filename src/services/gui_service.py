@@ -85,7 +85,7 @@ def create_faults_tab(self):
     self.faults_layout.addWidget(self.default_fault_msg_lbl)
     self.faults_layout.setAlignment(self.default_fault_msg_lbl, Qt.AlignmentFlag.AlignCenter)
 
-    self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault")
+    self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=False)
     self.fault_group.connect_button(self.clear_fault)
     self.faults_layout.addWidget(self.fault_group)
 
@@ -317,6 +317,7 @@ def handle_client_message(self, message):
         self.logger.error(message)
     elif event == "fault":
         self.logger.warning("Fault event has arrived to GUI!")
+        self.fault_group.toggle_visibility()
         QMessageBox.warning(self, "Error", clientmessage)
         ### TODO - show notification and update fault tab data
     elif event == "faultcleared":
