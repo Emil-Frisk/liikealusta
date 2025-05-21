@@ -21,7 +21,7 @@ class WebsocketClient():
                 self.logger.info("Client is already connected, can't connect again")
                 return 
             
-            self.socket = await asyncio.wait_for(websockets.connect(self.uri), timeout=10) 
+            self.socket = await asyncio.wait_for(websockets.connect(self.uri, ping_timeout=None), timeout=10) 
             ### identify client to the server
             await self.socket.send(f"action=identify|identity={self.identity}|")
             self.is_running = True
