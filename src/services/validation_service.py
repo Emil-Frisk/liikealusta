@@ -26,5 +26,6 @@ def validate_message(self,receiver, message):
     for client, info in self.wsclients.items():
         if info["identity"] == receiver:
             return (True, client, message)
-        return (False, None, "event=error|message=No receiver was found in the server with this identity|")
+        
+    return (False, None, "event=error|message=No receiver was found in the server with this identity|")
 
