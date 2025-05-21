@@ -325,7 +325,9 @@ def handle_client_message(self, message):
         QMessageBox.warning(self, "Error", clientmessage)
         ### TODO - show notification and update fault tab data
     elif event == "faultcleared":
-        pass
+        self.logger.info("Fault cleared event has reached gui")
+        QMessageBox.information(self, "Info", "fault was cleared successfully")
+        self.fault_group.toggle_visibility()
     elif event == "connected":
         self.shutdown_button.setEnabled(True)
         self.start_button.setEnabled(True)
