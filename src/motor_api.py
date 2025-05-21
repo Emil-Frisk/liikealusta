@@ -146,7 +146,7 @@ class CommunicationHub:
             self.logger.error(f"Unexpected error for client {wsclient.remote_address} (identity: {client_info['identity']}): {e}")
         finally:
             self.logger.info(f"Cleaning up for client {wsclient.remote_address} (identity: {client_info['identity']})")
-            await self.cleanup_client()
+            await self.cleanup_client(wsclient)
 
     async def cleanup_client(self, client_socket):
         # print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
