@@ -64,17 +64,12 @@ class CommunicationHub:
         if hasattr(self, "server") and self.server != None:
             try:
                 self.logger.info("Closing websocket server...")
-                self.server.close()
-
-                await asyncio.wait_for(self.server.wait_closed(),5)
-
                 self.logger.info("Websocket server closed successfully.")
-            except TimeoutError:
-                os._exit(0) 
             except Exception as e:
                 print("Error closing webosocket server.")
                 self.logger.error("Error while closing the websocket server.")
-                os._exit(0) 
+            finally:
+                os._exit(0)
 
     async def handle_client(self, wsclient, path=None):
         # Store client metadata
@@ -142,11 +137,12 @@ class CommunicationHub:
                             ### success case -> inform gui and fault poller
                             succes_response = "event=faultcleared|message=Fault cleared succesfully!|"
                             fault_poller_found = False
-                            await wsclient.send(succes_response)
-                            for sckt, info in self.wsclients.values():
+                            await wsclient.send(succes_response) # Sending to GUI
+                            for sckt, info in self.wsclients.items():
                                 if info["identity"] == "fault poller":
                                     await sckt.send(succes_response)
                                     fault_poller_found = True
+                                    break
 
                             if not fault_poller_found:
                                 self.logger.error("Fault poller not found from wsclients list at server")
