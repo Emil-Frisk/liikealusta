@@ -139,8 +139,17 @@ class CommunicationHub:
                                 await wsclient.send("event=error|message=Error clearing motors faults!|")
                                 continue
 
-                            ### success case
-                            await wsclient.send("event=faultcleared|message=Fault cleared succesfully!|")
+                            ### success case -> inform gui and fault poller
+                            succes_response = "event=faultcleared|message=Fault cleared succesfully!|"
+                            fault_poller_found = False
+                            await wsclient.send(succes_response)
+                            for sckt, info in self.wsclients.values():
+                                if info["identity"] == "fault poller":
+                                    await sckt.send(succes_response)
+                                    fault_poller_found = True
+
+                            if not fault_poller_found:
+                                self.logger.error("Fault poller not found from wsclients list at server")
 
                         except Exception as e:
                             self.logger.error("Error clearing motors faults!")
