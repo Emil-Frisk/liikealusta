@@ -4,14 +4,11 @@ import os
 import websockets
 from ModbusClients import ModbusClients
 from services.module_manager import ModuleManager
-from services.cleaunup import cleanup
-from services.monitor_service import create_hearthbeat_monitor_tasks
 from services.motor_service import configure_motor
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
-from utils.utils import extract_part
-from services.websocket_methods import shutdown,stop_motors,calculate_pitch_and_roll,update_input_values,demo_control
-import services.validation_service as validation_service
+from handlers import actions
+from helpers import communication_hub_helpers as helpers
 
 class CommunicationHub:
     def __init__(self):
@@ -25,7 +22,7 @@ class CommunicationHub:
 
     async def init(self):
         try:
-            await create_hearthbeat_monitor_tasks(self, self.module_manager)
+            await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
             # Connect to both drivers
             connected = await self.clients.connect() 
             
@@ -34,54 +31,68 @@ class CommunicationHub:
                             Left motors ips: {self.config.SERVER_IP_LEFT}, 
                             Right motors ips: {self.config.SERVER_IP_RIGHT}, 
                             shutting down the server """)
-                await cleanup(self)
-            self.is_process_done = True
+                helpers.close_tasks()
+                os._exit(1)
 
-            atexit.register(lambda: cleanup(self))
-            await configure_motor(self.clients, self.config)
+            if not await configure_motor(self.clients, self.config):
+                helpers.close_tasks()
+                os._exit()
+                
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
-
-
-    def extract_parts(self, msg): # example message: "action=STOP|receiver=startup|identity=fault_poller|message=CRITICAL FAULT!|pitch=40.3"
-        receiver = extract_part("receiver=", message=msg)
-        identity = extract_part("identity=", message=msg)
-        message = extract_part("message=", message=msg)
-        action = extract_part("action=", message=msg)
-        pitch = extract_part("pitch=", message=msg)
-        roll = extract_part("roll=", message=msg)
-        event = extract_part("event=", message=msg)
-        acceleration = extract_part("acc=", message=msg)
-        velocity = extract_part("vel=", message=msg)
-
-        ### if message has event append it to it
-        if message and event:
-            message = f"event={event}|message={message}|"
-
-        return (receiver, identity, message,action,pitch,roll,acceleration,velocity)
     
-    async def shutdown_ws_server(self):
+    async def shutdown_server(self, wsclient=None):
+        """stops and disables motors and closes sub processes"""
+        self.logger.info("Shutdown request received. Cleaning up...")
+
+        try:
+            success = await self.clients.stop()
+            if not success:
+                self.logger.error("Stopping motors was not successful, will not shutdown server")
+                return
+        except Exception as e:
+            self.logger.error("Stopping motors was not successful, will not shutdown server")
+            return
+        
+        #########################################################################################
+        #########################################################################################
+        ####NOTE DO NOT REMOVE THIS LINE -IMPORTANT FOR MOTORS TO HAVE TO TO STOP################
+        await asyncio.sleep(5)
+        #########################################################################################
+        #########################################################################################
+        #########################################################################################
+
+        helpers.close_tasks(self)
+        self.module_manager.cleanup_all()
+        if self.clients is not None:
+            self.clients.cleanup()
+
+        await self.clients.reset_motors()
+        await asyncio.sleep(20)
+        
+        if wsclient:
+            await wsclient.send("event=shutdown|message=Server has been shutdown.|")
+        
         if hasattr(self, "server") and self.server != None:
-            try:
-                self.logger.info("Closing websocket server...")
-                self.logger.info("Websocket server closed successfully.")
-            except Exception as e:
-                print("Error closing webosocket server.")
-                self.logger.error("Error while closing the websocket server.")
-            finally:
-                os._exit(0)
+                try:
+                    self.logger.info("Closing websocket server...")
+                    self.logger.info("Websocket server closed successfully.")
+                except Exception as e:
+                    print("Error closing webosocket server.")
+                    self.logger.error("Error while closing the websocket server.")
+                finally:
+                    os._exit(0)
 
     async def handle_client(self, wsclient, path=None):
         # Store client metadata
         client_info = {"identity": "unknown"}
         self.wsclients[wsclient] = client_info
-        
         self.logger.info(f"Client {wsclient.remote_address} connected! Path: {path or '/'}")
 
         try:
             async for message in wsclient:
                 print(f"Received: {message}")
-                (receiver, identity, message,action,pitch,roll,acceleration,velocity) = self.extract_parts(message)
+                (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
                 if not action:
                     await wsclient.send("event=error|message=No action given, example action=<action>|") 
                 else: 
@@ -92,9 +103,9 @@ class CommunicationHub:
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
                     if action == "write":
-                        result = validation_service.validate_pitch_and_roll_values(pitch,roll)
+                        result = helpers.validate_pitch_and_roll_values(pitch,roll)
                         if result:
-                            await demo_control(pitch, roll, self)
+                            await actions.demo_control(pitch, roll, self)
                     elif action == "identify":
                         if identity:
                             client_info["identity"] = identity.lower()
@@ -102,16 +113,16 @@ class CommunicationHub:
                         else:
                             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|") 
                     elif action == "shutdown":
-                        result = await shutdown(self, wsclient)
+                        result = await self.shutdown_server()
                         
                     elif action == "stop":
-                        result = await stop_motors(self)
+                        result = await actions.stop_motors(self)
                         
                     elif action == "setvalues":
                         try:
-                            result = validation_service.validate_pitch_and_roll_values(pitch, roll)
+                            result = helpers.validate_pitch_and_roll_values(pitch, roll)
                             if result:
-                                calculate_pitch_and_roll(pitch,roll)
+                                actions.calculate_pitch_and_roll(pitch,roll)
                         except ValueError as e:
                             self.logger.error(f"ValueError: {e}")
                             print(f"ValueError: {e}")
@@ -120,9 +131,9 @@ class CommunicationHub:
                             print(f"Error while setting values: {e}")
 
                     elif action == "updatevalues":
-                        result = await update_input_values(self,acceleration,velocity)
+                        result = await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
-                        (success,receiver, msg) = validation_service.validate_message(self,receiver,message)
+                        (success,receiver, msg) = helpers.validate_message(self,receiver,message)
                         if success:
                             await receiver.send(msg)
                         else:
@@ -184,10 +195,9 @@ async def main():
             await asyncio.sleep(10)
 
     except KeyboardInterrupt:
-        print("asd")
+        print("Keyboard interrupt -> shutting down the server...")
     finally:
-        print("I got here")
-        await shutdown(hub)
+        await hub.shutdown_server()
         
 if __name__ == "__main__":
     asyncio.run(main())

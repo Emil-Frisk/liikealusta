@@ -94,22 +94,3 @@ class WebsocketClient():
         finally:
             self.socket = None
             self.logger.info("client socket closed")
-
-# def on_message(msg):
-#     self.logger..f"Message callback fired: {msg}")
-
-# async def main():
-#     client = WebsocketClient(on_message=on_message)
-#     await client.connect()
-#     try:
-        
-#         while True:
-#             self.logger.."Hello from the main function")
-#             await asyncio.sleep(5)
-#     except KeyboardInterrupt:
-#         self.logger.."shutting down the client")
-#     finally:
-#         await client.close()
-
-# if __name__ == "__main__":
-#     asyncio.run(main())

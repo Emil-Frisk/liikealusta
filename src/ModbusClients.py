@@ -320,8 +320,6 @@ class ModbusClients:
             if self.client_left is not None and self.client_right is not None:
                 self.client_left.close()
                 self.client_right.close()    
-                self.logger.info(f"closed down clients hehehe")
-            self.logger.info(f"didnt close down clients hehehe")
         except Exception as e:
             self.logger.info(f"error happened: {e}")
 

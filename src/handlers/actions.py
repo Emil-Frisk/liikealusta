@@ -1,7 +1,13 @@
 import asyncio
-import os
+from services.cleaunup import cleanup, close_tasks, disable_server, shutdown_server_delay
+from services.motor_service import configure_motor,set_motor_values
+from services.motor_control import demo_control, rotate
+from services.validation_service import validate_update_values
 
-async def disable_server(self, wsclient=None):    
+async def shutdown(self, wsclient=None):
+    """Shuts down the server when called."""
+    self.logger.info("Shutdown request received.")
+    
     """stops and disables motors and closes sub processes"""
     self.logger.info("Shutdown request received. Cleaning up...")
 
@@ -26,23 +32,7 @@ async def disable_server(self, wsclient=None):
 
     if wsclient:
         await wsclient.send("event=shutdown|message=Server has been shutdown.|")
-
-    await cleanup(self)
     
-async def shutdown_server_delay(self):
-    # Stop the Quart self's event loop
-    await asyncio.sleep(1)
-    
-    self.logger.info("Server shutdown complete.")
-    os._exit(0)
-
-def close_tasks(self):
-    if hasattr(self, "monitor_fault_poller"):
-        self.monitor_fault_poller.cancel()
-        self.logger.info("Closed monitor fault poller")
-
-async def cleanup(self, shutdown=True):
-    #### TODO - fault poller ja skct wseruv  ei samma
     self.logger.info("cleanup function executed!")
     close_tasks(self)
     self.module_manager.cleanup_all()
@@ -53,4 +43,32 @@ async def cleanup(self, shutdown=True):
     
     if hasattr(self, "shutdown_ws_server"):
         await self.shutdown_ws_server()
+
     
+async def stop_motors(self):
+    try:
+        success = await self.clients.stop()
+        if not success:
+            pass # do something crazy :O
+    except Exception as e:
+        self.logger.error("Failed to stop motors?") # Mitäs sitten :D
+    return {"status": "success"}
+
+async def calculate_pitch_and_roll(pitch, roll):#serverosote/endpoint?nimi=value&nimi2=value2
+    # Get the two float arguments from the query parameters
+    
+    await rotate(pitch, roll)
+
+async def update_input_values(self,acceleration,velocity):
+    try:
+        values = {acceleration: acceleration, velocity: velocity}
+        if not validate_update_values(values):
+            raise ValueError()
+
+        if values:
+            await set_motor_values(values,self.clients)
+            return {"status":"success"}
+    except ValueError as e:
+        return {"status": "error", "message": "Velocity and Acceleration has to be positive integers"}
+    except Exception as e:
+        print(e)

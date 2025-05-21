@@ -19,8 +19,7 @@ def started_from_exe():
     return getattr(sys, 'frozen', False)
 
 def find_venv_python():
-        current_dir = Path(__file__).resolve().parent
-        for parent in current_dir.parents:
+        for parent in get_current_path().parents:
                 if (parent / ".venv").exists():
                         return os.path.join(parent, ".venv\Scripts\python.exe")
         raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
@@ -250,3 +249,11 @@ def convert_acc_rpm_revs(rpm):
         whole_num_register_bits = combine_12_4bit(int(whole), four_b)
         return (whole_num_register_bits, sixteen_b)
 
+def get_base_path():
+    if started_from_exe():
+        return str(Path(sys.executable).resolve().parent)
+    else:
+        return Path(os.path.abspath(__file__)).parent
+
+def get_current_path():
+        return Path(__file__).parent
