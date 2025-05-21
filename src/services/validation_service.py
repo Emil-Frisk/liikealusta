@@ -16,7 +16,7 @@ def validate_pitch_and_roll_values(pitch,roll):
         
         
     
-async def validate_message(self,receiver, message):
+def validate_message(self,receiver, message):
     if not message:
         return (False, "Action message given, but no actual message found, example: message=<message>")
     
