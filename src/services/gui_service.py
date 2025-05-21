@@ -130,7 +130,7 @@ def init_gui(self):
     self.setLayout(self.main_layout)
 
     # Initialize WebSocket client
-    self.websocket_client = WebsocketClientQT(logger=self.logger)
+    self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
     self.websocket_client.message_received.connect(self.handle_client_message)
 
     # store initial values of the input fields
@@ -310,7 +310,10 @@ def handle_client_message(self, message):
         return
     if not clientmessage: 
         self.logger.error("No client message specified in message.")
+        return
     elif event == "fault":
+        pass
+    elif event == "faultcleared":
         pass
     elif event == "connected":
         self.shutdown_button.setEnabled(True)

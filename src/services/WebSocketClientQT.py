@@ -6,7 +6,7 @@ from PyQt6.QtCore import pyqtSignal, QObject
 class WebsocketClientQT(QObject):
     message_received = pyqtSignal(str)
     
-    def __init__(self, logger, uri="ws://localhost:6969", on_message=None, reconnect_interval = 5, max_reconnect_attempt=2):
+    def __init__(self, logger, identity="unknown", uri="ws://localhost:6969", on_message=None, reconnect_interval = 5, max_reconnect_attempt=2):
         super().__init__()
         self.uri = uri
         self.socket = None
@@ -17,6 +17,7 @@ class WebsocketClientQT(QObject):
         self.max_reconnect_attempt = max_reconnect_attempt
         self.reconnect_count  = 0
         self.logger = logger
+        self.identity = identity
         
     async def connect(self):
         try:
@@ -25,6 +26,7 @@ class WebsocketClientQT(QObject):
                 return 
             
             self.socket = await asyncio.wait_for(websockets.connect(self.uri), timeout=10) 
+            self.socket.send(f"identity={self}|")
             self.is_running = True
             self.reconnect_count = 0
             self.logger.info(f"client connected to server: {self.uri}")
