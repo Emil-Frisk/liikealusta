@@ -50,8 +50,13 @@ class CommunicationHub:
         action = extract_part("action=", message=msg)
         pitch = extract_part("pitch=", message=msg)
         roll = extract_part("roll=", message=msg)
+        event = extract_part("roll=", message=msg)
         acceleration = extract_part("acc=", message=msg)
         velocity = extract_part("vel=", message=msg)
+
+        ### if message has event append it to it
+        if message and event:
+            message = f"event={event}|message={message}|"
 
         return (receiver, identity, message,action,pitch,roll,acceleration,velocity)
     
@@ -160,7 +165,7 @@ class CommunicationHub:
             self.logger.error(f"Error closing connection for {client_socket.remote_address}: {e}")
 
     async def start_server(self):
-        self.server = await websockets.serve(self.handle_client, "localhost", 6969)
+        self.server = await websockets.serve(self.handle_client, "localhost", 6969, ping_timeout=None)
         
         self.logger.info("WebSocket server running on ws://localhost:6969")
 
