@@ -10,7 +10,7 @@ from services.websocket_client import WebsocketClient
 
 class FaultPoller():
     def __init__(self):
-        self.self.critical_faults = {
+        self.critical_faults = {
             1: "Current in the actuator was too large.",
             128: "Board temperature is too high",
             256: "Servo motor has reached too high temperature"
