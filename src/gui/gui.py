@@ -59,11 +59,11 @@ class ServerStartupGUI(QWidget):
             base_path = get_base_path()
             if started_from_exe():
                 exe_temp_dir = get_exe_temp_dir()
-                server_path = os.path.join(exe_temp_dir, "src\motor_api.py")
+                server_path = os.path.join(exe_temp_dir, "src\main.py")
                 self.logger.info(server_path)
                 venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
             else:
-                server_path = os.path.join(base_path, "motor_api.py")
+                server_path = os.path.join(base_path, "main.py")
                 venv_python = find_venv_python()
             
             if venv_python:

@@ -185,19 +185,3 @@ class CommunicationHub:
             self.logger.info("WebSocket serverwebsocket running on ws://localhost:6969")
         except Exception as e:
             self.logger(f"Error while launching  server{e}")
-
-async def main():
-    try:
-        hub = CommunicationHub()
-        await hub.init()
-        await hub.start_server()
-        while True:
-            await asyncio.sleep(10)
-
-    except KeyboardInterrupt:
-        print("Keyboard interrupt -> shutting down the server...")
-    finally:
-        await hub.shutdown_server()
-        
-if __name__ == "__main__":
-    asyncio.run(main())
