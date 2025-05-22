@@ -49,12 +49,12 @@ class MotorApi():
             try:
                 while max_retries > attempt_left and max_retries > attempt_right:
                     if not success_left:
-                        response_left = await self.client_right.write_register(
+                        response_right = await self.client_right.write_register(
                             address=address,
                             value=right_motor_val,
                             slave=self.config.SLAVE_ID)
                     if not success_right:
-                        response_right = await self.client_left.write_register(
+                        response_left = await self.client_left.write_register(
                             address=address,
                             value=left_motor_val,
                             slave=self.config.SLAVE_ID)
