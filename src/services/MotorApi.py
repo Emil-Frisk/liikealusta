@@ -9,7 +9,7 @@ import math
 
 
 class MotorApi():
-    config = MotorConfig
+    config = MotorConfig()
     def __init__(self, logger, client_right, client_left, retry_delay = 0.2, max_retries = 10):
         self.logger = logger
         self.client_right = client_right
@@ -144,7 +144,7 @@ class MotorApi():
                         success_left = True
                         self.logger.info(f"Successfully {description} on left motor")
 
-                # Write to right motor if not yet successful
+                # Read from right motor if not yet successful
                 if not success_right:
                     response_right = await self.client_right.read_holding_registers(
                         address=address,
@@ -435,7 +435,9 @@ class MotorApi():
 
             position_client_left = math.floor(modbus_percentile_left * self.config.MODBUSCTRL_MAX)
             position_client_right = math.floor(modbus_percentile_right * self.config.MODBUSCTRL_MAX)
+            return position_client_left, position_client_right
         except Exception as e:
             self.logger.error(f"Unexpected error while converting to revs: {e}")
+            return False
 
-        return position_client_left, position_client_right
+        
