@@ -4,7 +4,6 @@ from pymodbus.exceptions import ConnectionException, ModbusIOException
 from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
 import asyncio
 from time import sleep, time
-
 from utils.utils import is_nth_bit_on, convert_to_revs
 import math
 
@@ -48,12 +47,12 @@ class MotorApi():
         if not multiple_registers:
             try:
                 while max_retries > attempt_left and max_retries > attempt_right:
-                    if not success_left:
+                    if not success_right:
                         response_right = await self.client_right.write_register(
                             address=address,
                             value=right_motor_val,
                             slave=self.config.SLAVE_ID)
-                    if not success_right:
+                    if not success_left:
                         response_left = await self.client_left.write_register(
                             address=address,
                             value=left_motor_val,
@@ -86,12 +85,12 @@ class MotorApi():
         else:
             try:
                 while max_retries > attempt_left and max_retries > attempt_right:
-                    if not success_left:
+                    if not success_right:
                         response_right = await self.client_right.write_registers(
                             address=address,
                             values=right_motor_vals,
                             slave=self.config.SLAVE_ID)
-                    if not success_right:
+                    if not success_left:
                         response_left = await self.client_left.write_registers(
                             address=address,
                             values=left_motor_vals,
