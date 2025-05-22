@@ -7,13 +7,12 @@ from time import sleep, time
 from utils.utils import is_nth_bit_on, convert_to_revs
 import math
 
-
 class MotorApi():
     config = MotorConfig()
-    def __init__(self, logger, client_right, client_left, retry_delay = 0.2, max_retries = 10):
+    def __init__(self, logger, modbus_clients, retry_delay = 0.2, max_retries = 10):
         self.logger = logger
-        self.client_right = client_right
-        self.client_left = client_left
+        self.client_right = modbus_clients.client_right
+        self.client_left = modbus_clients.client_left
         self.retry_delay = retry_delay
         self.max_retries = max_retries
     

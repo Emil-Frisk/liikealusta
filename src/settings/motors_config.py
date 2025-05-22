@@ -39,3 +39,8 @@ class MotorConfig:
     HOME_VALUE = 256
     STOP_VALUE = 4
     RESTART_VALUE = 1
+    RESET_FAULT_VALUE = 32768
+    ENABLE_MAINTAINED_VALUE = 2
+
+    ###
+    
