@@ -220,10 +220,10 @@ class MotorApi():
     async def home(self):
         try:
             ### Reset IEG_MOTION bit to 0 so we can trigger rising edge with our home command
-            if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"): return
+            if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"): return False
                 
             ### Initiate homing command
-            if not await self.write(value=self.config.HOME_VALUE, address=self.config.IEG_MOTION, description="initiate homing command"): return
+            if not await self.write(value=self.config.HOME_VALUE, address=self.config.IEG_MOTION, description="initiate homing command"): return False
             
             ### homing order was success for both motos make a poller coroutine to poll when the homing is done.
             #Checks if both actuators are homed or not. Returns True when homed.
@@ -323,7 +323,7 @@ class MotorApi():
             - response_right: [decimal_part, whole_part] for the right motor
             Returns False if the operation is not successful.
         """
-        return self.read(address=self.config.PFEEDBACK_POSITION, description="read current REVS", count=2)
+        return await self.read(address=self.config.PFEEDBACK_POSITION, description="read current REVS", count=2)
     
     async def set_analog_modbus_cntrl(self, values: Tuple[int, int]) -> bool:
         """
