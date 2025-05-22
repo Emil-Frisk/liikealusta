@@ -7,6 +7,7 @@ from services.module_manager import ModuleManager
 from services.motor_service import configure_motor
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
+from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
 
@@ -17,6 +18,7 @@ class CommunicationHub:
         self.module_manager = ModuleManager(self.logger)
         self.config = handle_launch_params()
         self.clients = ModbusClients(self.config, self.logger)
+        self.motor_api = MotorApi(config=self.config, logger=self.logger, modbus_clients=self.clients)
         self.is_process_done = False
         self.server = None
 
@@ -34,9 +36,12 @@ class CommunicationHub:
                 helpers.close_tasks()
                 os._exit(1)
 
-            if not await configure_motor(self.clients, self.config):
+            self.motor_api = MotorApi(logger=self.logger, modbus_clients=self.clients)
+
+            if not await self.motor_api.configure_motor(self.clients, self.config):
+                self.clients.cleanup()
                 helpers.close_tasks()
-                os._exit()
+                os._exit(1)
                 
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
@@ -46,7 +51,7 @@ class CommunicationHub:
         self.logger.info("Shutdown request received. Cleaning up...")
 
         try:
-            success = await self.clients.stop()
+            success = await self.motor_api.stop()
             if not success:
                 self.logger.error("Stopping motors was not successful, will not shutdown server")
                 return
@@ -56,7 +61,7 @@ class CommunicationHub:
         
         #########################################################################################
         #########################################################################################
-        ####NOTE DO NOT REMOVE THIS LINE -IMPORTANT FOR MOTORS TO HAVE TO TO STOP################
+        ####NOTE DO NOT REMOVE THIS LINE -IMPORTANT FOR MOTORS TO HAVE TIME TO STOP################
         await asyncio.sleep(5)
         #########################################################################################
         #########################################################################################
@@ -67,7 +72,7 @@ class CommunicationHub:
         if self.clients is not None:
             self.clients.cleanup()
 
-        await self.clients.reset_motors()
+        await self.motor_api.reset_motors()
         await asyncio.sleep(20)
         
         if wsclient:
@@ -105,7 +110,7 @@ class CommunicationHub:
                     if action == "write":
                         result = helpers.validate_pitch_and_roll_values(pitch,roll)
                         if result:
-                            await actions.demo_control(pitch, roll, self)
+                            await actions.demo_control(self, pitch, roll)
                     elif action == "identify":
                         if identity:
                             client_info["identity"] = identity.lower()
@@ -113,16 +118,15 @@ class CommunicationHub:
                         else:
                             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|") 
                     elif action == "shutdown":
-                        result = await self.shutdown_server()
+                        result = await self.shutdown_server(wsclient)
                         
                     elif action == "stop":
                         result = await actions.stop_motors(self)
-                        
                     elif action == "setvalues":
                         try:
                             result = helpers.validate_pitch_and_roll_values(pitch, roll)
                             if result:
-                                actions.calculate_pitch_and_roll(pitch,roll)
+                                actions.rotate(pitch,roll)
                         except ValueError as e:
                             self.logger.error(f"ValueError: {e}")
                             print(f"ValueError: {e}")
@@ -140,6 +144,7 @@ class CommunicationHub:
                             await wsclient.send(msg)
                     elif action == "clearfault":
                         try:
+                            ### TODO muuta tämä käyttämään moottori apia
                             if not await self.clients.set_ieg_mode(65535) or not await self.clients.set_ieg_mode(2):
                                 self.logger.error("Error clearing motors faults!")
                                 await wsclient.send("event=error|message=Error clearing motors faults!|")

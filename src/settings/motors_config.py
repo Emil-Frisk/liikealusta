@@ -41,6 +41,11 @@ class MotorConfig:
     RESTART_VALUE = 1
     RESET_FAULT_VALUE = 32768
     ENABLE_MAINTAINED_VALUE = 2
+    ### 2 tells the drivers to use simulated analog input
+    ANALOG_MODBUS_CNTRL_VALUE = 2
 
     ###
+    MODBUSCTRL_MAX = 10000
+    ACC = 123  
+    VEL = 321
     

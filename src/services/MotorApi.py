@@ -4,7 +4,7 @@ from pymodbus.exceptions import ConnectionException, ModbusIOException
 from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
 import asyncio
 from time import sleep, time
-from utils.utils import is_nth_bit_on, convert_to_revs
+from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs
 import math
 
 class MotorApi():
@@ -219,10 +219,12 @@ class MotorApi():
     async def home(self):
         try:
             ### Reset IEG_MOTION bit to 0 so we can trigger rising edge with our home command
-            if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"): return False
+            if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"):
+                return False
                 
             ### Initiate homing command
-            if not await self.write(value=self.config.HOME_VALUE, address=self.config.IEG_MOTION, description="initiate homing command"): return False
+            if not await self.write(value=self.config.HOME_VALUE, address=self.config.IEG_MOTION, description="initiate homing command"): 
+                return False
             
             ### homing order was success for both motos make a poller coroutine to poll when the homing is done.
             #Checks if both actuators are homed or not. Returns True when homed.
@@ -438,5 +440,53 @@ class MotorApi():
         except Exception as e:
             self.logger.error(f"Unexpected error while converting to revs: {e}")
             return False
-
         
+    async def initialize_motor(self):
+        """ Tries to initialize the motors with initial values returns true if succesful """
+        await self.set_host_command_mode(0)
+        await self.set_ieg_mode(self.config.RESET_FAULT_VALUE)
+        homed = await self.home()
+
+        if homed: 
+            ## Prepare motor parameters for operation
+            ### MAX POSITION LIMITS FOR BOTH MOTORS | 147 mm
+            if not await self.set_analog_pos_max(61406, 28):
+                return False
+
+            ### MIN POSITION LIMITS FOR BOTH MOTORS || 2 mm
+            if not await self.set_analog_pos_min(25801, 0):
+                return False
+
+            ### Velocity whole number is in 8.8 where decimal is in little endian format,
+            ### meaning smaller bits come first, so 1 rev would be 2^8
+            
+            ### TODO - move convert vel rmp revs and acc to motorapi helpers instead
+            (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(self.config.VEL)
+            if not await self.set_analog_vel_max(velocity_decimal, velocity_whole):
+                return False
+
+            ### UACC32 whole number split in 12.4 format
+            (acc_whole, acc_decimal) = convert_acc_rpm_revs(self.config.ACC)
+            if not await self.set_analog_acc_max(acc_decimal, acc_whole):
+                return False
+
+            ## Analog input channel set to use modbusctrl (2)
+            if not await self.set_analog_input_channel(self.config.ANALOG_MODBUS_CNTRL_VALUE):
+                return False
+
+            response = await self.get_modbuscntrl_val()
+            if not response:
+                return False
+            (position_client_left, position_client_right) = response
+
+            # modbus cntrl 0-10k
+            if not await self.set_analog_modbus_cntrl((position_client_left, position_client_right)):
+                return False
+
+            # # Finally - Ready for operation
+            if not await self.set_host_command_mode(self.config.ANALOG_POSITION_MODE):
+                return False
+
+            # Enable motors
+            if not await self.set_ieg_mode(self.config.ENABLE_MAINTAINED_VALUE):
+                return False
