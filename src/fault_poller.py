@@ -1,6 +1,6 @@
 import atexit
 from time import sleep
-from config import Config
+from settings.config import Config
 from utils.setup_logging import setup_logging
 from ModbusClients import ModbusClients
 from utils.launch_params import handle_launch_params

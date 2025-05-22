@@ -1,14 +1,9 @@
 from dataclasses import dataclass
 
 @dataclass
-class Config:
-    ### SERVER CONFIG
-    SERVER_IP_LEFT: str = '192.168.0.211'  
-    SERVER_IP_RIGHT: str = '192.168.0.212'
-    SERVER_PORT: int = 502  
+class MotorConfig:
     SLAVE_ID: int = 1
-    WEB_SERVER_PORT: int = 5001
-
+    
     ### INPUT EVENTS
     IEG_MODE: int = 4316
     IEG_MOTION: int = 4317 # stop 2^2
@@ -28,25 +23,19 @@ class Config:
     IPEAK = 5108
     RECENT_FAULT_ADDRESS: int = 846 #Coms bit 10 -> 2^10
     VFEEDBACK_VELOCITY: int = 361
+    SYSTEM_COMMAND: int = 4001
 
     ### OPERATION MODES
     COMMAND_MODE = 4303
     DISABLED = 0
     DIGITAL_INPUT = 1
     ANALOG_POSITION_MODE = 2
-
-    ### USEFUL MAX VALUES
-    MODBUSCTRL_MAX = 10000
-    UINT32_MAX = 65535
-
-    ### 
-    MODULE_NAME = None
-    POLLING_TIME_INTERVAL: float = 5.0
-    POS_UPDATE_HZ: int = 1
-    START_TID: int = 10001 # first TID will be startTID + 1
-    LAST_TID: int = 20000
-    CONNECTION_TRY_COUNT = 5
-    ACC = 123  
-    VEL = 321
-
-
+    
+    ## Percentile = x - pos_min / (pos_max - pos_min)
+    POS_MIN_REVS = 0.393698024
+    POS_MAX_REVS = 28.93700787401574803149606299212
+    
+    ### Register values
+    HOME_VALUE = 256
+    STOP_VALUE = 4
+    RESTART_VALUE = 1
