@@ -1,12 +1,14 @@
 import atexit
 from time import sleep
-from config import Config
+from settings.config import Config
 from utils.setup_logging import setup_logging
 from ModbusClients import ModbusClients
+from services.MotorApi import MotorApi
 from utils.launch_params import handle_launch_params
 import asyncio
 from utils.utils import is_fault_critical, extract_part
 from services.websocket_client import WebsocketClient
+from settings.motors_config import MotorConfig
 
 class FaultPoller():
     def __init__(self):
@@ -21,7 +23,7 @@ class FaultPoller():
         event = extract_part("event=", msg)
         message = extract_part("message=", msg)
         if not event:
-            self.logger.error("Client message does not have event specified in it.")
+            self.logger.error("wsclient message does not have event specified in it.")
             return
         
         if not message:
@@ -39,16 +41,18 @@ class FaultPoller():
     async def main(self):
         self.logger = setup_logging("faul_poller", "faul_poller.log")
         config = handle_launch_params()
+        motor_config = MotorConfig()
         clients = ModbusClients(config=config, logger=self.logger)
+        motor_api = MotorApi(config=config, logger=self.logger, modbus_clients=clients)
 
-        connected = await clients.connect()
+        connected = await motor_api.connect()
         if (not connected):
             return
         
-        # await client.connect()
+        # await wsclient.connect()
         self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
-        client = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
-        await client.connect()
+        wsclient = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
+        await wsclient.connect()
 
         try:
             counter = 0
@@ -61,15 +65,16 @@ class FaultPoller():
 
                 ### simulated critical fault situation
                 if counter == 8:
-                    await client.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[256]}|receiver=GUI|")
+                    await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[256]}|receiver=GUI|")
                     self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[256]}")
                     self.has_faulted = True
                     continue
 
                 await asyncio.sleep(1)
-                
-                # clients.check_and_reset_tids()
-                result = await clients.check_fault_stauts()
+                ### TODO - jatka tästä inegroi käyttämään motorapia
+
+                # motor_api.check_and_reset_tids()
+                result = await motor_api.check_fault_stauts()
 
                 if not result:
                     has_faulted = True
@@ -77,20 +82,21 @@ class FaultPoller():
                     has_faulted = False
 
                 if (has_faulted):
-                    left_response, right_response = await clients.get_recent_fault()
+                    left_response, right_response = await motor_api.get_recent_fault()
                     print("Fault Poller fault status left: " + str(left_response))
                     # Check that its not a critical fault
                     (left_has_falted, right_has_faulted) = result
                     if not is_fault_critical(left_response) and not is_fault_critical(right_response):
-                        await clients.set_ieg_mode(65535)
-                        await clients.set_ieg_mode(2)
+                        ### raise reset fault bit and reset the register to 0
+                        await motor_api.set_ieg_mode(motor_config.RESET_FAULT_VALUE)
+                        await motor_api.set_ieg_mode(0)
                         self.logger.info("Fault cleared")
                     else:
                         if left_has_falted:
-                            await client.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}")
                         else:
-                            await client.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}")
                         self.has_faulted = True
                         
@@ -101,9 +107,8 @@ class FaultPoller():
         finally:
             clients.cleanup()
             self.logger.info("Fault poller has been closed")
-            ### websocket client close
+            ### websocket wsclient close
             ### clean tasks
-
 
 if __name__ == "__main__":
     fault_poller = FaultPoller()
