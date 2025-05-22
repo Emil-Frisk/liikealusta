@@ -77,7 +77,7 @@ class MotorApi():
                     await asyncio.sleep(self.retry_delay)
                 
                 if not success_left or not success_right:
-                    self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | right: Left: {success_right}")
+                    self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | Right: {success_right}")
                     return False
             except Exception as e:
                 self.logger.error(f"Unexpected error while {description}: {str(e)}")
@@ -115,7 +115,7 @@ class MotorApi():
                     await asyncio.sleep(self.retry_delay)
                 
                 if not success_left or not success_right:
-                    self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | right: Left: {success_right}")
+                    self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | Right: {success_right}")
                     return False
             except Exception as e:
                 self.logger.error(f"Unexpected error while {description}: {str(e)}")
