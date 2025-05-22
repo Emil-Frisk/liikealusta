@@ -127,7 +127,7 @@ class MotorApi():
             attempt_right = 0
             success_left = False
             success_right = False
-            max_retries = 3
+            max_retries = self.max_retries
 
             while max_retries > attempt_left and max_retries > attempt_right:
                 # Write to left motor if not yet successful
@@ -181,14 +181,14 @@ class MotorApi():
         Removes all temporary settings from both motors
         and goes back to default ones
         """
-        return self.write(address=self.config.SYSTEM_COMMAND, value=self.config.RESTART_VALUE, description="force a software power-on restart of the drive")
+        return await self.write(address=self.config.SYSTEM_COMMAND, value=self.config.RESTART_VALUE, description="force a software power-on restart of the drive")
 
     async def get_recent_fault(self) -> tuple[Optional[int], Optional[int]]:
         """
         Read fault registers from both clients.
         Returns tuple of (left_fault, right_fault), None if read fails
         """
-        return self.read(address=self.config.RECENT_FAULT_ADDRESS, count=1, description="read fault register")
+        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, count=1, description="read fault register")
         
     async def fault_reset(self, mode = "default"):
         # Makes sure bits can be only valid bits that we want to control
@@ -233,7 +233,7 @@ class MotorApi():
             while elapsed_time <= homing_max_duration:
                 response = await self.read(count=1, address=self.config.OEG_STATUS, description="Read OEG_STATUS")
                 if not response:
-                    asyncio.sleep(self.retry_delay)
+                    await asyncio.sleep(self.retry_delay)
                     continue
                 
                 (OEG_STATUS_right, OEG_STATUS_left) = response
@@ -344,13 +344,13 @@ class MotorApi():
         ### TODO - figure out velocity feedback register
         try:
             waiting_duration = 30
-            start_time = time.time()
+            start_time = time()
             elapsed_time = 0
             while elapsed_time <= waiting_duration:
                 response_left, response_right = await self.get_vel()
                 if response_left == None or response_right == None:
                     await asyncio.sleep(0.2)
-                    elapsed_time = time.time() - start_time
+                    elapsed_time = time() - start_time
                     self.logger.error(f"Failed to get current motor velocity:")
                     continue
                 
@@ -365,7 +365,7 @@ class MotorApi():
                     return True
                 
                 await asyncio.sleep(0.2)
-                elapsed_time = time.time() - start_time
+                elapsed_time = time() - start_time
             
             self.logger.error(f"Waiting for motors to stop was not successful within the time limit of: {waiting_duration}")
             return False
@@ -419,20 +419,23 @@ class MotorApi():
         if result is False:
             return False
 
-        pfeedback_client_left, pfeedback_client_right = result
+        try:
+            pfeedback_client_left, pfeedback_client_right = result
 
-        revs_left = convert_to_revs(pfeedback_client_left)
-        revs_right = convert_to_revs(pfeedback_client_right)
+            revs_left = convert_to_revs(pfeedback_client_left)
+            revs_right = convert_to_revs(pfeedback_client_right)
 
-        ## Percentile = x - pos_min / (pos_max - pos_min)
-        POS_MIN_REVS = self.config.POS_MIN_REVS
-        POS_MAX_REVS = self.config.POS_MAX_REVS
-        modbus_percentile_left = (revs_left - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-        modbus_percentile_right = (revs_right - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-        modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
-        modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
+            ## Percentile = x - pos_min / (pos_max - pos_min)
+            POS_MIN_REVS = self.config.POS_MIN_REVS
+            POS_MAX_REVS = self.config.POS_MAX_REVS
+            modbus_percentile_left = (revs_left - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
+            modbus_percentile_right = (revs_right - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
+            modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
+            modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
 
-        position_client_left = math.floor(modbus_percentile_left * self.config.MODBUSCTRL_MAX)
-        position_client_right = math.floor(modbus_percentile_right * self.config.MODBUSCTRL_MAX)
+            position_client_left = math.floor(modbus_percentile_left * self.config.MODBUSCTRL_MAX)
+            position_client_right = math.floor(modbus_percentile_right * self.config.MODBUSCTRL_MAX)
+        except Exception as e:
+            self.logger.error(f"Unexpected error while converting to revs: {e}")
 
         return position_client_left, position_client_right
