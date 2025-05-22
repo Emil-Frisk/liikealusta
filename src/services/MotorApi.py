@@ -182,7 +182,7 @@ class MotorApi():
         Removes all temporary settings from both motors
         and goes back to default ones
         """
-        self.write(address=self.config.SYSTEM_COMMAND, value=self.config.RESTART_VALUE, description="force a software power-on restart of the drive")
+        return self.write(address=self.config.SYSTEM_COMMAND, value=self.config.RESTART_VALUE, description="force a software power-on restart of the drive")
 
     async def get_recent_fault(self) -> tuple[Optional[int], Optional[int]]:
         """
@@ -194,7 +194,7 @@ class MotorApi():
     async def fault_reset(self, mode = "default"):
         # Makes sure bits can be only valid bits that we want to control
         # no matter what you give as a input
-        await self.write(value=IEG_MODE_bitmask_default(65535), address=self.config.IEG_MODE, description="reset faults")
+        return await self.write(value=IEG_MODE_bitmask_default(65535), address=self.config.IEG_MODE, description="reset faults")
 
     async def check_fault_stauts(self) -> Optional[bool]:
         """
@@ -216,7 +216,7 @@ class MotorApi():
         Attempts to stop both motors by writing to the IEG_MOTION register.
         Returns True if successful, False if failed after retries.
         """
-        await self.write(address=self.config.IEG_MOTION, value=self.config.STOP_VALUE, description="Stop motors")
+        return await self.write(address=self.config.IEG_MOTION, value=self.config.STOP_VALUE, description="Stop motors")
 
     async def home(self):
         try:
@@ -338,7 +338,7 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         value_left, value_right = values
-        await self.write(different_values=True, right_val=value_right, left_val=value_left, description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
+        return await self.write(different_values=True, right_val=value_right, left_val=value_left, description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
     
     async def wait_for_motors_to_stop(self) -> bool:
         """ Polls for motors to stop returns True or False"""
@@ -387,7 +387,7 @@ class MotorApi():
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
-        await self.write(address=self.config.COMMAND_MODE, value=value, description="set host command mode")
+        return await self.write(address=self.config.COMMAND_MODE, value=value, description="set host command mode")
         
     async def set_ieg_mode(self, value: int) -> bool:
         """
@@ -407,7 +407,7 @@ class MotorApi():
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
-        await self.write(description="set IEG_MODE", value=IEG_MODE_bitmask_default(value), address=self.config.IEG_MODE)
+        return await self.write(description="set IEG_MODE", value=IEG_MODE_bitmask_default(value), address=self.config.IEG_MODE)
         
     async def get_modbuscntrl_val(self):
         """
