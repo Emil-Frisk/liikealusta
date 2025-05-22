@@ -73,6 +73,9 @@ class MotorApi():
                     
                     if success_left and success_right:
                         return True
+                    
+                    # Delay between retries
+                    await asyncio.sleep(self.retry_delay)
                 
                 if not success_left or not success_right:
                     self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | right: Left: {success_right}")
