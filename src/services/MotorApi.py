@@ -248,7 +248,7 @@ class MotorApi():
                     return True
                 
                 await asyncio.sleep(self.retry_delay)
-                elapsed_time = time.time() - start_time
+                elapsed_time = time() - start_time
             
             self.logger.error(f"Failed to home both motors within the time limit of: {homing_max_duration}")
             return False
