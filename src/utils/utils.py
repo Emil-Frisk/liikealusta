@@ -253,7 +253,7 @@ def get_base_path():
     if started_from_exe():
         return str(Path(sys.executable).resolve().parent)
     else:
-        return Path(os.path.abspath(__file__)).parent
+        return Path(os.path.abspath(__file__)).parent.parent
 
 def get_current_path():
         return Path(__file__).parent

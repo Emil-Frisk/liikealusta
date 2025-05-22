@@ -26,11 +26,11 @@ class ServerStartupGUI(QWidget):
         self.setFont(font)
         
         helpers.load_styles(self)
-        helpers.load_config()
         helpers.create_tabs(self)
-        helpers.create_status_label()
+        helpers.load_config(self)
+        helpers.create_status_label(self)
         helpers.create_server_buttons(self)
-        helpers.store_current_field_values()
+        helpers.store_current_field_values(self)
 
         # Initialize WebSocket client
         self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
@@ -47,13 +47,13 @@ class ServerStartupGUI(QWidget):
             helpers.update_values()
     
     def start_server(self):
-        (ip1, ip2, freq, speed, accel)  = helpers.get_field_values()
+        (ip1, ip2, freq, speed, accel)  = helpers.get_field_values(self)
 
         if not ip1 or not ip2:
             QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
             return
 
-        helpers.save_config()
+        helpers.save_config(self, ip1, ip2, freq, speed, accel)
         
         try:   
             base_path = get_base_path()
@@ -78,7 +78,7 @@ class ServerStartupGUI(QWidget):
             self.start_button.setEnabled(False)
             
             # Update inptu values
-            helpers.update_stored_values()
+            helpers.update_stored_values(self)
             # Switch button logic to update values
             self.start_button.setText("Update Values")
             # Start WebSocket client after server starts
