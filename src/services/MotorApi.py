@@ -189,61 +189,10 @@ class MotorApi():
         return self.read(address=self.config.RECENT_FAULT_ADDRESS, count=1, description="read fault register")
         
     async def fault_reset(self, mode = "default"):
-        try:
-            if not (isinstance(mode, str)):
-                raise TypeError(f"Wrong type for the parameter it should be a string")
-            
-            if (mode.upper() not in ("DEFAULT", "ALTERNATIVE")):
-                raise ValueError(f"Invalid mode: {mode}. Expected 'DEFAULT' or 'ALTERNATIVE'.")
-            
-            # Makes sure bits can be only valid bits that we want to control
-            # no matter what you give as a input
-            if mode == "DEFAULT":
-                value = IEG_MODE_bitmask_default(65535)
-            else:
-                value = IEG_MODE_bitmask_alternative(65535)
+        # Makes sure bits can be only valid bits that we want to control
+        # no matter what you give as a input
+        await self.write(value=IEG_MODE_bitmask_default(65535), address=self.config.IEG_MODE, description="reset faults")
 
-            attempt_count = 0
-            max_retries = self.max_retries
-            retry_delay = self.retry_delay
-
-            while attempt_count < max_retries:
-                responses = await asyncio.gather(
-                    self.client_left.write_register(
-                    address=self.config.IEG_MODE,
-                    value=value,
-                    slave=self.config.SLAVE_ID
-                ),
-                    self.client_right.write_register(
-                    address=self.config.IEG_MODE,
-                    value=value,
-                    slave= self.config.SLAVE_ID
-                ),
-                return_exceptions=True
-                )
-
-                left_response, right_response = responses
-
-                if isinstance(left_response, Exception) or isinstance(right_response, Exception):
-                    attempt_count += 1
-                    self.logger.error("Exception during trying to do a fault reset")
-                    await asyncio.sleep(retry_delay*3)
-                    continue
-
-                if left_response.isError() or right_response.isError():
-                    attempt_count += 1
-                    self.logger.error("Error resetting faults")
-                    await asyncio.sleep(retry_delay*3)
-                    continue
-
-                return True
-            
-            return False
-
-        except (ConnectionException, asyncio.exceptions.TimeoutError, ModbusIOException) as e:
-            self.logger.error(f"Exception reading fault registers: {str(e)}")
-            return False
-        
     async def check_fault_stauts(self) -> Optional[bool]:
         """
         Read drive status from both motors.
@@ -264,74 +213,7 @@ class MotorApi():
         Attempts to stop both motors by writing to the IEG_MOTION register.
         Returns True if successful, False if failed after retries.
         """
-        attempt_count = 0
-        max_retries = self.max_retries
-        retry_delay = self.retry_delay
-
-        while attempt_count < max_retries:
-            try:
-                # Attempt to stop both motors in parallel
-                
-                left_response = await self.client_left.write_register(
-                    address=self.config.IEG_MOTION,
-                    value=self.config.STOP_VALUE,
-                    slave=self.config.SLAVE_ID
-                )
-
-                right_response = await  self.client_right.write_register(
-                    address=self.config.IEG_MOTION,
-                    value=self.config.STOP_VALUE,
-                    slave=self.config.SLAVE_ID
-                )
-
-                # Check for exceptions in the responses
-                if isinstance(left_response, Exception) or isinstance(right_response, Exception):
-                    attempt_count += 1
-                    self.logger.error(
-                        f"Exception during parallel write (attempt {attempt_count}/{max_retries}): "
-                        f"Left: {left_response}, Right: {right_response}"
-                    )
-                    await asyncio.sleep(retry_delay)
-                    continue
-
-                # Check for Modbus errors in the responses
-                if left_response.isError() or right_response.isError():
-                    attempt_count += 1
-                    self.logger.error(
-                        f"Modbus error stopping motors (attempt {attempt_count}/{max_retries}): "
-                        f"Left: {left_response}, Right: {right_response}"
-                    )
-                    await asyncio.sleep(retry_delay)
-                    continue
-
-                # Success
-                self.logger.info("Successfully stopped both motors")
-                return True
-
-            except (ConnectionException, asyncio.exceptions.TimeoutError, ModbusIOException) as e:
-                attempt_count += 1
-                self.logger.error(f"Connection error (attempt {attempt_count}/{max_retries}): {e}")
-
-                # Check if either client is disconnected
-                if not self.client_left.connected or not self.client_right.connected:
-                    self.logger.info("One or both clients disconnected. Attempting to reconnect...")
-                    await self.connect()
-
-                if attempt_count < max_retries:
-                    self.logger.info(f"Retrying in {retry_delay} seconds...")
-                    await asyncio.sleep(retry_delay)
-                    continue
-                else:
-                    self.logger.error("Max retries reached. Failed to stop motors.")
-                    return False
-
-            except Exception as e:
-                # Log unexpected errors and fail immediately
-                self.logger.error(f"Unexpected error while stopping motors: {e}")
-                return False
-
-        self.logger.error("Failed to stop motors after maximum retries. Critical failure!")
-        return False
+        await self.write(address=self.config.IEG_MOTION, value=self.config.STOP_VALUE, description="Stop motors")
 
     async def home(self):
         try:
@@ -348,7 +230,7 @@ class MotorApi():
             elapsed_time = 0
             while elapsed_time <= homing_max_duration:
                 response = await self.read(count=1, address=self.config.OEG_STATUS, description="Read OEG_STATUS")
-                if response:
+                if not response:
                     asyncio.sleep(self.retry_delay)
                     continue
                 
@@ -502,7 +384,6 @@ class MotorApi():
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
-
         await self.write(address=self.config.COMMAND_MODE, value=value, description="set host command mode")
         
     async def set_ieg_mode(self, value: int) -> bool:
@@ -523,7 +404,6 @@ class MotorApi():
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
-
         await self.write(description="set IEG_MODE", value=IEG_MODE_bitmask_default(value), address=self.config.IEG_MODE)
         
     async def get_modbuscntrl_val(self):
