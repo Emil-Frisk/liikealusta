@@ -110,10 +110,13 @@ class CommunicationHub:
                     if action == "write":
                         result = helpers.validate_pitch_and_roll_values(pitch,roll)
                         if result:
-                            await demo_control(pitch, roll, self)
-                    elif identity == "GUI":
-                        pass
-                            
+                            await actions.demo_control(pitch, roll, self)
+                    elif action == "identify":
+                        if identity:
+                            client_info["identity"] = identity.lower()
+                            self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
+                        else:
+                            await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|") 
                     elif action == "shutdown":
                         result = await self.shutdown_server(wsclient)
                         
@@ -173,9 +176,9 @@ class CommunicationHub:
             await self.cleanup_client(wsclient)
 
     async def cleanup_client(self, client_socket):
-        print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]['identity']})")
-        if client_socket in self.clients:
-            del self.clients[client_socket]
+        # print(f"Cleaning up client: {client_socket.remote_address} (identity: {self.clients[client_socket]["identity"]})")
+        if client_socket in self.wsclients:
+            del self.wsclients[client_socket]
         try:
             await client_socket.close()
         except Exception as e:
