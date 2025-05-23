@@ -2,13 +2,15 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from utils.setup_logging import setup_logging
+from services.WebSocketClientQT import WebsocketClientQT
+from widgets.widgets import LabelButtonGroup
 import os
 import json
-from utils.utils import get_exe_temp_dir,started_from_exe
+import subprocess
+import asyncio
+import sys
+from utils.utils import get_exe_temp_dir,started_from_exe, extract_part, get_current_path, find_venv_python
 from pathlib import Path
-from utils.utils import get_exe_temp_dir,started_from_exe, get_current_path
-from widgets.widgets import LabelButtonGroup
-from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
 
 
 def get_gui_path():
@@ -59,7 +61,7 @@ def create_server_buttons(self):
 def load_config(self):
     try:
         # root = Path(__file__).parent
-        # config_path = os.path.join(root, self.CONFIG_FILE)
+        # config_path = os.path.join(root, self.self.CONFIG_FILE)
         config_path = "C:\liikealusta\src\gui\config.json"
         with open(config_path, "r") as f:
             config = json.load(f)
@@ -122,7 +124,7 @@ def get_field_values(self):
     return (ip1, ip2, freq, speed, accel)
 
 def save_config(self, ip1, ip2, freq, speed, accel):
-    with open(self.CONFIG_FILE, "w") as f:
+    with open(self.self.CONFIG_FILE, "w") as f:
         json.dump({
             "servo_ip_1": ip1,
             "servo_ip_2": ip2,
@@ -240,8 +242,8 @@ def set_styles(self):
         print(f"Error decoding JSON: {e}")
 
 
-def save_config(ip1, ip2, freq, speed, accel):
-    with open(CONFIG_FILE, "w") as f:
+def save_config(self, ip1, ip2, freq, speed, accel):
+    with open(self.CONFIG_FILE, "w") as f:
         json.dump({
             "servo_ip_1": ip1,
             "servo_ip_2": ip2,
