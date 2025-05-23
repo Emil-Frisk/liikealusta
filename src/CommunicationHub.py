@@ -147,30 +147,8 @@ class CommunicationHub:
                         else:
                             await wsclient.send(msg)
                     elif action == "clearfault":
-                        try:
-                            ### TODO muuta tämä käyttämään moottori apia
-                            if not await self.clients.set_ieg_mode(65535) or not await self.clients.set_ieg_mode(2):
-                                self.logger.error("Error clearing motors faults!")
-                                await wsclient.send("event=error|message=Error clearing motors faults!|")
-                                continue
-
-                            ### success case -> inform gui and fault poller
-                            succes_response = "event=faultcleared|message=Fault cleared succesfully!|"
-                            fault_poller_found = False
-                            await wsclient.send(succes_response) # Sending to GUI
-                            for sckt, info in self.wsclients.items():
-                                if info["identity"] == "fault poller":
-                                    await sckt.send(succes_response)
-                                    fault_poller_found = True
-                                    break
-
-                            if not fault_poller_found:
-                                self.logger.error("Fault poller not found from wsclients list at server")
-
-                        except Exception as e:
-                            self.logger.error("Error clearing motors faults!")
-                            await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
-
+                        await actions.clear_fault()
+           
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:

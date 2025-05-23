@@ -3,6 +3,28 @@ from services.validation_service import validate_update_values
 from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_revs
 import math
 
+async def clear_fault(self, wsclient):
+    try:
+        if not await self.motor_api.set_ieg_mode(self.motor_config.RESET_FAULT_VALUE):
+            self.logger.error("Error clearing motors faults!")
+            await wsclient.send("event=error|message=Error clearing motors faults!|")
+        else:
+            ### success case -> inform gui and fault poller
+            succes_response = "event=faultcleared|message=Fault cleared succesfully!|"
+            fault_poller_found = False
+            await wsclient.send(succes_response) # Sending to GUI
+            for sckt, info in self.wsclients.items():
+                if info["identity"] == "fault poller":
+                    await sckt.send(succes_response)
+                    fault_poller_found = True
+                    break
+            if not fault_poller_found:
+                self.logger.error("Fault poller not found from wsclients list at server")
+    except:
+        self.logger.error("Error clearing motors faults!")
+        await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
+
+
 async def demo_control(self, pitch, roll):
     MODBUSCTRL_MAX = self.config
     if (pitch == "+"): # forward
