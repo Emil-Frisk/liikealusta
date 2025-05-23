@@ -137,7 +137,7 @@ class ServerStartupGUI(QWidget):
             self.is_server_running = False
             self.start_button.setEnabled(True)
             self.shutdown_button.setEnabled(False)
-            self.fault_tab.hide_fault()
+            self.faults_tab.hide_fault()
     
     def clear_fault(self):
         asyncio.create_task(helpers.clear_fault(self))
