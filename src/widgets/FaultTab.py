@@ -20,7 +20,7 @@ class FaultTab(QWidget):
         self.default_fault_msg_lbl.setWordWrap(True)
         self.default_fault_msg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=True)
+        self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=False)
 
         if self.clear_fault_cb:
             self.fault_group.connect_button(self.clear_fault_cb)

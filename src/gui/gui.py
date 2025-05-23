@@ -39,7 +39,6 @@ class ServerStartupGUI(QWidget):
         self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
         self.websocket_client.message_received.connect(self.handle_client_message)
 
-
     def start_websocket_client(self):
         """Start the WebSocket client."""
         asyncio.create_task(self.websocket_client.connect())
@@ -121,14 +120,13 @@ class ServerStartupGUI(QWidget):
             self.logger.error(message)
         elif event == "fault":
             self.logger.warning("Fault event has arrived to GUI!")
-            self.fault_group.toggle_visibility()
-            QMessageBox.warning(self, "Error", clientmessage)
-            self.fault_group.set_label_text(clientmessage)
-            ### TODO - show notification and update fault tab data
+            QMessageBox.warning(self, "Error", clientmessage+"\n Check faults tab for more info")
+            self.fault_tab.update_fault_message(clientmessage)
+            self.fault_tab.toggle_component_visibility()
         elif event == "faultcleared":
             self.logger.info("Fault cleared event has reached gui")
             QMessageBox.information(self, "Info", "fault was cleared successfully")
-            self.fault_group.toggle_visibility()
+            self.fault_tab.toggle_component_visibility()
         elif event == "connected":
             self.shutdown_button.setEnabled(True)
             self.start_button.setEnabled(True)

@@ -85,13 +85,7 @@ def store_current_field_values(self):
         }
        
 def update_stored_values(self):
-    self.stored_values = {
-            'ip_input1': self.advanced_tab.text(),
-            'ip_input2': self.ip_input2.text(),
-            'speed_input': self.speed_input.value(),
-            'accel_input': self.accel_input.value(),
-            'freq_input': self.freq_input.value()
-        }
+    store_current_field_values()
     
 def update_values(self):
     """Update only the values that have changed."""
@@ -211,15 +205,6 @@ def get_base_path():
         return str(Path(sys.executable).resolve().parent)
     else:
         return Path(os.path.abspath(__file__)).parent
-    
-def update_stored_values(self):
-    self.stored_values = {
-            'ip_input1': self.ip_input1.text(),
-            'ip_input2': self.ip_input2.text(),
-            'speed_input': self.speed_input.value(),
-            'accel_input': self.accel_input.value(),
-            'freq_input': self.freq_input.value()
-        }
 
 def handle_button_click(self):
     if not self.is_server_running:
