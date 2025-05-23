@@ -58,8 +58,8 @@ def create_server_buttons(self):
     
 def load_config(self):
     try:
-        root = Path(__file__).parent
-        config_path = os.path.join(root, self.CONFIG_FILE)
+        # root = Path(__file__).parent
+        # config_path = os.path.join(root, self.CONFIG_FILE)
         config_path = "C:\liikealusta\src\gui\config.json"
         with open(config_path, "r") as f:
             config = json.load(f)
@@ -199,11 +199,9 @@ def create_status_label(self):
     self.message_label = QLabel("WebSocket Messages: Not connected")
     self.message_label.setWordWrap(True)
     self.main_layout.addWidget(self.message_label)
-
-    # Load last used values
-    self.load_config()
+    
     create_server_buttons(self)
-    self.set_styles()
+    set_styles(self)
     
     self.setLayout(self.main_layout)
 
@@ -241,19 +239,6 @@ def set_styles(self):
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
 
-def load_config(self):
-    try:
-        root = Path(__file__).parent
-        config_path = os.path.join(root, CONFIG_FILE)
-        with open(config_path, "r") as f:
-            config = json.load(f)
-            self.ip_input1.setText(config.get("servo_ip_1", ""))
-            self.ip_input2.setText(config.get("servo_ip_2", ""))
-            self.freq_input.setValue(config.get("update_frequency", 10))
-            self.speed_input.setValue(config.get("speed", 50))
-            self.accel_input.setValue(config.get("acceleration", 100))
-    except FileNotFoundError:
-        pass
 
 def save_config(ip1, ip2, freq, speed, accel):
     with open(CONFIG_FILE, "w") as f:
