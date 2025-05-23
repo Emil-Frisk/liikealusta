@@ -8,13 +8,13 @@ from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, co
 import math
 
 class MotorApi():
-    config = MotorConfig()
-    def __init__(self, logger, modbus_clients, retry_delay = 0.2, max_retries = 10):
+    def __init__(self, logger, modbus_clients,config=MotorConfig(), retry_delay = 0.2, max_retries = 10):
         self.logger = logger
         self.client_right = modbus_clients.client_right
         self.client_left = modbus_clients.client_left
         self.retry_delay = retry_delay
         self.max_retries = max_retries
+        self.config = config
     
     async def write(self, address, description, value=None, multiple_registers=False, values=None, different_values=False, left_val=None, right_val=None, left_vals=None, right_vals=None):
         attempt_left = 0
@@ -247,9 +247,10 @@ class MotorApi():
                 # Success
                 if ishomed_right and ishomed_left:
                     self.logger.info(f"Both motors homes successfully:")
+                    await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0")
                     return True
                 
-                await asyncio.sleep(self.retry_delay)
+                await asyncio.sleep(1)
                 elapsed_time = time() - start_time
             
             self.logger.error(f"Failed to home both motors within the time limit of: {homing_max_duration}")

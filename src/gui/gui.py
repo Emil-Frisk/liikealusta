@@ -51,6 +51,7 @@ class ServerStartupGUI(QWidget):
     
     def start_server(self):
         (ip1, ip2, freq, speed, accel)  = helpers.get_field_values(self)
+        a=10
 
         if not ip1 or not ip2:
             QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
@@ -136,7 +137,7 @@ class ServerStartupGUI(QWidget):
             self.is_server_running = False
             self.start_button.setEnabled(True)
             self.shutdown_button.setEnabled(False)
-            self.fault_tab.hide_faul()
+            self.fault_tab.hide_fault()
     
     def clear_fault(self):
         asyncio.create_task(helpers.clear_fault(self))
