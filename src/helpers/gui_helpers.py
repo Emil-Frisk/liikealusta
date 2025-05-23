@@ -12,7 +12,6 @@ import sys
 from utils.utils import get_exe_temp_dir,started_from_exe, extract_part, get_current_path, find_venv_python
 from pathlib import Path
 
-
 def get_gui_path():
     return get_current_path().parent / "gui"
 
