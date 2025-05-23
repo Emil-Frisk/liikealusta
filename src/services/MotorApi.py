@@ -490,3 +490,5 @@ class MotorApi():
             # Enable motors
             if not await self.set_ieg_mode(self.config.ENABLE_MAINTAINED_VALUE):
                 return False
+            
+            return True
