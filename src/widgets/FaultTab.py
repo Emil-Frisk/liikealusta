@@ -31,6 +31,8 @@ class FaultTab(QWidget):
     def toggle_component_visibility(self):
         self.default_fault_msg_lbl.setVisible(not self.default_fault_msg_lbl.isVisible())
         self.fault_group.toggle_visibility()
+        # Force update
+        self.adjustSize() 
 
     def update_fault_message(self, txt):
         self.fault_group.set_label_text(txt)
