@@ -4,7 +4,7 @@ from widgets.widgets import LabelButtonGroup
 
 class FaultTab(QWidget):
     def __init__(self, styles=None, clear_fault_cb=None):
-        super().__init__()
+        super().__init__() 
 
         self.styles = styles
         self.clear_fault_cb=clear_fault_cb
