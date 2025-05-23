@@ -3,9 +3,9 @@ from settings.config import Config
 from settings.motors_config import MotorConfig
 import sys
 
-def handle_launch_params():
+def handle_launch_params(b_motor_config=False):
     module_name = sys.argv[0]
-
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, help="port number")
     parser.add_argument("--server_left", type=str, help="left side motor ip")
@@ -53,5 +53,6 @@ def handle_launch_params():
         config.LAST_TID = args.end_tid
     if (args.web_server_port):
         config.WEB_SERVER_PORT = args.web_server_port
-
+    if b_motor_config == True:
+        return config,motor_config
     return config

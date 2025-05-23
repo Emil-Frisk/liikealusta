@@ -136,7 +136,8 @@ def split_20bit_to_components(value):
            return None
     
     scaled_value = int(value / UACC32_RESOLUTION)
-    
+    if scaled_value == (2**20-1):
+           scaled_value = scaled_value - 1
     scaled_value = scaled_value & 0xFFFFF # 20 bits 
 
     # Extract 4-bit high part (bits 16-19)

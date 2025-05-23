@@ -85,7 +85,7 @@ def store_current_field_values(self):
         }
        
 def update_stored_values(self):
-    store_current_field_values()
+    store_current_field_values(self)
     
 def update_values(self):
     """Update only the values that have changed."""

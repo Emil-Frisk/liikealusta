@@ -15,15 +15,20 @@ class CommunicationHub:
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
         self.module_manager = ModuleManager(self.logger)
-        self.config = handle_launch_params()
-        self.clients = ModbusClients(self.config, self.logger)
+        self.config = None
+        self.motor_config = None
+        self.clients = None
         self.motor_api = None
         self.is_process_done = False
         self.server = None
 
     async def init(self):
         try:
-            await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
+            self.config ,self.motor_config = handle_launch_params(b_motor_config=True)
+            # self.motor_config = motorconfig
+            # self.config = config
+            self.clients = ModbusClients(self.config, self.logger)
+            # await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
             # Connect to both drivers
             connected = await self.clients.connect()
 
@@ -35,13 +40,15 @@ class CommunicationHub:
                 helpers.close_tasks(self)
                 os._exit(1)
 
-            self.motor_api = MotorApi(logger=self.logger, modbus_clients=self.clients)
+            self.motor_api = MotorApi(logger=self.logger,
+                                       modbus_clients=self.clients,
+                                       config = self.motor_config)
 
             if not await self.motor_api.initialize_motor():
                 self.clients.cleanup()
                 helpers.close_tasks(self)
                 os._exit(1)
-
+            a = 10
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
 

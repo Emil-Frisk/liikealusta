@@ -14,7 +14,7 @@ def setup_logging(name, filename):
     if not os.path.exists(parent_log_dir):
         os.makedirs(parent_log_dir)
     
-    log_format = format='%(asctime)s - %(levelname)s - MODULE: %(module)s - %(message)s'
+    log_format = format='%(asctime)s - %(levelname)s - MODULE: %(module)s LINE:%(lineno)d - %(message)s'
     formatter = logging.Formatter(log_format)
 
     # Set up file handler
