@@ -70,6 +70,7 @@ class MotorApi():
                         success_right = True
                     
                     if success_left and success_right:
+                        self.logger.info(f"succesfully {description} on both motors!")
                         return True
                     
                     # Delay between retries
@@ -108,6 +109,7 @@ class MotorApi():
                         success_right = True
                     
                     if success_left and success_right:
+                        self.logger.info(f"succesfully {description} on both motors!")
                         return True
                     
                     # Delay between retries
