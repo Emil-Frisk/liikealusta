@@ -63,14 +63,14 @@ def load_config(self):
     try:
         # root = Path(__file__).parent
         # config_path = os.path.join(root, self.self.CONFIG_FILE)
-        config_path = "C:\liikealusta\src\gui\config.json"
+        config_path = self.CONFIG_FILE
         with open(config_path, "r") as f:
             config = json.load(f)
-            self.ip_input1.setText(config.get("servo_ip_1", ""))
-            self.ip_input2.setText(config.get("servo_ip_2", ""))
-            self.freq_input.setValue(config.get("update_frequency", 10))
-            self.speed_input.setValue(config.get("speed", 50))
-            self.accel_input.setValue(config.get("acceleration", 100))
+            self.advanced_tab.set_left_motor(config.get("servo_ip_1", ""))
+            self.advanced_tab.set_right_motor(config.get("servo_ip_2", ""))
+            self.advanced_tab.set_freq(config.get("update_frequency", 10))
+            self.general_tab.set_velocity(config.get("speed", 50))
+            self.general_tab.set_acceleration(config.get("acceleration", 100))
     except FileNotFoundError as e:
         self.logger.error(f"Config file not found: {e}")
 
@@ -91,13 +91,13 @@ def update_values(self):
     """Update only the values that have changed."""
     changed_fields = {}
     # Check text fields for changes
-    if self.speed_input.value() != self.stored_values['speed_input']:
-        changed_fields.update({"velocity": self.speed_input.value()})
-        self.logger.info(f"Updating Velocity to {self.speed_input.value()} RPM")      
+    if self.general_tab.get_velocity() != self.stored_values['speed_input']:
+        changed_fields.update({"velocity": self.general_tab.get_velocity()})
+        self.logger.info(f"Updating Velocity to {self.general_tab.get_velocity()} RPM")      
                 
-    if self.accel_input.value() != self.stored_values['accel_input']:
-        changed_fields.update({"acceleration": self.accel_input.value()})
-        self.logger.info(f"Updating Acceleration to {self.accel_input.value()} RPM")   
+    if self.general_tab.get_acceleration() != self.stored_values['accel_input']:
+        changed_fields.update({"acceleration": self.general_tab.get_acceleration()})
+        self.logger.info(f"Updating Acceleration to {self.general_tab.get_acceleration()} RPM")   
         
     # Update values based on changes
     if changed_fields:
@@ -111,11 +111,11 @@ def update_values(self):
             self.logger(f"Error while changing values: {e}")
             
 def get_field_values(self):
-    ip1 = self.ip_input1.text().strip()
-    ip2 = self.ip_input2.text().strip()
-    freq = self.freq_input.value()
-    speed = self.speed_input.value()
-    accel = self.accel_input.value()
+    ip1 = self.advanced_tab.get_left_motor().strip()
+    ip2 = self.advanced_tab.get_right_motor().strip()
+    freq = self.advanced_tab.get_freq()
+    speed = self.general_tab.get_velocity()
+    accel = self.general_tab.get_acceleration()
     return (ip1, ip2, freq, speed, accel)
 
 def save_config(self, ip1, ip2, freq, speed, accel):
@@ -216,13 +216,13 @@ def update_values(self):
     """Update only the values that have changed."""
     changed_fields = {}
     # Check text fields for changes
-    if self.speed_input.value() != self.stored_values['speed_input']:
-        changed_fields.update({"velocity": self.speed_input.value()})
-        self.logger.info(f"Updating Velocity to {self.speed_input.value()} RPM")      
+    if self.general_tab.get_velocity() != self.stored_values['speed_input']:
+        changed_fields.update({"velocity": self.general_tab.get_velocity()})
+        self.logger.info(f"Updating Velocity to {self.general_tab.get_velocity()} RPM")      
                 
-    if self.accel_input.value() != self.stored_values['accel_input']:
-        changed_fields.update({"acceleration": self.accel_input.value()})
-        self.logger.info(f"Updating Acceleration to {self.accel_input.value()} RPM")   
+    if self.general_tab.get_acceleration() != self.stored_values['accel_input']:
+        changed_fields.update({"acceleration": self.general_tab.get_acceleration()})
+        self.logger.info(f"Updating Acceleration to {self.general_tab.get_acceleration()} RPM")   
         
     # Update values based on changes
     if changed_fields:
@@ -237,11 +237,11 @@ def update_values(self):
             self.logger(f"Error while changing values: {e}")
 
 def start_server(self):
-    ip1 = self.ip_input1.text().strip()
-    ip2 = self.ip_input2.text().strip()
-    freq = self.freq_input.value()
-    speed = self.speed_input.value()
-    accel = self.accel_input.value()
+    ip1 = self.advanced_tab.get_left_motor().strip()
+    ip2 = self.advanced_tab.get_right_motor().strip()
+    freq = self.advanced_tab.get_freq()
+    speed = self.general_tab.get_velocity()
+    accel = self.general_tab.get_acceleration()
 
     # if not ip1 or not ip2:
     #     QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
