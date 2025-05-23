@@ -147,7 +147,7 @@ class CommunicationHub:
                         else:
                             await wsclient.send(msg)
                     elif action == "clearfault":
-                        await actions.clear_fault()
+                        await actions.clear_fault(self, wsclient=wsclient)
            
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
