@@ -123,11 +123,11 @@ class ServerStartupGUI(QWidget):
             self.logger.warning("Fault event has arrived to GUI!")
             QMessageBox.warning(self, "Error", clientmessage+"\n Check faults tab for more info")
             self.fault_tab.update_fault_message(clientmessage)
-            self.fault_tab.toggle_component_visibility()
+            self.fault_tab.show_fault_group()
         elif event == "faultcleared":
             self.logger.info("Fault cleared event has reached gui")
             QMessageBox.information(self, "Info", "fault was cleared successfully")
-            self.fault_tab.toggle_component_visibility()
+            self.fault_tab.hide_fault_group()
         elif event == "connected":
             self.shutdown_button.setEnabled(True)
             self.start_button.setEnabled(True)
