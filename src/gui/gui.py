@@ -18,6 +18,7 @@ class ServerStartupGUI(QWidget):
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
+        self.styles_path = helpers.get_gui_path() / "styles.json"
         self.CONFIG_FILE = helpers.get_gui_path() / "config.json"
         
         self.main_layout = QVBoxLayout()
@@ -28,8 +29,8 @@ class ServerStartupGUI(QWidget):
         helpers.load_styles(self)
         helpers.create_tabs(self)
         helpers.load_config(self)
-        helpers.create_status_label(self)
         helpers.create_server_buttons(self)
+        helpers.create_status_label(self)
         helpers.store_current_field_values(self)
 
         # Initialize WebSocket client
