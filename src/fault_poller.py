@@ -43,12 +43,10 @@ class FaultPoller():
         config = handle_launch_params()
         motor_config = MotorConfig()
         clients = ModbusClients(config=config, logger=self.logger)
-        motor_api = MotorApi(logger=self.logger, modbus_clients=clients)
-
         connected = await clients.connect()
         if (not connected):
             return
-        
+        motor_api = MotorApi(logger=self.logger, modbus_clients=clients)
         # await wsclient.connect()
         self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
         wsclient = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
