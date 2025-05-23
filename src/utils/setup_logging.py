@@ -3,7 +3,31 @@ import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import sys
+from colorama import init, Fore, Style
 from utils.utils import started_from_exe
+
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter to add colors to console output based on log level."""
+    # Define color formats for different log levels
+    LEVEL_COLORS = {
+        logging.DEBUG: Fore.CYAN,
+        logging.INFO: Fore.GREEN,
+        logging.WARNING: Fore.YELLOW,
+        logging.ERROR: Fore.RED,
+        logging.CRITICAL: Fore.RED + Style.BRIGHT,
+    }
+
+    def __init__(self, fmt):
+        super().__init__(fmt)
+
+    def format(self, record):
+        # Get the original format string
+        format_str = self._fmt
+        # Apply the color based on the log level
+        color = self.LEVEL_COLORS.get(record.levelno, Fore.WHITE)  # Default to white if level not found
+        # Wrap the entire log message with the color
+        formatted = color + super().format(record) + Style.RESET_ALL
+        return formatted
 
 def setup_logging(name, filename):
     log_dir = "logs"
@@ -27,10 +51,10 @@ def setup_logging(name, filename):
         encoding='utf-8'
     )
     file_handler.setFormatter(formatter)
-
+    console_formatter = ColoredFormatter(log_format)    
     #setup console
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
+    console_handler.setFormatter(console_formatter)
 
     # config root logger
     logger = logging.getLogger(name)
