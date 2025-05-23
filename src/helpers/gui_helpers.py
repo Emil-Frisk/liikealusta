@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt
 from utils.setup_logging import setup_logging
 from services.WebSocketClientQT import WebsocketClientQT
 from widgets.FaultTab import FaultTab
+from widgets.GeneralTab import GeneralTab
 import os
 import json
 import subprocess
@@ -77,8 +78,8 @@ def store_current_field_values(self):
         self.stored_values = {
             'ip_input1': self.ip_input1.text(),
             'ip_input2': self.ip_input2.text(),
-            'speed_input': self.speed_input.value(),
-            'accel_input': self.accel_input.value(),
+            'speed_input': self.general_tab.get_velocity(),
+            'accel_input': self.general_tab.get_acceleration(),
             'freq_input': self.freq_input.value()
         }
        
@@ -137,21 +138,7 @@ async def clear_fault(self):
     
 def create_general_tab(self):
     # General Tab
-    self.general_tab = QWidget()
-    self.general_layout = QFormLayout()
-
-    # Speed Field
-    self.speed_input = QSpinBox()
-    self.speed_input.setRange(1, 500)
-    self.general_layout.addRow("Velocity (RPM):", self.speed_input)
-
-    # Acceleration Field
-    self.accel_input = QSpinBox()
-    self.accel_input.setRange(1, 1000)
-    self.general_layout.addRow("Acceleration (RPM):", self.accel_input)
-
-    # Add general layout to general tab
-    self.general_tab.setLayout(self.general_layout)
+    self.general_tab = GeneralTab()
     self.tabs.addTab(self.general_tab, "General")
     
 def create_advanced_tab(self):
@@ -198,8 +185,8 @@ def create_status_label(self):
     self.stored_values = {
         'ip_input1': self.ip_input1.text(),
         'ip_input2': self.ip_input2.text(),
-        'speed_input': self.speed_input.value(),
-        'accel_input': self.accel_input.value(),
+        'speed_input': self.general_tab.get_velocity(),
+        'accel_input': self.general_tab.get_acceleration(),
         'freq_input': self.freq_input.value()
     }
 
