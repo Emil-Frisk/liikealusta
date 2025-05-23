@@ -11,6 +11,7 @@ class ModuleManager:
     def __init__(self, logger):
         self.processes = {}
         self.logger = logger
+        self.entry_point = self.get_entry_point()
 
     def launch_module(self, module_path, args=None):
         """Launch a Python module and return PID or none if error"""
@@ -28,8 +29,15 @@ class ModuleManager:
                 src_dir = Path(__file__).parent.parent
                 file_path = os.path.join(src_dir, f"{module_path}.py")
                 venv_python = find_venv_python()
-                cmd =  [venv_python, file_path]
+                
+                ### adding module to the launch options to find and check for its existance later
+                cmd =  [venv_python, file_path, f"entrypoint={module_path}"]
 
+            ### Prevent process recursion
+            if self.entry_point == module_path:
+                self.logger.error("Recursion spotted not spawning a new process")
+                return 
+            
             process = subprocess.Popen(
                 cmd
             )
@@ -86,4 +94,7 @@ class ModuleManager:
         """Cleanup all running modules"""
         for pid in list(self.processes.keys()):
             self.cleanup_module(pid)
+
+    def get_entry_point(self):
+        return Path(sys.argv[0]).name.split(".py")[0]
 
