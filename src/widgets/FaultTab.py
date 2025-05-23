@@ -34,3 +34,7 @@ class FaultTab(QWidget):
 
     def update_fault_message(self, txt):
         self.fault_group.set_label_text(txt)
+
+    def hide_fault(self):
+        self.fault_group.setVisible(False)
+
