@@ -4,9 +4,9 @@ import os
 import websockets
 from ModbusClients import ModbusClients
 from services.module_manager import ModuleManager
-from services.motor_service import configure_motor
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
+from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
 
@@ -15,48 +15,57 @@ class CommunicationHub:
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
         self.module_manager = ModuleManager(self.logger)
-        self.config = handle_launch_params()
-        self.clients = ModbusClients(self.config, self.logger)
+        self.config = None
+        self.motor_config = None
+        self.clients = None
+        self.motor_api = None
         self.is_process_done = False
         self.server = None
 
     async def init(self):
         try:
+            self.config ,self.motor_config = handle_launch_params(b_motor_config=True)
+            self.clients = ModbusClients(self.config, self.logger)
             await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
             # Connect to both drivers
-            connected = await self.clients.connect() 
-            
+            connected = await self.clients.connect()
+
             if not connected:
                 self.logger.error(f"""could not form a connection to both motors,
-                            Left motors ips: {self.config.SERVER_IP_LEFT}, 
-                            Right motors ips: {self.config.SERVER_IP_RIGHT}, 
+                            Left motors ips: {self.config.SERVER_IP_LEFT},
+                            Right motors ips: {self.config.SERVER_IP_RIGHT},
                             shutting down the server """)
-                helpers.close_tasks()
+                helpers.close_tasks(self)
                 os._exit(1)
 
-            if not await configure_motor(self.clients, self.config):
-                helpers.close_tasks()
-                os._exit()
-                
+            self.motor_api = MotorApi(logger=self.logger,
+                                       modbus_clients=self.clients,
+                                       config = self.motor_config)
+
+            if not await self.motor_api.initialize_motor():
+                self.clients.cleanup()
+                helpers.close_tasks(self)
+                os._exit(1)
+            a = 10
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
-    
+
     async def shutdown_server(self, wsclient=None):
         """stops and disables motors and closes sub processes"""
         self.logger.info("Shutdown request received. Cleaning up...")
 
         try:
-            success = await self.clients.stop()
+            success = await self.motor_api.stop()
             if not success:
                 self.logger.error("Stopping motors was not successful, will not shutdown server")
                 return
         except Exception as e:
             self.logger.error("Stopping motors was not successful, will not shutdown server")
             return
-        
+
         #########################################################################################
         #########################################################################################
-        ####NOTE DO NOT REMOVE THIS LINE -IMPORTANT FOR MOTORS TO HAVE TO TO STOP################
+        ####NOTE DO NOT REMOVE THIS LINE -IMPORTANT FOR MOTORS TO HAVE TIME TO STOP################
         await asyncio.sleep(5)
         #########################################################################################
         #########################################################################################
@@ -67,12 +76,12 @@ class CommunicationHub:
         if self.clients is not None:
             self.clients.cleanup()
 
-        await self.clients.reset_motors()
+        await self.motor_api.reset_motors()
         await asyncio.sleep(20)
-        
+
         if wsclient:
             await wsclient.send("event=shutdown|message=Server has been shutdown.|")
-        
+
         if hasattr(self, "server") and self.server != None:
                 try:
                     self.logger.info("Closing websocket server...")
@@ -94,12 +103,12 @@ class CommunicationHub:
                 print(f"Received: {message}")
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
                 if not action:
-                    await wsclient.send("event=error|message=No action given, example action=<action>|") 
-                else: 
+                    await wsclient.send("event=error|message=No action given, example action=<action>|")
+                else:
                     if receiver:
                         self.logger.info(f"Receiver: {receiver}")
                         receiver = receiver.lower()
-                    
+
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
                     if action == "write":
@@ -111,18 +120,17 @@ class CommunicationHub:
                             client_info["identity"] = identity.lower()
                             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
                         else:
-                            await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|") 
+                            await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
                     elif action == "shutdown":
-                        result = await self.shutdown_server()
-                        
+                        result = await self.shutdown_server(wsclient)
+
                     elif action == "stop":
                         result = await actions.stop_motors(self)
-                        
                     elif action == "setvalues":
                         try:
                             result = helpers.validate_pitch_and_roll_values(pitch, roll)
                             if result:
-                                actions.calculate_pitch_and_roll(pitch,roll)
+                                actions.rotate(pitch,roll)
                         except ValueError as e:
                             self.logger.error(f"ValueError: {e}")
                             print(f"ValueError: {e}")
@@ -139,29 +147,8 @@ class CommunicationHub:
                         else:
                             await wsclient.send(msg)
                     elif action == "clearfault":
-                        try:
-                            if not await self.clients.set_ieg_mode(65535) or not await self.clients.set_ieg_mode(2):
-                                self.logger.error("Error clearing motors faults!")
-                                await wsclient.send("event=error|message=Error clearing motors faults!|")
-                                continue
-
-                            ### success case -> inform gui and fault poller
-                            succes_response = "event=faultcleared|message=Fault cleared succesfully!|"
-                            fault_poller_found = False
-                            await wsclient.send(succes_response) # Sending to GUI
-                            for sckt, info in self.wsclients.items():
-                                if info["identity"] == "fault poller":
-                                    await sckt.send(succes_response)
-                                    fault_poller_found = True
-                                    break
-
-                            if not fault_poller_found:
-                                self.logger.error("Fault poller not found from wsclients list at server")
-
-                        except Exception as e:
-                            self.logger.error("Error clearing motors faults!")
-                            await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
-
+                        await actions.clear_fault(self, wsclient=wsclient)
+           
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:
@@ -185,19 +172,3 @@ class CommunicationHub:
             self.logger.info("WebSocket serverwebsocket running on ws://localhost:6969")
         except Exception as e:
             self.logger(f"Error while launching  server{e}")
-
-async def main():
-    try:
-        hub = CommunicationHub()
-        await hub.init()
-        await hub.start_server()
-        while True:
-            await asyncio.sleep(10)
-
-    except KeyboardInterrupt:
-        print("Keyboard interrupt -> shutting down the server...")
-    finally:
-        await hub.shutdown_server()
-        
-if __name__ == "__main__":
-    asyncio.run(main())

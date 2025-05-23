@@ -18,6 +18,7 @@ class ServerStartupGUI(QWidget):
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
+        self.styles_path = helpers.get_gui_path() / "styles.json"
         self.CONFIG_FILE = helpers.get_gui_path() / "config.json"
         
         self.main_layout = QVBoxLayout()
@@ -26,11 +27,13 @@ class ServerStartupGUI(QWidget):
         self.setFont(font)
         
         helpers.load_styles(self)
-        helpers.load_config()
         helpers.create_tabs(self)
-        helpers.create_status_label()
+        helpers.load_config(self)
         helpers.create_server_buttons(self)
-        helpers.store_current_field_values()
+        helpers.create_status_label(self)
+        helpers.store_current_field_values(self)
+        
+        self.faults_tab.update_fault_message("test")
 
         # Initialize WebSocket client
         self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
@@ -47,23 +50,24 @@ class ServerStartupGUI(QWidget):
             helpers.update_values()
     
     def start_server(self):
-        (ip1, ip2, freq, speed, accel)  = helpers.get_field_values()
+        (ip1, ip2, freq, speed, accel)  = helpers.get_field_values(self)
+        a=10
 
         if not ip1 or not ip2:
             QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
             return
 
-        helpers.save_config()
+        helpers.save_config(self, ip1, ip2, freq, speed, accel)
         
         try:   
             base_path = get_base_path()
             if started_from_exe():
                 exe_temp_dir = get_exe_temp_dir()
-                server_path = os.path.join(exe_temp_dir, "src\motor_api.py")
+                server_path = os.path.join(exe_temp_dir, "src\main.py")
                 self.logger.info(server_path)
                 venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
             else:
-                server_path = os.path.join(base_path, "motor_api.py")
+                server_path = os.path.join(base_path, "main.py")
                 venv_python = find_venv_python()
             
             if venv_python:
@@ -78,7 +82,7 @@ class ServerStartupGUI(QWidget):
             self.start_button.setEnabled(False)
             
             # Update inptu values
-            helpers.update_stored_values()
+            helpers.update_stored_values(self)
             # Switch button logic to update values
             self.start_button.setText("Update Values")
             # Start WebSocket client after server starts
@@ -117,14 +121,13 @@ class ServerStartupGUI(QWidget):
             self.logger.error(message)
         elif event == "fault":
             self.logger.warning("Fault event has arrived to GUI!")
-            self.fault_group.toggle_visibility()
-            QMessageBox.warning(self, "Error", clientmessage)
-            self.fault_group.set_label_text(clientmessage)
-            ### TODO - show notification and update fault tab data
+            QMessageBox.warning(self, "Error", clientmessage+"\n Check faults tab for more info")
+            self.faults_tab.update_fault_message(clientmessage)
+            self.faults_tab.show_fault_group()
         elif event == "faultcleared":
             self.logger.info("Fault cleared event has reached gui")
             QMessageBox.information(self, "Info", "fault was cleared successfully")
-            self.fault_group.toggle_visibility()
+            self.faults_tab.hide_fault_group()
         elif event == "connected":
             self.shutdown_button.setEnabled(True)
             self.start_button.setEnabled(True)
@@ -134,6 +137,7 @@ class ServerStartupGUI(QWidget):
             self.is_server_running = False
             self.start_button.setEnabled(True)
             self.shutdown_button.setEnabled(False)
+            self.faults_tab.hide_fault()
     
     def clear_fault(self):
         asyncio.create_task(helpers.clear_fault(self))

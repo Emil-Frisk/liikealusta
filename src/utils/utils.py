@@ -136,7 +136,8 @@ def split_20bit_to_components(value):
            return None
     
     scaled_value = int(value / UACC32_RESOLUTION)
-    
+    if scaled_value == (2**20-1):
+           scaled_value = scaled_value - 1
     scaled_value = scaled_value & 0xFFFFF # 20 bits 
 
     # Extract 4-bit high part (bits 16-19)
@@ -253,7 +254,7 @@ def get_base_path():
     if started_from_exe():
         return str(Path(sys.executable).resolve().parent)
     else:
-        return Path(os.path.abspath(__file__)).parent
+        return Path(os.path.abspath(__file__)).parent.parent
 
 def get_current_path():
         return Path(__file__).parent

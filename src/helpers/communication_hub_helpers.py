@@ -34,7 +34,7 @@ def validate_message(self,receiver, message):
         
     return (False, None, "event=error|message=No receiver was found in the server with this identity|")
 
-def extract_parts(self, msg): # example message: "action=STOP|receiver=startup|identity=fault_poller|message=CRITICAL FAULT!|pitch=40.3"
+def extract_parts(msg): # example message: "action=STOP|receiver=startup|identity=fault_poller|message=CRITICAL FAULT!|pitch=40.3"
     receiver = extract_part("receiver=", message=msg)
     identity = extract_part("identity=", message=msg)
     message = extract_part("message=", message=msg)

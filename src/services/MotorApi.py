@@ -4,18 +4,17 @@ from pymodbus.exceptions import ConnectionException, ModbusIOException
 from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
 import asyncio
 from time import sleep, time
-from utils.utils import is_nth_bit_on, convert_to_revs
+from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs
 import math
 
-
 class MotorApi():
-    config = MotorConfig()
-    def __init__(self, logger, client_right, client_left, retry_delay = 0.2, max_retries = 10):
+    def __init__(self, logger, modbus_clients,config=MotorConfig(), retry_delay = 0.2, max_retries = 10):
         self.logger = logger
-        self.client_right = client_right
-        self.client_left = client_left
+        self.client_right = modbus_clients.client_right
+        self.client_left = modbus_clients.client_left
         self.retry_delay = retry_delay
         self.max_retries = max_retries
+        self.config = config
     
     async def write(self, address, description, value=None, multiple_registers=False, values=None, different_values=False, left_val=None, right_val=None, left_vals=None, right_vals=None):
         attempt_left = 0
@@ -71,6 +70,7 @@ class MotorApi():
                         success_right = True
                     
                     if success_left and success_right:
+                        self.logger.info(f"succesfully {description} on both motors!")
                         return True
                     
                     # Delay between retries
@@ -109,6 +109,7 @@ class MotorApi():
                         success_right = True
                     
                     if success_left and success_right:
+                        self.logger.info(f"succesfully {description} on both motors!")
                         return True
                     
                     # Delay between retries
@@ -121,7 +122,7 @@ class MotorApi():
                 self.logger.error(f"Unexpected error while {description}: {str(e)}")
                 return False
     
-    async def read(self, address, description, count=2):
+    async def read(self, address, description, count=2, log=True):
         try:
             attempt_left = 0
             attempt_right = 0
@@ -169,7 +170,8 @@ class MotorApi():
                 self.logger.error(f"Failed to {description} on both motors. Left: {success_left}, Right: {success_right}")
                 return False
 
-            self.logger.info(f"Successfully {description} on both motors")
+            if log:
+                self.logger.info(f"Successfully {description} on both motors")
             return (response_left, response_right)
 
         except Exception as e:
@@ -188,27 +190,27 @@ class MotorApi():
         Read fault registers from both clients.
         Returns tuple of (left_fault, right_fault), None if read fails
         """
-        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, count=1, description="read fault register")
+        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=1)
         
     async def fault_reset(self, mode = "default"):
         # Makes sure bits can be only valid bits that we want to control
         # no matter what you give as a input
         return await self.write(value=IEG_MODE_bitmask_default(65535), address=self.config.IEG_MODE, description="reset faults")
 
-    async def check_fault_stauts(self) -> Optional[bool]:
+    async def check_fault_stauts(self, log=True) -> Optional[bool]:
         """
         Read drive status from both motors.
         Returns true if either one is in fault state
         otherwise false
         or None if it fails
         """
-        return await self.read(count=1, address=self.config.OEG_STATUS, description="read driver status")
+        return await self.read(log=log, address=self.config.OEG_STATUS, description="read driver status",count=1)
     
     async def get_vel(self):
         """
         Gets VEL32_HIGH register for both motors
         """
-        return await self.read(description="read velocity register", count=1, address=self.config.VFEEDBACK_VELOCITY)
+        return await self.read(address=self.config.VFEEDBACK_VELOCITY,description="read velocity register", count=1)
    
     async def stop(self):
         """
@@ -220,10 +222,12 @@ class MotorApi():
     async def home(self):
         try:
             ### Reset IEG_MOTION bit to 0 so we can trigger rising edge with our home command
-            if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"): return False
+            if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"):
+                return False
                 
             ### Initiate homing command
-            if not await self.write(value=self.config.HOME_VALUE, address=self.config.IEG_MOTION, description="initiate homing command"): return False
+            if not await self.write(value=self.config.HOME_VALUE, address=self.config.IEG_MOTION, description="initiate homing command"): 
+                return False
             
             ### homing order was success for both motos make a poller coroutine to poll when the homing is done.
             #Checks if both actuators are homed or not. Returns True when homed.
@@ -231,7 +235,7 @@ class MotorApi():
             start_time = time()
             elapsed_time = 0
             while elapsed_time <= homing_max_duration:
-                response = await self.read(count=1, address=self.config.OEG_STATUS, description="Read OEG_STATUS")
+                response = await self.read(address=self.config.OEG_STATUS, description="Read OEG_STATUS",count=1)
                 if not response:
                     await asyncio.sleep(self.retry_delay)
                     continue
@@ -244,9 +248,10 @@ class MotorApi():
                 # Success
                 if ishomed_right and ishomed_left:
                     self.logger.info(f"Both motors homes successfully:")
+                    await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0")
                     return True
                 
-                await asyncio.sleep(self.retry_delay)
+                await asyncio.sleep(1)
                 elapsed_time = time() - start_time
             
             self.logger.error(f"Failed to home both motors within the time limit of: {homing_max_duration}")
@@ -439,5 +444,55 @@ class MotorApi():
         except Exception as e:
             self.logger.error(f"Unexpected error while converting to revs: {e}")
             return False
-
         
+    async def initialize_motor(self):
+        """ Tries to initialize the motors with initial values returns true if succesful """
+        await self.set_host_command_mode(0)
+        await self.set_ieg_mode(self.config.RESET_FAULT_VALUE)
+        homed = await self.home()
+
+        if homed: 
+            ## Prepare motor parameters for operation
+            ### MAX POSITION LIMITS FOR BOTH MOTORS | 147 mm
+            if not await self.set_analog_pos_max(61406, 28):
+                return False
+
+            ### MIN POSITION LIMITS FOR BOTH MOTORS || 2 mm
+            if not await self.set_analog_pos_min(25801, 0):
+                return False
+
+            ### Velocity whole number is in 8.8 where decimal is in little endian format,
+            ### meaning smaller bits come first, so 1 rev would be 2^8
+            
+            ### TODO - move convert vel rmp revs and acc to motorapi helpers instead
+            (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(self.config.VEL)
+            if not await self.set_analog_vel_max(velocity_decimal, velocity_whole):
+                return False
+
+            ### UACC32 whole number split in 12.4 format
+            (acc_whole, acc_decimal) = convert_acc_rpm_revs(self.config.ACC)
+            if not await self.set_analog_acc_max(acc_decimal, acc_whole):
+                return False
+
+            ## Analog input channel set to use modbusctrl (2)
+            if not await self.set_analog_input_channel(self.config.ANALOG_MODBUS_CNTRL_VALUE):
+                return False
+
+            response = await self.get_modbuscntrl_val()
+            if not response:
+                return False
+            (position_client_left, position_client_right) = response
+
+            # modbus cntrl 0-10k
+            if not await self.set_analog_modbus_cntrl((position_client_left, position_client_right)):
+                return False
+
+            # # Finally - Ready for operation
+            if not await self.set_host_command_mode(self.config.ANALOG_POSITION_MODE):
+                return False
+
+            # Enable motors
+            if not await self.set_ieg_mode(self.config.ENABLE_MAINTAINED_VALUE):
+                return False
+            
+            return True
