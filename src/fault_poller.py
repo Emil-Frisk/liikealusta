@@ -72,7 +72,7 @@ class FaultPoller():
                 ### TODO - jatka tästä inegroi käyttämään motorapia
 
                 # motor_api.check_and_reset_tids()
-                result = await motor_api.check_fault_stauts()
+                result = await motor_api.check_fault_stauts(log=False)
 
                 if not result:
                     has_faulted = True

@@ -122,7 +122,7 @@ class MotorApi():
                 self.logger.error(f"Unexpected error while {description}: {str(e)}")
                 return False
     
-    async def read(self, address, description, count=2):
+    async def read(self, address, description, count=2, log=True):
         try:
             attempt_left = 0
             attempt_right = 0
@@ -170,7 +170,8 @@ class MotorApi():
                 self.logger.error(f"Failed to {description} on both motors. Left: {success_left}, Right: {success_right}")
                 return False
 
-            self.logger.info(f"Successfully {description} on both motors")
+            if log:
+                self.logger.info(f"Successfully {description} on both motors")
             return (response_left, response_right)
 
         except Exception as e:
@@ -196,14 +197,14 @@ class MotorApi():
         # no matter what you give as a input
         return await self.write(value=IEG_MODE_bitmask_default(65535), address=self.config.IEG_MODE, description="reset faults")
 
-    async def check_fault_stauts(self) -> Optional[bool]:
+    async def check_fault_stauts(self, log=True) -> Optional[bool]:
         """
         Read drive status from both motors.
         Returns true if either one is in fault state
         otherwise false
         or None if it fails
         """
-        return await self.read(address=self.config.OEG_STATUS, description="read driver status",count=1)
+        return await self.read(log=log, address=self.config.OEG_STATUS, description="read driver status",count=1)
     
     async def get_vel(self):
         """
