@@ -32,10 +32,13 @@ class ServerStartupGUI(QWidget):
         helpers.create_server_buttons(self)
         helpers.create_status_label(self)
         helpers.store_current_field_values(self)
+        
+        self.faults_tab.update_fault_message("test")
 
         # Initialize WebSocket client
         self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
         self.websocket_client.message_received.connect(self.handle_client_message)
+
 
     def start_websocket_client(self):
         """Start the WebSocket client."""

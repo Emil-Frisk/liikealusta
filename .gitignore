@@ -21,6 +21,7 @@ __pycache__/
 
 # Temporary zip files
 *.zip
+test.py
 
 # Logs
 *.log
