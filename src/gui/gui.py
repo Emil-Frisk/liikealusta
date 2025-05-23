@@ -10,11 +10,13 @@ import subprocess
 from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe, get_base_path, get_current_path, extract_part
 from helpers import gui_helpers as helpers
 from pathlib import Path
+from services.module_manager import ModuleManager
 
 class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
+        self.module_manager = ModuleManager(logger=self.logger, target_dir=get_current_path().parent)
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
@@ -51,7 +53,6 @@ class ServerStartupGUI(QWidget):
     
     def start_server(self):
         (ip1, ip2, freq, speed, accel)  = helpers.get_field_values(self)
-        a=10
 
         if not ip1 or not ip2:
             QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
@@ -60,24 +61,7 @@ class ServerStartupGUI(QWidget):
         helpers.save_config(self, ip1, ip2, freq, speed, accel)
         
         try:   
-            base_path = get_base_path()
-            if started_from_exe():
-                exe_temp_dir = get_exe_temp_dir()
-                server_path = os.path.join(exe_temp_dir, "src\main.py")
-                self.logger.info(server_path)
-                venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
-            else:
-                server_path = os.path.join(base_path, "main.py")
-                venv_python = find_venv_python()
-            
-            if venv_python:
-                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
-            else: 
-                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
-
-            self.process = subprocess.Popen(cmd)
-
-            self.logger.info(f"Server launched with PID: {self.process.pid}")
+            self.module_manager.launch_module("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", accel, "--vel", speed])
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.start_button.setEnabled(False)
             

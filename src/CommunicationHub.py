@@ -6,15 +6,17 @@ from ModbusClients import ModbusClients
 from services.module_manager import ModuleManager
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
+from utils.utils import get_current_path
 from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
+from pathlib import Path
 
 class CommunicationHub:
     def __init__(self):
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
-        self.module_manager = ModuleManager(self.logger)
+        self.module_manager = ModuleManager(self.logger, target_dir=get_current_path())
         self.config = None
         self.motor_config = None
         self.clients = None

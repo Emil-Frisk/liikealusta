@@ -8,36 +8,35 @@ import time
 import psutil
 
 class ModuleManager:
-    def __init__(self, logger):
+    def __init__(self, logger, target_dir):
         self.processes = {}
         self.logger = logger
         self.entry_point = self.get_entry_point()
+        self.target_dir = target_dir
 
-    def launch_module(self, module_path, args=None):
+    def launch_module(self, module_name, args=None):
         """Launch a Python module and return PID or none if error"""
         try:
-            if args:
-                cmd.extend(args)
-
             if getattr(sys, 'frozen', False):
                 # PyInstaller context - use the executable path
                 base_dir = os.path.dirname(sys.executable)
                 temp_exe_dir = get_exe_temp_dir()
                 cmd =  ["C:\liikealusta\.venv\Scripts\python.exe", temp_exe_dir]
             else:
-                # Normal context - use the script path  
-                src_dir = Path(__file__).parent.parent
-                file_path = os.path.join(src_dir, f"{module_path}.py")
+                file_path = os.path.join(self.target_dir, f"{module_name}.py")
                 venv_python = find_venv_python()
                 
                 ### adding module to the launch options to find and check for its existance later
-                cmd =  [venv_python, file_path, f"entrypoint={module_path}"]
-
+                cmd =  [venv_python, file_path, f"entrypoint={module_name}"]
+                
             ### Prevent process recursion
-            if self.entry_point == module_path:
+            if self.entry_point == module_name:
                 self.logger.error("Recursion spotted not spawning a new process")
                 return 
             
+            if args:
+                cmd.extend(args)
+                
             process = subprocess.Popen(
                 cmd
             )
@@ -45,14 +44,14 @@ class ModuleManager:
             pid = process.pid
             self.processes[pid] = {
                 'process': process,
-                'module': module_path,
+                'module': module_name,
                 'launch-time': time.time()
             }
-            self.logger.info(f"Launched {module_path} with PID: {process.pid}")
+            self.logger.info(f"Launched {module_name} with PID: {process.pid}")
             return pid
             
         except Exception as e:
-            self.logger.error(f"Failed to launch process {module_path}: {e}")
+            self.logger.error(f"Failed to launch process {module_name}: {e}")
             return None
 
     def cleanup_module(self, pid):
@@ -97,4 +96,5 @@ class ModuleManager:
 
     def get_entry_point(self):
         return Path(sys.argv[0]).name.split(".py")[0]
+
 
