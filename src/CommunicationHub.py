@@ -17,7 +17,7 @@ class CommunicationHub:
         self.module_manager = ModuleManager(self.logger)
         self.config = handle_launch_params()
         self.clients = ModbusClients(self.config, self.logger)
-        self.motor_api = MotorApi(config=self.config, logger=self.logger, modbus_clients=self.clients)
+        self.motor_api = None
         self.is_process_done = False
         self.server = None
 
@@ -32,14 +32,14 @@ class CommunicationHub:
                             Left motors ips: {self.config.SERVER_IP_LEFT}, 
                             Right motors ips: {self.config.SERVER_IP_RIGHT}, 
                             shutting down the server """)
-                helpers.close_tasks()
+                helpers.close_tasks(self)
                 os._exit(1)
 
             self.motor_api = MotorApi(logger=self.logger, modbus_clients=self.clients)
 
-            if not await self.motor_api.configure_motor(self.clients, self.config):
+            if not await self.motor_api.initialize_motor():
                 self.clients.cleanup()
-                helpers.close_tasks()
+                helpers.close_tasks(self)
                 os._exit(1)
                 
         except Exception as e:

@@ -187,7 +187,7 @@ class MotorApi():
         Read fault registers from both clients.
         Returns tuple of (left_fault, right_fault), None if read fails
         """
-        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, count=1, description="read fault register")
+        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=1)
         
     async def fault_reset(self, mode = "default"):
         # Makes sure bits can be only valid bits that we want to control
@@ -201,13 +201,13 @@ class MotorApi():
         otherwise false
         or None if it fails
         """
-        return await self.read(count=1, address=self.config.OEG_STATUS, description="read driver status")
+        return await self.read(address=self.config.OEG_STATUS, description="read driver status",count=1)
     
     async def get_vel(self):
         """
         Gets VEL32_HIGH register for both motors
         """
-        return await self.read(description="read velocity register", count=1, address=self.config.VFEEDBACK_VELOCITY)
+        return await self.read(address=self.config.VFEEDBACK_VELOCITY,description="read velocity register", count=1)
    
     async def stop(self):
         """
@@ -232,7 +232,7 @@ class MotorApi():
             start_time = time()
             elapsed_time = 0
             while elapsed_time <= homing_max_duration:
-                response = await self.read(count=1, address=self.config.OEG_STATUS, description="Read OEG_STATUS")
+                response = await self.read(address=self.config.OEG_STATUS, description="Read OEG_STATUS",count=1)
                 if not response:
                     await asyncio.sleep(self.retry_delay)
                     continue

@@ -103,7 +103,7 @@ class FaultPoller():
         except KeyboardInterrupt:
             self.logger.info("Polling stopped by user")
         except Exception as e:
-            self.error(f"Unexpected error in polling loop: {str(e)}")
+            self.logger.error(f"Unexpected error in polling loop: {str(e)}")
         finally:
             clients.cleanup()
             self.logger.info("Fault poller has been closed")
