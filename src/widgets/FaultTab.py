@@ -29,7 +29,7 @@ class FaultTab(QWidget):
         self.layout.addWidget((self.default_fault_msg_lbl))
 
     def toggle_component_visibility(self):
-        self.default_fault_msg_lbl.setVisible( not self.default_fault_msg_lbl.isVisible())
+        self.default_fault_msg_lbl.setVisible(not self.default_fault_msg_lbl.isVisible())
         self.fault_group.toggle_visibility()
 
     def update_fault_message(self, txt):

@@ -25,10 +25,8 @@ class CommunicationHub:
     async def init(self):
         try:
             self.config ,self.motor_config = handle_launch_params(b_motor_config=True)
-            # self.motor_config = motorconfig
-            # self.config = config
             self.clients = ModbusClients(self.config, self.logger)
-            # await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
+            await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
             # Connect to both drivers
             connected = await self.clients.connect()
 

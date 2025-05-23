@@ -122,12 +122,12 @@ class ServerStartupGUI(QWidget):
         elif event == "fault":
             self.logger.warning("Fault event has arrived to GUI!")
             QMessageBox.warning(self, "Error", clientmessage+"\n Check faults tab for more info")
-            self.fault_tab.update_fault_message(clientmessage)
-            self.fault_tab.toggle_component_visibility()
+            self.faults_tab.update_fault_message(clientmessage)
+            self.faults_tab.toggle_component_visibility()
         elif event == "faultcleared":
             self.logger.info("Fault cleared event has reached gui")
             QMessageBox.information(self, "Info", "fault was cleared successfully")
-            self.fault_tab.toggle_component_visibility()
+            self.faults_tab.toggle_component_visibility()
         elif event == "connected":
             self.shutdown_button.setEnabled(True)
             self.start_button.setEnabled(True)
@@ -137,7 +137,7 @@ class ServerStartupGUI(QWidget):
             self.is_server_running = False
             self.start_button.setEnabled(True)
             self.shutdown_button.setEnabled(False)
-            self.fault_tab.hide_fault()
+            self.faults_tab.hide_fault()
     
     def clear_fault(self):
         asyncio.create_task(helpers.clear_fault(self))
