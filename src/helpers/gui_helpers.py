@@ -4,6 +4,8 @@ from PyQt6.QtCore import Qt
 from utils.setup_logging import setup_logging
 from services.WebSocketClientQT import WebsocketClientQT
 from widgets.FaultTab import FaultTab
+from widgets.GeneralTab import GeneralTab
+from widgets.AdvancedTab import AdvancedTab
 import os
 import json
 import subprocess
@@ -75,21 +77,15 @@ def load_config(self):
 def store_current_field_values(self):
     # store initial values of the input fields
         self.stored_values = {
-            'ip_input1': self.ip_input1.text(),
-            'ip_input2': self.ip_input2.text(),
-            'speed_input': self.speed_input.value(),
-            'accel_input': self.accel_input.value(),
-            'freq_input': self.freq_input.value()
+            'ip_input1': self.advanced_tab.get_left_motor(),
+            'ip_input2': self.advanced_tab.get_right_motor(),
+            'speed_input': self.general_tab.get_velocity(),
+            'accel_input': self.general_tab.get_acceleration(),
+            'freq_input': self.advanced_tab.get_freq()
         }
        
 def update_stored_values(self):
-    self.stored_values = {
-            'ip_input1': self.ip_input1.text(),
-            'ip_input2': self.ip_input2.text(),
-            'speed_input': self.speed_input.value(),
-            'accel_input': self.accel_input.value(),
-            'freq_input': self.freq_input.value()
-        }
+    store_current_field_values()
     
 def update_values(self):
     """Update only the values that have changed."""
@@ -137,43 +133,12 @@ async def clear_fault(self):
     
 def create_general_tab(self):
     # General Tab
-    self.general_tab = QWidget()
-    self.general_layout = QFormLayout()
-
-    # Speed Field
-    self.speed_input = QSpinBox()
-    self.speed_input.setRange(1, 500)
-    self.general_layout.addRow("Velocity (RPM):", self.speed_input)
-
-    # Acceleration Field
-    self.accel_input = QSpinBox()
-    self.accel_input.setRange(1, 1000)
-    self.general_layout.addRow("Acceleration (RPM):", self.accel_input)
-
-    # Add general layout to general tab
-    self.general_tab.setLayout(self.general_layout)
+    self.general_tab = GeneralTab()
     self.tabs.addTab(self.general_tab, "General")
     
 def create_advanced_tab(self):
    # Advanced Tab
-    self.advanced_tab = QWidget()
-    self.advanced_layout = QFormLayout()
-
-    # Update Frequency Field (1-70 Hz)
-    self.freq_input = QSpinBox()
-    self.freq_input.setRange(1, 70)
-    self.advanced_layout.addRow("Update Frequency (Hz):", self.freq_input)
-
-    # IP Field for Servo Arm 1
-    self.ip_input1 = QLineEdit()
-    self.advanced_layout.addRow("Servo Arm 1 IP:", self.ip_input1)
-
-    # IP Field for Servo Arm 2
-    self.ip_input2 = QLineEdit()
-    self.advanced_layout.addRow("Servo Arm Servo 2 IP:", self.ip_input2)
-
-    # Add advanced layout to advanced tab
-    self.advanced_tab.setLayout(self.advanced_layout)
+    self.advanced_tab = AdvancedTab()
     self.tabs.addTab(self.advanced_tab, "Advanced")
     
 def create_faults_tab(self):
@@ -196,11 +161,11 @@ def create_status_label(self):
 
     # store initial values of the input fields
     self.stored_values = {
-        'ip_input1': self.ip_input1.text(),
-        'ip_input2': self.ip_input2.text(),
-        'speed_input': self.speed_input.value(),
-        'accel_input': self.accel_input.value(),
-        'freq_input': self.freq_input.value()
+        'ip_input1': self.advanced_tab.get_left_motor(),
+        'ip_input2': self.advanced_tab.get_right_motor(),
+        'speed_input': self.general_tab.get_velocity(),
+        'accel_input': self.general_tab.get_acceleration(),
+        'freq_input': self.advanced_tab.get_freq()
     }
 
 def set_styles(self):
@@ -240,15 +205,6 @@ def get_base_path():
         return str(Path(sys.executable).resolve().parent)
     else:
         return Path(os.path.abspath(__file__)).parent
-    
-def update_stored_values(self):
-    self.stored_values = {
-            'ip_input1': self.ip_input1.text(),
-            'ip_input2': self.ip_input2.text(),
-            'speed_input': self.speed_input.value(),
-            'accel_input': self.accel_input.value(),
-            'freq_input': self.freq_input.value()
-        }
 
 def handle_button_click(self):
     if not self.is_server_running:
