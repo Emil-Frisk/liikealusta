@@ -3,7 +3,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from utils.setup_logging import setup_logging
 from services.WebSocketClientQT import WebsocketClientQT
-from widgets.widgets import LabelButtonGroup
+from widgets.FaultTab import FaultTab
 import os
 import json
 import subprocess
@@ -178,23 +178,20 @@ def create_advanced_tab(self):
     
 def create_faults_tab(self):
 # Fauls tab
-    self.faults_tab = QWidget()
-    self.faults_layout = QFormLayout()
-
-    # Message Display Label
-    self.default_fault_msg_lbl = QLabel("Servo motors have no faults currently")
-    self.default_fault_msg_lbl.setWordWrap(True)
-    self.default_fault_msg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    self.faults_layout.addWidget(self.default_fault_msg_lbl)
-    self.faults_layout.setAlignment(self.default_fault_msg_lbl, Qt.AlignmentFlag.AlignCenter)
-
-    self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=False)
-    self.fault_group.connect_button(self.clear_fault)
-    self.faults_layout.addWidget(self.fault_group)
-
-    # Add faults layout to advanced tab
-    self.faults_tab.setLayout(self.faults_layout)
+    self.faults_tab = FaultTab(styles=self.styles, clear_fault_cb=self.clear_fault)
     self.tabs.addTab(self.faults_tab, "Faults")
+
+def toggle_faults_tab_component_visibility(self):
+    print(f"Before toggle: default_msg visible = {self.default_fault_msg_lbl.isVisible()}")
+    print(f"Parent tab visible = {self.faults_tab.isVisible()}")
+    print(f"Widget parent = {self.default_fault_msg_lbl.parent()}")
+    
+    self.default_fault_msg_lbl.setVisible(not self.default_fault_msg_lbl.isVisible())
+    
+    print(f"After setVisible: default_msg visible = {self.default_fault_msg_lbl.isVisible()}")
+    print(f"After setVisible: actual visibility = {not self.default_fault_msg_lbl.isHidden()}")
+    
+    self.fault_group.toggle_visibility()
 
 def create_status_label(self):
     self.message_label = QLabel("WebSocket Messages: Not connected")
