@@ -9,7 +9,7 @@ from pathlib import Path
 from utils.utils import get_exe_temp_dir,started_from_exe, get_current_path
 from widgets.widgets import LabelButtonGroup
 from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QVBoxLayout
-
+from services.WebSocketClientQT import WebsocketClientQT
 
 def get_gui_path():
     return get_current_path().parent / "gui"
@@ -200,7 +200,6 @@ def create_status_label(self):
     self.message_label.setWordWrap(True)
     self.main_layout.addWidget(self.message_label)
     
-    create_server_buttons(self)
     set_styles(self)
     
     self.setLayout(self.main_layout)
