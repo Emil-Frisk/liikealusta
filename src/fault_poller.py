@@ -43,9 +43,9 @@ class FaultPoller():
         config = handle_launch_params()
         motor_config = MotorConfig()
         clients = ModbusClients(config=config, logger=self.logger)
-        motor_api = MotorApi(config=config, logger=self.logger, modbus_clients=clients)
+        motor_api = MotorApi(logger=self.logger, modbus_clients=clients)
 
-        connected = await motor_api.connect()
+        connected = await clients.connect()
         if (not connected):
             return
         
