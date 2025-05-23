@@ -123,7 +123,7 @@ def get_field_values(self):
     return (ip1, ip2, freq, speed, accel)
 
 def save_config(self, ip1, ip2, freq, speed, accel):
-    with open(self.self.CONFIG_FILE, "w") as f:
+    with open(self.CONFIG_FILE, "w") as f:
         json.dump({
             "servo_ip_1": ip1,
             "servo_ip_2": ip2,
@@ -224,8 +224,8 @@ def set_styles(self):
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
         else:
-            base_path = Path(os.path.abspath(__file__)).parent.parent
-            styles_path = os.path.join(base_path, "gui", "styles.json")
+            styles_path = self.styles_path
+
         # Load the JSON from the file
         with open(styles_path, "r") as f:
             data = json.load(f)
