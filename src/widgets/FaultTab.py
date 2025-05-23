@@ -2,13 +2,14 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt
 from widgets.widgets import LabelButtonGroup
 
-
 class FaultTab(QWidget):
     def __init__(self, styles=None, clear_fault_cb=None):
-        super.__init__()
+        super().__init__()
 
         self.styles = styles
         self.clear_fault_cb=clear_fault_cb
+
+        self.init_ui()
 
     def init_ui(self):
         self.layout = QFormLayout()
@@ -19,7 +20,7 @@ class FaultTab(QWidget):
         self.default_fault_msg_lbl.setWordWrap(True)
         self.default_fault_msg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=False)
+        self.fault_group = LabelButtonGroup(styles=self.styles, label_text="msg", button_text="Clear Fault", visible=True)
 
         if self.clear_fault_cb:
             self.fault_group.connect_button(self.clear_fault_cb)

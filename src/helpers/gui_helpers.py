@@ -181,18 +181,6 @@ def create_faults_tab(self):
     self.faults_tab = FaultTab(styles=self.styles, clear_fault_cb=self.clear_fault)
     self.tabs.addTab(self.faults_tab, "Faults")
 
-def toggle_faults_tab_component_visibility(self):
-    print(f"Before toggle: default_msg visible = {self.default_fault_msg_lbl.isVisible()}")
-    print(f"Parent tab visible = {self.faults_tab.isVisible()}")
-    print(f"Widget parent = {self.default_fault_msg_lbl.parent()}")
-    
-    self.default_fault_msg_lbl.setVisible(not self.default_fault_msg_lbl.isVisible())
-    
-    print(f"After setVisible: default_msg visible = {self.default_fault_msg_lbl.isVisible()}")
-    print(f"After setVisible: actual visibility = {not self.default_fault_msg_lbl.isHidden()}")
-    
-    self.fault_group.toggle_visibility()
-
 def create_status_label(self):
     self.message_label = QLabel("WebSocket Messages: Not connected")
     self.message_label.setWordWrap(True)

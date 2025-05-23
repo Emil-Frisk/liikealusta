@@ -32,7 +32,8 @@ class ServerStartupGUI(QWidget):
         helpers.create_server_buttons(self)
         helpers.create_status_label(self)
         helpers.store_current_field_values(self)
-        helpers.toggle_faults_tab_component_visibility(self)
+        
+        self.faults_tab.update_fault_message("hehe")
 
         # Initialize WebSocket client
         self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
