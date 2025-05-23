@@ -4,7 +4,6 @@ import os
 import websockets
 from ModbusClients import ModbusClients
 from services.module_manager import ModuleManager
-from services.motor_service import configure_motor
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
 from services.MotorApi import MotorApi
