@@ -153,6 +153,8 @@ class ProcessManager:
                     return False
                 self.logger.info(f"Existing pid found with a process name: {process_name} pid: {pid}")
                 return pid
+            else:
+                return False
             
         except subprocess.CalledProcessesError as e:
             self.logger.error(f"Error running PowerShell command: {e.stderr}")
