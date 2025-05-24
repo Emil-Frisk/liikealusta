@@ -16,7 +16,7 @@ class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
-        self.module_manager = ProcessManager(logger=self.logger, target_dir=get_current_path().parent)
+        self.process_manager = ProcessManager(logger=self.logger, target_dir=get_current_path().parent)
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
@@ -60,8 +60,16 @@ class ServerStartupGUI(QWidget):
 
         helpers.save_config(self, ip1, ip2, freq, speed, accel)
         
-        try:   
-            self.module_manager.launch_module("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", accel, "--vel", speed])
+        try:
+            ### Make sure the process main.py is not already running for some reason
+            result = self.process_manager.exterminate_lingering_process("main")
+            if not result:
+                self.logger.error(f"Unable to kill lingering process with name: main. Not launching a new process...")
+                return
+            elif result:
+                self.logger.info(f"No lingering process remaining.")
+            
+            self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", accel, "--vel", speed])
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.start_button.setEnabled(False)
             

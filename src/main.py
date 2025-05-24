@@ -6,8 +6,6 @@ async def main():
         hub = CommunicationHub()
         await hub.init()
 
-        a = 10
-
         await hub.start_server()
         while True:
             await asyncio.sleep(3600)

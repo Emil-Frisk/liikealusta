@@ -14,7 +14,7 @@ class ProcessManager:
         self.entry_point = self.get_entry_point()
         self.target_dir = target_dir
 
-    def launch_module(self, file_name, args=None):
+    def launch_process(self, file_name, args=None):
         """Launch a Python file_name and return PID or none if error"""
         try:
             ### Support filenames with .py and w/o it
@@ -59,7 +59,7 @@ class ProcessManager:
             self.logger.error(f"Failed to launch process {file_name}: {e}")
             return None
 
-    def cleanup_module(self, pid):
+    def cleanup_process(self, pid):
         """Cleanup a specific file_name by PID"""
         if pid not in self.processes:
             self.logger.error(f"No process found with PID: {pid}")
@@ -72,7 +72,6 @@ class ProcessManager:
             # Check if the process is still running and is a Python process
             ps_process = psutil.Process(pid)
             process_name = ps_process.name().lower()
-
             self.logger.info((f"process_name {process_name}"))
 
             if 'python' not in process_name and not process_name.endswith('.exe'):
@@ -97,9 +96,85 @@ class ProcessManager:
     def cleanup_all(self):
         """Cleanup all running processes"""
         for pid in list(self.processes.keys()):
-            self.cleanup_module(pid)
+            self.cleanup_process(pid)
 
     def get_entry_point(self):
         return Path(sys.argv[0]).name.split(".py")[0]
 
+
+    def exterminate_lingering_process(self, process_name):
+        pid = self.get_process_info(process_name)
+        if not pid:
+            return True
+        
+        result = self.kill_process(pid)
+        
+        ### lingering process found but not killed 
+        if pid and not result:
+            return False
+        return True
+
+    def kill_process(self, pid):
+        try:
+            # Check if the process is still running and is a Python process
+            ps_process = psutil.Process(pid)
+            process_name = ps_process.name().lower()
+            self.logger.info((f"process_name {process_name}"))
+
+            if 'python' not in process_name and not process_name.endswith('.exe'):
+                self.logger.error(f"Process with PID {pid} is not a Python process: {process_name}")
+                return False
+
+            ps_process.kill()
+            self.logger.warning(f"Force killed process with PID {ps_process.pid}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Something went wrong with trying to kill a process: {e}")
+            return False
+
+    def get_process_info(self, process_name):
+        ps_command= f"""
+            Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" |
+            Where-Object {{ $_.CommandLine -like "*entrypoint={process_name}*" }} |
+            Select-Object ProcessId, CommandLine
+            """
+
+        try:
+            result = subprocess.run(
+                ["powershell.exe", "-Command", ps_command],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            if result.stdout:
+                pid = self.extract_pid_from_commandline(result.stdout)
+                if not pid:
+                    return False
+                self.logger.info(f"Existing pid found with a process name: {process_name} pid: {pid}")
+                return pid
+            
+        except subprocess.CalledProcessesError as e:
+            self.logger.error(f"Error running PowerShell command: {e.stderr}")
+            return False
+
+    def extract_pid_from_commandline(self, result):
+        try:
+            trimmed = result.replace(" ", "")
+            results = trimmed.split("\n")
+            command_lines = []
+            for r in results:
+                if len(r.split("\\")) == 1:
+                    continue
+                else:
+                    command_lines.append(r)
+            
+            temp = command_lines[0]
+            self.logger.info(f"Found {len(command_lines)} command lines")
+            return int(temp.split(":\\")[0][:-1])
+        except ValueError:
+            self.logger.error("Unable to extract pid from a found commandline")
+            return False
+        except Exception as e:
+            self.logger.error("Unexpected error while extracting pid from a commandline string")
 
