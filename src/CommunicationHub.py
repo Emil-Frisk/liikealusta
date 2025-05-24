@@ -3,7 +3,7 @@ import atexit
 import os
 import websockets
 from ModbusClients import ModbusClients
-from services.module_manager import ModuleManager
+from services.process_manager import ProcessManager
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
 from utils.utils import get_current_path
@@ -16,7 +16,7 @@ class CommunicationHub:
     def __init__(self):
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
-        self.module_manager = ModuleManager(self.logger, target_dir=get_current_path())
+        self.module_manager = ProcessManager(self.logger, target_dir=get_current_path())
         self.config = None
         self.motor_config = None
         self.clients = None

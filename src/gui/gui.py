@@ -10,13 +10,13 @@ import subprocess
 from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe, get_base_path, get_current_path, extract_part
 from helpers import gui_helpers as helpers
 from pathlib import Path
-from services.module_manager import ModuleManager
+from services.process_manager import ProcessManager
 
 class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
-        self.module_manager = ModuleManager(logger=self.logger, target_dir=get_current_path().parent)
+        self.module_manager = ProcessManager(logger=self.logger, target_dir=get_current_path().parent)
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
