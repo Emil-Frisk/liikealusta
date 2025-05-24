@@ -33,16 +33,16 @@ def get_exe_temp_dir():
         return getattr(sys, "_MEIPASS")
 
 def extract_part(part, message):
-        # message.split(part)[1].split("|")[0]
-        # Escape the part parameter to handle special regex characters
-        escaped_part = re.escape(part)
-        # Construct the regex pattern dynamically
-        pattern = rf'{escaped_part}([^|]*)\|'
-        match = re.search(pattern, message)
-        if match:
-            return match.group(1)
-        else:
-            return None
+    start_idx = message.find(part)
+    if start_idx == -1:
+        return False
+    
+    start_idx += len(part)
+    pipe_idx = message.find("|", start_idx)
+    if pipe_idx == -1:
+        return False
+    
+    return  message[start_idx:pipe_idx]
 
 def is_nth_bit_on(n, number):
             mask = 1 << n
