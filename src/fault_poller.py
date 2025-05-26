@@ -69,7 +69,7 @@ class FaultPoller():
                 await asyncio.sleep(1)
 
                 result = await motor_api.check_fault_stauts(log=False)
-                get_register_values(result)
+                left_vals, right_vals = get_register_values(result)
                 left_response, right_response = response
 
                 if not result: ### something went wrong
