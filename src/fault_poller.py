@@ -75,9 +75,7 @@ class FaultPoller():
                     continue
 
                 left_vals, right_vals = get_register_values(result)
-                left_response, right_response = response
-
-                l_has_faulted, r_has_faulted = has_faulted()
+                l_has_faulted, r_has_faulted = has_faulted((left_vals[0], right_vals[0]))
 
                 if (l_has_faulted or r_has_faulted):
                     response = await motor_api.get_recent_fault()

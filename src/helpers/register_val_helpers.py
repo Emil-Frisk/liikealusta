@@ -6,7 +6,7 @@ def get_register_values(data):
         left_vals.append(register)
 
     for register in right_data.registers:
-        right_data.append(register)
+        right_vals.append(register)
         
     return (left_vals, right_vals)
     
