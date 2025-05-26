@@ -118,14 +118,9 @@ class CommunicationHub:
                         if result:
                             await actions.demo_control(pitch, roll, self)
                     elif action == "identify":
-                        if identity:
-                            client_info["identity"] = identity.lower()
-                            self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
-                        else:
-                            await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
+                        actions.identify()
                     elif action == "shutdown":
                         result = await self.shutdown_server(wsclient)
-
                     elif action == "stop":
                         result = await actions.stop_motors(self)
                     elif action == "setvalues":

@@ -4,6 +4,13 @@ from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_r
 from helpers import communication_hub_helpers as helpers
 import math
 
+async def identify(self, identity, wsclient):
+    if identity:
+        client_info["identity"] = identity.lower()
+        self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
+    else:
+        await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
+
 async def set_values(self, pitch, roll, wsclient):
     try:
         result = helpers.validate_pitch_and_roll_values(pitch, roll)
