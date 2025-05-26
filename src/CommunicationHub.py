@@ -114,9 +114,7 @@ class CommunicationHub:
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
                     if action == "write":
-                        result = helpers.validate_pitch_and_roll_values(pitch,roll)
-                        if result:
-                            await actions.demo_control(pitch, roll, self)
+                        await actions.write()
                     elif action == "identify":
                         actions.identify()
                     elif action == "shutdown":
@@ -124,7 +122,7 @@ class CommunicationHub:
                     elif action == "stop":
                         result = await actions.stop_motors(self)
                     elif action == "setvalues":
-                        actions.set_values(self, pitch, roll)
+                        await actions.set_values(self, pitch, roll)
                     elif action == "updatevalues":
                         result = await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
