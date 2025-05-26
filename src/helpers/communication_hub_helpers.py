@@ -14,11 +14,10 @@ def close_tasks(self):
 
 def validate_pitch_and_roll_values(pitch,roll):
     try:
-        # TODO validate values here
-        pitch = float(pitch)
-        roll = float(roll)
+        pitch = abs(float(pitch))
+        roll = abs(float(roll))
         return True
-    except:
+    except ValueError:
         raise
     
 def validate_message(self,receiver, message):

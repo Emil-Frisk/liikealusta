@@ -129,25 +129,11 @@ class CommunicationHub:
                     elif action == "stop":
                         result = await actions.stop_motors(self)
                     elif action == "setvalues":
-                        try:
-                            result = helpers.validate_pitch_and_roll_values(pitch, roll)
-                            if result:
-                                actions.rotate(pitch,roll)
-                        except ValueError as e:
-                            self.logger.error(f"ValueError: {e}")
-                            print(f"ValueError: {e}")
-                        except Exception as e:
-                            self.logger.error(f"Error while setting values: {e}")
-                            print(f"Error while setting values: {e}")
-
+                        actions.set_values(self, pitch, roll)
                     elif action == "updatevalues":
                         result = await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
-                        (success,receiver, msg) = helpers.validate_message(self,receiver,message)
-                        if success:
-                            await receiver.send(msg)
-                        else:
-                            await wsclient.send(msg)
+                        await actions.message()
                     elif action == "clearfault":
                         await actions.clear_fault(self, wsclient=wsclient)
            
