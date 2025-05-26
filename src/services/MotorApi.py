@@ -5,7 +5,7 @@ from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
 import asyncio
 from time import sleep, time
 from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs
-from helpers.motor_api_helper import calculate_motor_modbuscntrl_vals
+from helpers.motor_api_helper import calculate_motor_modbuscntrl_vals, get_register_values
 import math
 
 class MotorApi():
@@ -177,7 +177,13 @@ class MotorApi():
 
             if log:
                 self.logger.info(f"Successfully {description} on both motors")
-            return (response_left, response_right)
+            
+            
+            left_vals, right_vals = get_register_values((response_left, response_right))
+            if count==1:
+                return (left_vals[0], right_vals[0])
+            else:
+                return (left_vals, right_vals)
 
         except Exception as e:
             self.logger.error(f"Unexpected error while reading motor REVS: {str(e)}")
@@ -205,9 +211,8 @@ class MotorApi():
     async def check_fault_stauts(self, log=True) -> Optional[bool]:
         """
         Read drive status from both motors.
-        Returns true if either one is in fault state
-        otherwise false
-        or None if it fails
+        Returns (left, right) values as a tuple if success
+        or False if it fails
         """
         return await self.read(log=log, address=self.config.OEG_STATUS, description="read driver status",count=1)
     
