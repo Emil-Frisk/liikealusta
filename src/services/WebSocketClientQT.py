@@ -2,11 +2,14 @@ import asyncio
 import websockets
 from websockets.exceptions import ConnectionClosed
 from PyQt6.QtCore import pyqtSignal, QObject
+from settings.config import Config
+
+config = Config()
+
 
 class WebsocketClientQT(QObject):
     message_received = pyqtSignal(str)
-    
-    def __init__(self, logger, identity="unknown", uri="ws://localhost:6969", on_message=None, reconnect_interval = 2.5, max_reconnect_attempt=10):
+    def __init__(self, logger, identity="unknown", uri=f"ws://localhost:{config.WEBSOCKET_SRV_PORT}", on_message=None, reconnect_interval = 2.5, max_reconnect_attempt=10):
         super().__init__()
         self.uri = uri
         self.socket = None
