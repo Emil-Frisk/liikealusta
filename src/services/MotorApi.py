@@ -123,6 +123,8 @@ class MotorApi():
                 return False
     
     async def read(self, address, description, count=2, log=True):
+        """Reads the specified register addresses values and returns them
+        as a tuple (left, right) or False if the operation was not successful"""
         try:
             attempt_left = 0
             attempt_right = 0
@@ -143,7 +145,8 @@ class MotorApi():
                         self.logger.error(f"Failed to {description} on left motor. Attempt {attempt_left}/{max_retries}")
                     else:
                         success_left = True
-                        self.logger.info(f"Successfully {description} on left motor")
+                        if log:
+                            self.logger.info(f"Successfully {description} on left motor")
 
                 # Read from right motor if not yet successful
                 if not success_right:
@@ -157,7 +160,8 @@ class MotorApi():
                         self.logger.error(f"Failed to {description} on right motor. Attempt {attempt_right}/{max_retries}")
                     else:
                         success_right = True
-                        self.logger.info(f"Successfully {description} on right motor")
+                        if log:
+                            self.logger.info(f"Successfully {description} on right motor")
 
                 # Break if both are successful
                 if success_left and success_right:

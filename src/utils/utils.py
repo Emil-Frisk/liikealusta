@@ -12,8 +12,12 @@ ALTERNATE_MODE_BIT = 7
 CONTINIOUS_CURRENT_BIT = 1
 BOARD_TEMPERATURE_BIT = 7
 ACTUATOR_TEMPERATURE = 8
-UVEL32_RESOLUTION = 1 / (2**24 - 1)
-UACC32_RESOLUTION = 1 / (2**20 - 1)
+
+UVEL32_RESOLUTION = 1 / (2**24)
+UACC32_RESOLUTION = 1 / (2**20)
+
+UCUR16_RESOLUTION = 1 / (2**7)
+UCUR16_LOW_MAX = 2**7
 
 def started_from_exe():
     return getattr(sys, 'frozen', False)
@@ -190,15 +194,10 @@ def get_vel32_revs(high, low):
        combined_revs = vel_whole_num_revs+decimal_revs
        return combined_revs
 
-
-test1 = get_vel32_revs(3000,65535)
-test2 = get_vel32_revs(65535,65535)
-test3 = get_vel32_revs(128,2000)
-test4 = get_vel32_revs(31000,20000)
-
-a = 10
-
 def combine_8_8bit(whole, decimal):
+       """Takes in the whole number part(high)
+        And takes in the decimal part(low)
+        and combines them together in the form 8.8"""
        whole = whole & 0xFF
        decimal = decimal & 0xFF
 
@@ -210,6 +209,9 @@ def combine_8_8bit(whole, decimal):
        return sixteen_bit
 
 def combine_12_4bit(whole, decimal):
+       """Takes in the whole number part(high)
+        And takes in the decimal part(low)
+        and combines them together in the form 12.4"""
        whole = whole & 0xFFF
        decimal = decimal & 0xF
 
@@ -222,17 +224,12 @@ def combine_12_4bit(whole, decimal):
 
 def convert_ucur16(num):
        """Takes in a number in 9.7 format and returns it in x.y format"""
-       low_max = (2**7) - 1
        num_low = num & 0x7F
        num_high = num >> 7      
        ## normalize num_low between 0-1
-       ## make sure decimal is always below 1
-       decimal = num_low / low_max
-       if decimal >= 1:
-              decimal = 0.99
+       decimal = num_low / UCUR16_LOW_MAX
 
        return num_high + decimal
-
 
 def convert_vel_rpm_revs(rpm):
         """

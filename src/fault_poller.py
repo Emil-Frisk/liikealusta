@@ -14,6 +14,7 @@ class FaultPoller():
     def __init__(self):
         self.critical_faults = {
             1: "Current in the actuator was too large.",
+            2: "Continous current in the actuator was too large",
             128: "Board temperature is too high",
             256: "Servo motor has reached too high temperature"
         }
