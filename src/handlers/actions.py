@@ -58,11 +58,11 @@ async def clear_fault(self, wsclient):
         self.logger.error("Error clearing motors faults!")
         await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
 
-async def message(self, wsclient, message):
+async def message(self, receiver, wsclient, message):
     try:
-        (success,receiver, msg) = helpers.validate_message(self,receiver,message)
+        (success, receiver_client, msg) = helpers.validate_message(self,receiver,message)
         if success:
-            await receiver.send(msg)
+            await receiver_client.send(msg)
         else:
             await wsclient.send(msg)
     except Exception as e:

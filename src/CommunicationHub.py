@@ -49,7 +49,6 @@ class CommunicationHub:
                 self.clients.cleanup()
                 helpers.close_tasks(self)
                 os._exit(1)
-            a = 10
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
 
@@ -108,9 +107,6 @@ class CommunicationHub:
                 if not action:
                     await wsclient.send("event=error|message=No action given, example action=<action>|")
                 else:
-                    if receiver:
-                        self.logger.info(f"Receiver: {receiver}")
-                        receiver = receiver.lower()
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
                     if action == "write":
@@ -124,9 +120,9 @@ class CommunicationHub:
                     elif action == "setvalues":
                         await actions.set_values(self, pitch, roll, wsclient)
                     elif action == "updatevalues":
-                        result = await actions.update_input_values(self,acceleration,velocity)
+                        await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
-                        await actions.message()
+                        await actions.message(self, receiver, wsclient, message)
                     elif action == "clearfault":
                         await actions.clear_fault(self, wsclient=wsclient)
                     elif action == "absolutefault":

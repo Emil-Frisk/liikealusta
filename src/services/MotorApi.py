@@ -474,7 +474,6 @@ class MotorApi():
             ### Velocity whole number is in 8.8 where decimal is in little endian format,
             ### meaning smaller bits come first, so 1 rev would be 2^8
             
-            ### TODO - move convert vel rmp revs and acc to motorapi helpers instead
             (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(self.config.VEL)
             if not await self.set_analog_vel_max(velocity_decimal, velocity_whole):
                 return False
