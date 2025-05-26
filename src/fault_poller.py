@@ -46,22 +46,22 @@ class FaultPoller():
             return
         
         motor_api = MotorApi(logger=self.logger, modbus_clients=clients)
-        #wsclient = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
-        # await wsclient.connect()
+        wsclient = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
+        await wsclient.connect()
 
         self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
         try:
             counter = 0
             while(True):
                 counter += 1
-                # await asyncio.sleep(config.POLLING_TIME_INTERVAL)
+                await asyncio.sleep(config.POLLING_TIME_INTERVAL)
                 if self.has_faulted:
                     await asyncio.sleep(5)
                     continue
 
                 ### simulated critical fault situation
                 if counter == 8:
-                    #await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[256]}|receiver=GUI|")
+                    await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[256]}|receiver=GUI|")
                     self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[256]}")
                     self.has_faulted = True
                     continue
@@ -87,22 +87,23 @@ class FaultPoller():
                     ### 
                     left_vals, right_vals = get_register_values(result)
                     left_val, right_val = left_vals[0], right_vals[0]
+                    vals = (left_vals[0], right_vals[0])
 
                     ### check if the fault is absolute
-                    if is_absolute_fault((left_val, right_val)):
-                        #await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
+                    if is_absolute_fault(vals):
+                        await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
                         self.logger.error(f"ABSOLUTE_FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}")
                         self.logger.error(f"Stopping polling...")
                         self.has_faulted = True
                         continue
 
                     # Check that its not a critical fault
-                    if is_critical_fault(response):
+                    if is_critical_fault(vals):
                         if l_has_faulted:
-                            #await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[left_val]}")
                         else:
-                            #await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[right_val]}")
                         self.has_faulted = True
                     else:
@@ -110,6 +111,7 @@ class FaultPoller():
                         await motor_api.set_ieg_mode(motor_config.RESET_FAULT_VALUE)
                         await motor_api.set_ieg_mode(0)
                         self.logger.info("Fault cleared")
+
         except KeyboardInterrupt:
             self.logger.info("Polling stopped by user")
         except Exception as e:
