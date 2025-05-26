@@ -115,13 +115,13 @@ class CommunicationHub:
                     if action == "write":
                         await actions.write(self, pitch, roll, wsclient)
                     elif action == "identify":
-                        await actions.identify()
+                        await actions.identify(self, identity, wsclient)
                     elif action == "shutdown":
                         result = await self.shutdown_server(wsclient)
                     elif action == "stop":
                         result = await actions.stop_motors(self)
                     elif action == "setvalues":
-                        await actions.set_values(self, pitch, roll)
+                        await actions.set_values(self, pitch, roll, wsclient)
                     elif action == "updatevalues":
                         result = await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":

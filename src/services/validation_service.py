@@ -1,8 +1,6 @@
 def validate_update_values(values):
-    acc = int(values["acceleration"])
-    vel = int(values["velocity"])
-    if (vel < 0) or acc < 0:
-        return False
+    acc = abs(int(values["acceleration"]))
+    vel = abs(int(values["velocity"]))
     return True
 
 def validate_pitch_and_roll_values(pitch,roll):
