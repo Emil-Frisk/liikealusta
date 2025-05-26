@@ -4,10 +4,16 @@ from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_r
 from helpers import communication_hub_helpers as helpers
 import math
 
-async def write(self, pitch, roll):
-    result = helpers.validate_pitch_and_roll_values(pitch,roll)
-    if result:
-        self.motor_api.rotate(pitch, roll)
+async def write(self, pitch, roll, wsclient):
+    try:
+        result = helpers.validate_pitch_and_roll_values(pitch,roll)
+        if result:
+            await self.motor_api.rotate(pitch, roll)
+    except ValueError:
+        self.logger.error(f"Something went wrong in validating pitch and roll values: {e}")
+        await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
+    except Exception:
+        self.logger.error(f"Something went wrong in validating pitch and roll values: {e}")
         
 async def identify(self, identity, wsclient):
     try:

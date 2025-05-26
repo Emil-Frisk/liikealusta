@@ -110,13 +110,12 @@ class CommunicationHub:
                     if receiver:
                         self.logger.info(f"Receiver: {receiver}")
                         receiver = receiver.lower()
-
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
                     if action == "write":
-                        await actions.write()
+                        await actions.write(self, pitch, roll, wsclient)
                     elif action == "identify":
-                        actions.identify()
+                        await actions.identify()
                     elif action == "shutdown":
                         result = await self.shutdown_server(wsclient)
                     elif action == "stop":
