@@ -154,9 +154,12 @@ async def update_input_values(self,acceleration,velocity):
         self.logger.error(f"Error while updating motors values: {e}")
         return {"status": "error", "message": "Unexpected error while trying to update motors values"}
     
-async def absolute_fault(self, wsclient):
+async def absolute_fault(self):
     try:
-        await wsclient.send()
+        ### inform all processes that absolute fault has occured -> cleanup
+        for client in self.wsclients:
+            client.send("event=absolutefault|message=Motors have gotten absolute fault, something very wrong has happened, they can't be operated with any longer they need repair!|")
+            await self.shutdown_server()
     except Exception as e:
         self.logger.error(f"Something went wrong in absolute fault action: {e}")
         

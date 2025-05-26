@@ -126,7 +126,7 @@ class CommunicationHub:
                     elif action == "clearfault":
                         await actions.clear_fault(self, wsclient=wsclient)
                     elif action == "absolutefault":
-                        await actions.absolute_fault(self, wsclient)
+                        await actions.absolute_fault(self)
                     else:
                         await wsclient.send("event=error|message=no action found here is all the actions|")
            
