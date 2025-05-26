@@ -1,0 +1,11 @@
+# fault_codes.py
+CRITICAL_FAULTS = {
+    1: "Current in the actuator was too large.",
+    2: "Continuous current in the actuator was too large",
+    128: "Board temperature is too high",
+    256: "Servo motor has reached too high temperature"
+}
+
+ABSOLUTE_FAULTS = {
+    2048: "ABSOLUTE FAULT: Something is seriously wrong with the DC bus wirings DO NOT use this system anymore it needs repair"
+}

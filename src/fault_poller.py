@@ -7,17 +7,14 @@ from services.MotorApi import MotorApi
 from utils.launch_params import handle_launch_params
 import asyncio
 from utils.utils import is_fault_critical, extract_part
+from helpers.register_val_helpers import get_register_values
+from helpers.fault_helpers import has_faulted, is_fault_critical, is_absolute_fault
+from constants.fault_codes import ABSOLUTE_FAULTS, CRITICAL_FAULTS
 from services.websocket_client import WebsocketClient
 from settings.motors_config import MotorConfig
 
 class FaultPoller():
     def __init__(self):
-        self.critical_faults = {
-            1: "Current in the actuator was too large.",
-            2: "Continous current in the actuator was too large",
-            128: "Board temperature is too high",
-            256: "Servo motor has reached too high temperature"
-        }
         self.has_faulted = False
 
     def on_message(self, msg):
@@ -47,12 +44,12 @@ class FaultPoller():
         connected = await clients.connect()
         if (not connected):
             return
+        
         motor_api = MotorApi(logger=self.logger, modbus_clients=clients)
-        # await wsclient.connect()
-        self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
         wsclient = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
         await wsclient.connect()
 
+        self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
         try:
             counter = 0
             while(True):
@@ -70,35 +67,48 @@ class FaultPoller():
                     continue
 
                 await asyncio.sleep(1)
-                ### TODO - jatka tästä inegroi käyttämään motorapia
 
-                # motor_api.check_and_reset_tids()
                 result = await motor_api.check_fault_stauts(log=False)
+                get_register_values(result)
+                left_response, right_response = response
 
-                if not result:
-                    has_faulted = True
-                else:
-                    has_faulted = False
+                if not result: ### something went wrong
+                    continue
 
-                if (has_faulted):
-                    left_response, right_response = await motor_api.get_recent_fault()
-                    print("Fault Poller fault status left: " + str(left_response))
+                l_has_faulted, r_has_faulted = has_faulted()
+
+                if (l_has_faulted or r_has_faulted):
+                    response = await motor_api.get_recent_fault()
+
+                    if not response:
+                        self.logger.error("Getting recent fault was not succesful")
+                        continue
+                    
+                    ### 
+                    left_response, right_response = response
+
+                    ### check if the fault is absolute
+                    if is_absolute_fault(response):
+                        await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
+                        self.logger.error(f"ABSOLUTE_FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}")
+                        self.logger.error(f"Stopping polling...")
+                        self.has_faulted = True
+                        continue
+
                     # Check that its not a critical fault
-                    (left_has_falted, right_has_faulted) = result
-                    if not is_fault_critical(left_response) and not is_fault_critical(right_response):
+                    if is_fault_critical(response):
+                        if l_has_faulted:
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
+                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[left_response]}")
+                        else:
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
+                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[right_response]}")
+                        self.has_faulted = True
+                    else:
                         ### raise reset fault bit and reset the register to 0
                         await motor_api.set_ieg_mode(motor_config.RESET_FAULT_VALUE)
                         await motor_api.set_ieg_mode(0)
                         self.logger.info("Fault cleared")
-                    else:
-                        if left_has_falted:
-                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
-                            self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}")
-                        else:
-                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
-                            self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}")
-                        self.has_faulted = True
-                        
         except KeyboardInterrupt:
             self.logger.info("Polling stopped by user")
         except Exception as e:
