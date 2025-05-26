@@ -1,4 +1,3 @@
-import atexit
 from time import sleep
 from settings.config import Config
 from utils.setup_logging import setup_logging

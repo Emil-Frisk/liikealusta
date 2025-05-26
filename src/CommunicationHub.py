@@ -16,7 +16,7 @@ class CommunicationHub:
     def __init__(self):
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
-        self.module_manager = ProcessManager(self.logger, target_dir=get_current_path())
+        self.process_manager = None 
         self.config = None
         self.motor_config = None
         self.clients = None
@@ -26,9 +26,10 @@ class CommunicationHub:
 
     async def init(self):
         try:
-            self.config ,self.motor_config = handle_launch_params(b_motor_config=True)
+            self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
-            await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
+            self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
+            await helpers.create_hearthbeat_monitor_tasks(self, self.process_manager)
             # Connect to both drivers
             connected = await self.clients.connect()
 
@@ -74,7 +75,7 @@ class CommunicationHub:
         #########################################################################################
 
         helpers.close_tasks(self)
-        self.module_manager.cleanup_all()
+        self.process_manager.cleanup_all()
         if self.clients is not None:
             self.clients.cleanup()
 
