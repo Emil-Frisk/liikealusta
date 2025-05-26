@@ -10,11 +10,13 @@ import subprocess
 from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe, get_base_path, get_current_path, extract_part
 from helpers import gui_helpers as helpers
 from pathlib import Path
+from services.process_manager import ProcessManager
 
 class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
+        self.process_manager = ProcessManager(logger=self.logger, target_dir=get_current_path().parent)
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
@@ -58,25 +60,16 @@ class ServerStartupGUI(QWidget):
 
         helpers.save_config(self, ip1, ip2, freq, speed, accel)
         
-        try:   
-            base_path = get_base_path()
-            if started_from_exe():
-                exe_temp_dir = get_exe_temp_dir()
-                server_path = os.path.join(exe_temp_dir, "src\main.py")
-                self.logger.info(server_path)
-                venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
-            else:
-                server_path = os.path.join(base_path, "main.py")
-                venv_python = find_venv_python()
+        try:
+            ### Make sure the process main.py is not already running for some reason
+            result = self.process_manager.exterminate_lingering_process("main")
+            if not result:
+                self.logger.error(f"Unable to kill lingering process with name: main. Not launching a new process...")
+                return
+            elif result:
+                self.logger.info(f"No lingering process remaining.")
             
-            if venv_python:
-                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
-            else: 
-                cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
-
-            self.process = subprocess.Popen(cmd)
-
-            self.logger.info(f"Server launched with PID: {self.process.pid}")
+            self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", accel, "--vel", speed])
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.start_button.setEnabled(False)
             
@@ -121,12 +114,12 @@ class ServerStartupGUI(QWidget):
         elif event == "fault":
             self.logger.warning("Fault event has arrived to GUI!")
             QMessageBox.warning(self, "Error", clientmessage+"\n Check faults tab for more info")
-            self.fault_tab.update_fault_message(clientmessage)
-            self.fault_tab.toggle_component_visibility()
+            self.faults_tab.update_fault_message(clientmessage)
+            self.faults_tab.show_fault_group()
         elif event == "faultcleared":
             self.logger.info("Fault cleared event has reached gui")
             QMessageBox.information(self, "Info", "fault was cleared successfully")
-            self.fault_tab.toggle_component_visibility()
+            self.faults_tab.hide_fault_group()
         elif event == "connected":
             self.shutdown_button.setEnabled(True)
             self.start_button.setEnabled(True)
@@ -136,7 +129,7 @@ class ServerStartupGUI(QWidget):
             self.is_server_running = False
             self.start_button.setEnabled(True)
             self.shutdown_button.setEnabled(False)
-            self.fault_tab.hide_faul()
+            self.faults_tab.hide_fault()
     
     def clear_fault(self):
         asyncio.create_task(helpers.clear_fault(self))

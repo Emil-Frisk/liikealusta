@@ -1,2 +1,4 @@
 Get-Process | Where-Object { $_.Path -like "*python.exe" }
 http://127.0.0.1:5001/updatevalues?acceleration=123&velocity=123
+Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" | Where-Object { $_.CommandLine -like "*entrypoint=script1*" } | Select-Object Name, ProcessId, CommandLine
+

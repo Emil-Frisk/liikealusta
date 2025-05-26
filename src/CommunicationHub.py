@@ -3,26 +3,31 @@ import atexit
 import os
 import websockets
 from ModbusClients import ModbusClients
-from services.module_manager import ModuleManager
+from services.process_manager import ProcessManager
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
+from utils.utils import get_current_path
 from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
+from pathlib import Path
 
 class CommunicationHub:
     def __init__(self):
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
-        self.module_manager = ModuleManager(self.logger)
-        self.config = handle_launch_params()
-        self.clients = ModbusClients(self.config, self.logger)
+        self.module_manager = ProcessManager(self.logger, target_dir=get_current_path())
+        self.config = None
+        self.motor_config = None
+        self.clients = None
         self.motor_api = None
         self.is_process_done = False
         self.server = None
 
     async def init(self):
         try:
+            self.config ,self.motor_config = handle_launch_params(b_motor_config=True)
+            self.clients = ModbusClients(self.config, self.logger)
             await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
             # Connect to both drivers
             connected = await self.clients.connect()
@@ -35,13 +40,15 @@ class CommunicationHub:
                 helpers.close_tasks(self)
                 os._exit(1)
 
-            self.motor_api = MotorApi(logger=self.logger, modbus_clients=self.clients)
+            self.motor_api = MotorApi(logger=self.logger,
+                                       modbus_clients=self.clients,
+                                       config = self.motor_config)
 
             if not await self.motor_api.initialize_motor():
                 self.clients.cleanup()
                 helpers.close_tasks(self)
                 os._exit(1)
-
+            a = 10
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
 
@@ -142,30 +149,8 @@ class CommunicationHub:
                         else:
                             await wsclient.send(msg)
                     elif action == "clearfault":
-                        try:
-                            ### TODO muuta tämä käyttämään moottori apia
-                            if not await self.clients.set_ieg_mode(65535) or not await self.clients.set_ieg_mode(2):
-                                self.logger.error("Error clearing motors faults!")
-                                await wsclient.send("event=error|message=Error clearing motors faults!|")
-                                continue
-
-                            ### success case -> inform gui and fault poller
-                            succes_response = "event=faultcleared|message=Fault cleared succesfully!|"
-                            fault_poller_found = False
-                            await wsclient.send(succes_response) # Sending to GUI
-                            for sckt, info in self.wsclients.items():
-                                if info["identity"] == "fault poller":
-                                    await sckt.send(succes_response)
-                                    fault_poller_found = True
-                                    break
-
-                            if not fault_poller_found:
-                                self.logger.error("Fault poller not found from wsclients list at server")
-
-                        except Exception as e:
-                            self.logger.error("Error clearing motors faults!")
-                            await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
-
+                        await actions.clear_fault(self, wsclient=wsclient)
+           
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:
