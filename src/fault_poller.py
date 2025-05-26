@@ -69,12 +69,13 @@ class FaultPoller():
                 await asyncio.sleep(1)
 
                 result = await motor_api.check_fault_stauts(log=False)
-                left_vals, right_vals = get_register_values(result)
-
-                left_response, right_response = response
 
                 if not result: ### something went wrong
+                    self.logger.error("something went wrong while checkigng ault status")
                     continue
+
+                left_vals, right_vals = get_register_values(result)
+                left_response, right_response = response
 
                 l_has_faulted, r_has_faulted = has_faulted()
 
