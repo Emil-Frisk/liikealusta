@@ -30,7 +30,8 @@ def handle_launch_params(b_motor_config=False):
         config.START_TID = 1
         config.LAST_TID = 10000
 
-    args = parser.parse_args()
+    args = parser.parse_known_args()
+    args = args[0]
     if (args.port):
         config.SERVER_PORT = args.port
     if (args.acc):
