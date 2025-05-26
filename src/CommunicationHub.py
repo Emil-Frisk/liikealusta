@@ -114,9 +114,9 @@ class CommunicationHub:
                     elif action == "identify":
                         await actions.identify(self, identity, wsclient)
                     elif action == "shutdown":
-                        result = await self.shutdown_server(wsclient)
+                        await self.shutdown_server(wsclient)
                     elif action == "stop":
-                        result = await actions.stop_motors(self)
+                        await actions.stop_motors(self)
                     elif action == "setvalues":
                         await actions.set_values(self, pitch, roll, wsclient)
                     elif action == "updatevalues":
@@ -126,7 +126,7 @@ class CommunicationHub:
                     elif action == "clearfault":
                         await actions.clear_fault(self, wsclient=wsclient)
                     elif action == "absolutefault":
-                        pass # TODO - finishaa tää
+                        await actions.absolute_fault(self, wsclient)
                     else:
                         await wsclient.send("event=error|message=no action found here is all the actions|")
            

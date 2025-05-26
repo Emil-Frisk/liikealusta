@@ -10,7 +10,6 @@ async def write(self, pitch, roll, wsclient):
         if result:
             await self.motor_api.rotate(pitch, roll)
     except ValueError:
-        self.logger.error(f"Something went wrong in validating pitch and roll values: {e}")
         await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
     except Exception:
         self.logger.error(f"Something went wrong in validating pitch and roll values: {e}")
@@ -18,7 +17,7 @@ async def write(self, pitch, roll, wsclient):
 async def identify(self, identity, wsclient):
     try:
         if identity:
-            wsclient["identity"] = identity.lower()
+            self.wsclients[wsclient] = {identity: identity.lower()}
             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
@@ -154,3 +153,10 @@ async def update_input_values(self,acceleration,velocity):
     except Exception as e:
         self.logger.error(f"Error while updating motors values: {e}")
         return {"status": "error", "message": "Unexpected error while trying to update motors values"}
+    
+async def absolute_fault(self, wsclient):
+    try:
+        await wsclient.send()
+    except Exception as e:
+        self.logger.error(f"Something went wrong in absolute fault action: {e}")
+        
