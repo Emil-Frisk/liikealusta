@@ -85,10 +85,11 @@ class FaultPoller():
                         continue
                     
                     ### 
-                    left_response, right_response = response
+                    left_vals, right_vals = get_register_values(result)
+                    left_val, right_val = left_vals[0], right_vals[0]
 
                     ### check if the fault is absolute
-                    if is_absolute_fault(response):
+                    if is_absolute_fault((left_val, right_val)):
                         #await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
                         self.logger.error(f"ABSOLUTE_FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}")
                         self.logger.error(f"Stopping polling...")
@@ -99,10 +100,10 @@ class FaultPoller():
                     if is_critical_fault(response):
                         if l_has_faulted:
                             #await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
-                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[left_response]}")
+                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[left_val]}")
                         else:
                             #await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
-                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[right_response]}")
+                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[right_val]}")
                         self.has_faulted = True
                     else:
                         ### raise reset fault bit and reset the register to 0
