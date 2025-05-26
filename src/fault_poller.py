@@ -6,9 +6,9 @@ from ModbusClients import ModbusClients
 from services.MotorApi import MotorApi
 from utils.launch_params import handle_launch_params
 import asyncio
-from utils.utils import is_fault_critical, extract_part
+from utils.utils import  extract_part
 from helpers.register_val_helpers import get_register_values
-from helpers.fault_helpers import has_faulted, is_fault_critical, is_absolute_fault
+from helpers.fault_helpers import has_faulted, is_critical_fault, is_absolute_fault
 from constants.fault_codes import ABSOLUTE_FAULTS, CRITICAL_FAULTS
 from services.websocket_client import WebsocketClient
 from settings.motors_config import MotorConfig
@@ -97,7 +97,7 @@ class FaultPoller():
                         continue
 
                     # Check that its not a critical fault
-                    if is_fault_critical(response):
+                    if is_critical_fault(response):
                         if l_has_faulted:
                             #await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[left_response]}")
