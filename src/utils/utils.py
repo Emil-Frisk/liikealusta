@@ -224,9 +224,12 @@ def convert_ucur16(num):
        """Takes in a number in 9.7 format and returns it in x.y format"""
        low_max = (2**7) - 1
        num_low = num & 0x7F
-       num_high = num >> 7
+       num_high = num >> 7      
        ## normalize num_low between 0-1
+       ## make sure decimal is always below 1
        decimal = num_low / low_max
+       if decimal >= 1:
+              decimal = 0.99
 
        return num_high + decimal
 
