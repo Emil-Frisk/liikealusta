@@ -269,3 +269,18 @@ def get_base_path():
 
 def get_current_path(file):
         return Path(file).parent
+
+def bit_high_low_both(number, low_bit, output="both"):
+        bit_mask = (2**low_bit) - 1
+        register_val_high = number >> low_bit
+        register_val_low = number & bit_mask
+        if output=="both":
+                return (register_val_high, register_val_low)
+        elif output == "high":
+                return register_val_high
+        elif output == "low":   
+                return register_val_low
+                
+
+
+
