@@ -127,9 +127,10 @@ class CommunicationHub:
                         await actions.clear_fault(self, wsclient=wsclient)
                     elif action == "absolutefault":
                         await actions.absolute_fault(self)
+                    elif action == "readtelemetry":
+                        await actions.read_telemetry(self)
                     else:
                         await wsclient.send("event=error|message=no action found here is all the actions|")
-           
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:
