@@ -29,7 +29,7 @@ class CommunicationHub:
             self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
             self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
-            await helpers.create_hearthbeat_monitor_tasks(self, self.process_manager)
+            # await helpers.create_hearthbeat_monitor_tasks(self, self.process_manager)
             # Connect to both drivers
             connected = await self.clients.connect()
 
