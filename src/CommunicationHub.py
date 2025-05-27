@@ -154,4 +154,4 @@ class CommunicationHub:
             self.server = await websockets.serve(self.handle_client, "localhost", 6969, ping_timeout=None)
             self.logger.info("WebSocket serverwebsocket running on ws://localhost:6969")
         except Exception as e:
-            self.logger(f"Error while launching  server{e}")
+            self.logger.error(f"Error while launching  server{e}")

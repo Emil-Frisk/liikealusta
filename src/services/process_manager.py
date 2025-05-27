@@ -166,14 +166,23 @@ class ProcessManager:
             results = trimmed.split("\n")
             command_lines = []
             for r in results:
-                if len(r.split("\\")) == 1:
+                if len(r.split(".py")) == 1:
                     continue
                 else:
                     command_lines.append(r)
             
             temp = command_lines[0]
             self.logger.info(f"Found {len(command_lines)} command lines")
-            return int(temp.split(":\\")[0][:-1])
+            pid_list = []
+            for ch in temp:
+                try:
+                    int(ch)
+                    pid_list.append(ch)
+                except ValueError as e:
+                    break
+            pid_list = "".join(pid_list)
+            a = int(pid_list)
+            return int(pid_list)
         except ValueError:
             self.logger.error("Unable to extract pid from a found commandline")
             return False

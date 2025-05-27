@@ -69,7 +69,7 @@ class ServerStartupGUI(QWidget):
             elif result:
                 self.logger.info(f"No lingering process remaining.")
             
-            self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", accel, "--vel", speed])
+            self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", str(accel), "--vel", str(speed)])
             QMessageBox.information(self, "Success", "Server started successfully!")
             self.start_button.setEnabled(False)
             
