@@ -104,7 +104,7 @@ def update_values(self):
         # Update stored values after successful update
         self.update_stored_values()
         # Send values to server
-        try: ### TODO - muuta tämä lähettämään socket viesti instead
+        try: ### TODO - muuta tämä lähettämään socket viesti instead - olli
             pass
             # print("TÄSSÄ", response)
         except Exception as e:
@@ -212,30 +212,6 @@ def handle_button_click(self):
     else:
         self.update_values()
 
-def update_values(self):
-    """Update only the values that have changed."""
-    changed_fields = {}
-    # Check text fields for changes
-    if self.general_tab.get_velocity() != self.stored_values['speed_input']:
-        changed_fields.update({"velocity": self.general_tab.get_velocity()})
-        self.logger.info(f"Updating Velocity to {self.general_tab.get_velocity()} RPM")      
-                
-    if self.general_tab.get_acceleration() != self.stored_values['accel_input']:
-        changed_fields.update({"acceleration": self.general_tab.get_acceleration()})
-        self.logger.info(f"Updating Acceleration to {self.general_tab.get_acceleration()} RPM")   
-        
-    # Update values based on changes
-    if changed_fields:
-        # Update stored values after successful update
-        self.update_stored_values()
-        # Send values to server
-        try: ### TODO - muuta tämä lähettämään socket viesti instead
-            pass
-            # response = make_request("http://localhost:5001/updatevalues", changed_fields)
-            # print("TÄSSÄ", response)
-        except Exception as e:
-            self.logger(f"Error while changing values: {e}")
-
 def start_server(self):
     ip1 = self.advanced_tab.get_left_motor().strip()
     ip2 = self.advanced_tab.get_right_motor().strip()
@@ -288,16 +264,7 @@ def shutdown_server(self):
     try:
         # First, close the WebSocket client
         loop = asyncio.get_event_loop()
-        loop.create_task(self.websocket_client.send("action=shutdown|"))
-        # Then attempt to shutdown the server
-        ### TODO - muuta tämä lähettämään socket message action instead
-        # response = make_request("http://localhost:5001/shutdown")
-        # if "success" in response.stdout:  # Fixed: Check status_code, not returncode
-        #     QMessageBox.information(self, "Success", "Server shutdown successfully!")
-        #     self.shutdown_button.setEnabled(False)
-        #     self.start_button.setEnabled(True)
-        # else:
-        #     QMessageBox.warning(self, "Warning", f"Failed to shutdown server: {response.text}")
+        loop.create_task(self.websocket_client.send("action=shutdown|"))      
     except Exception as e:
         QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
