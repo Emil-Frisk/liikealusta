@@ -4,7 +4,7 @@ from pymodbus.exceptions import ConnectionException, ModbusIOException
 from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
 import asyncio
 from time import sleep, time
-from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs
+from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both
 from helpers.motor_api_helper import calculate_motor_modbuscntrl_vals, get_register_values
 import math
 
@@ -518,21 +518,30 @@ class MotorApi():
     async def get_telemetry_data(self):
         """Reads the motors current board tempereature,
         actuator temperature and continuous current
-        and returns their whole number part only"""
+        and returns their whole number part only and drops the decimal part"""
         vals = await self.read(address=self.config.BOARD_TMP, description="Read board temperature", count=1)
         if not vals:
             return False
+        ### 11.5
         left_board_tmp, right_board_tmp = vals
+        left_board_tmp = bit_high_low_both(left_board_tmp, 5, "high")
+        right_board_tmp = bit_high_low_both(right_board_tmp, 5, "high")
 
         vals = await self.read(address=self.config.ACTUATOR_TMP, description="Read actuator temperature", count=1)
         if not vals:
             return False
+        ### 13.3
         left_actuator_tmp, right_actuator_tmp = vals
+        left_actuator_tmp = bit_high_low_both(left_actuator_tmp, 3, "high")
+        right_actuator_tmp = bit_high_low_both(right_actuator_tmp, 3, "high")
 
         vals = await self.read(address=self.config.ICONTINUOUS, description="Read present current ", count=1)
         if not vals:
             return False
+        ### 9.7
         left_IC, right_IC = vals
+        left_IC = bit_high_low_both(left_IC, 7, "high")
+        right_IC = bit_high_low_both(right_IC, 7, "high")
 
         return ((left_board_tmp, right_board_tmp), (left_actuator_tmp, right_actuator_tmp), (left_IC, right_IC))
         
