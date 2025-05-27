@@ -132,11 +132,7 @@ class ServerStartupGUI(QWidget):
             self.faults_tab.hide_fault()
     
     def clear_fault(self):
-        asyncio.create_task(helpers.clear_fault(self))
-
-    def fault_reset(self):
-        pass ### TODO - jatka tästä
-        
+        asyncio.create_task(helpers.clear_fault(self))    
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -5,7 +5,6 @@ def validate_update_values(values):
 
 def validate_pitch_and_roll_values(pitch,roll):
     try:
-        # TODO validate values here
         pitch = float(pitch)
         roll = float(roll)
         return True

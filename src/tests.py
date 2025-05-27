@@ -106,7 +106,7 @@ class TestBitFunctions(unittest.TestCase):
         self.assertEqual(combined, 294144)
         
 
-    def test_combine_24bit(self): ## TODO - muuta tää 24 bit versioon
+    def test_combine_24bit(self):
         # Test case 1: 
         sixteen_bit, eight_bit = 52428, 0
         combined = combine_to_24bit(sixteen_bit, eight_bit)

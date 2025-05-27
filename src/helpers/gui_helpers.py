@@ -102,7 +102,7 @@ def update_values(self):
         # Update stored values after successful update
         self.update_stored_values()
         # Send values to server
-        try: ### TODO - muuta tämä lähettämään socket viesti instead
+        try: ### TODO - muuta tämä lähettämään socket viesti instead - olli
             pass
             # print("TÄSSÄ", response)
         except Exception as e:
