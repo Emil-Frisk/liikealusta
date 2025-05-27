@@ -31,7 +31,7 @@ def validate_message(self,receiver, message):
         if info["identity"] == receiver:
             return (True, client, message)
         
-    return (False, None, "event=error|message=No receiver was found in the server with this identity|")
+    return (False, None, f"event=error|message=No receiver was found in the server with this identity: {receiver}|")
 
 def extract_parts(msg): # example message: "action=STOP|receiver=startup|identity=fault_poller|message=CRITICAL FAULT!|pitch=40.3"
     receiver = extract_part("receiver=", message=msg)
@@ -43,7 +43,8 @@ def extract_parts(msg): # example message: "action=STOP|receiver=startup|identit
     event = extract_part("event=", message=msg)
     acceleration = extract_part("acc=", message=msg)
     velocity = extract_part("vel=", message=msg)
-
+    if receiver:
+        receiver = receiver.lower()
     ### if message has event append it to it
     if message and event:
         message = f"event={event}|message={message}|"
@@ -85,7 +86,13 @@ async def monitor_socket_server(self):
                 del self.module_manager.processes[pid]
         await asyncio.sleep(60)
 
-async def create_hearthbeat_monitor_tasks(self, module_manager):
-    fault_poller_pid = module_manager.launch_process("fault_poller")
+async def create_hearthbeat_monitor_tasks(self):
+    result = self.process_manager.exterminate_lingering_process("fault_poller")
+    if not result:
+        self.logger.error(f"Unable to kill lingering process with name: main. Not launching a new process...")
+        return
+    elif result:
+        self.logger.info(f"No lingering process remaining.")
+    fault_poller_pid = self.process_manager.launch_process("fault_poller")
     self.fault_poller_pid = fault_poller_pid
     self.monitor_fault_poller = asyncio.create_task(monitor_fault_poller(self))

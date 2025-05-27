@@ -60,9 +60,9 @@ class FaultPoller():
                     continue
 
                 ### simulated critical fault situation
-                if counter == 8:
-                    await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[256]}|receiver=GUI|")
-                    self.logger.error(f"CRITICAL FAULT DETECTED: {self.critical_faults[256]}")
+                if counter == 4:
+                    await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[256]}|receiver=GUI|")
+                    self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[256]}")
                     self.has_faulted = True
                     continue
 

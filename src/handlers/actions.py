@@ -17,7 +17,7 @@ async def write(self, pitch, roll, wsclient):
 async def identify(self, identity, wsclient):
     try:
         if identity:
-            self.wsclients[wsclient] = {identity: identity.lower()}
+            self.wsclients[wsclient] = {"identity": identity.lower()}
             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")

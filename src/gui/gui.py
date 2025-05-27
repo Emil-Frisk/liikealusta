@@ -20,8 +20,9 @@ class ServerStartupGUI(QWidget):
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
-        self.styles_path = helpers.get_gui_path() / "styles.json"
-        self.CONFIG_FILE = helpers.get_gui_path() / "config.json"
+        self.path = Path(__file__).parent
+        self.styles_path = self.path / "styles.json"
+        self.CONFIG_FILE = self.path / "config.json"
         
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -49,7 +50,7 @@ class ServerStartupGUI(QWidget):
         if not self.is_server_running:
             self.start_server()
         else:
-            helpers.update_values()
+            helpers.update_values(self)
     
     def start_server(self):
         (ip1, ip2, freq, speed, accel)  = helpers.get_field_values(self)
@@ -70,7 +71,6 @@ class ServerStartupGUI(QWidget):
                 self.logger.info(f"No lingering process remaining.")
             
             self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", str(accel), "--vel", str(speed)])
-            QMessageBox.information(self, "Success", "Server started successfully!")
             self.start_button.setEnabled(False)
             
             # Update inptu values
