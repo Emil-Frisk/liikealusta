@@ -128,7 +128,7 @@ class CommunicationHub:
                     elif action == "absolutefault":
                         await actions.absolute_fault(self)
                     elif action == "readtelemetry":
-                        await actions.read_telemetry(self)
+                        await actions.read_telemetry(self, wsclient)
                     else:
                         await wsclient.send("event=error|message=no action found here is all the actions|")
         except websockets.ConnectionClosed as e:
