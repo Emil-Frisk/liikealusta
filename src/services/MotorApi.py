@@ -514,3 +514,11 @@ class MotorApi():
                 await self.set_analog_modbus_cntrl((left_val, right_val))
         except Exception as e:
             self.logger.error(f"Something went wrong trying to rotate the platform: {e}")
+
+    async def get_telemetry_data(self):
+        """Reads the motors current board tempereature,
+        actuator temperature and continuous current
+        and returns their whole number part only"""
+        read()
+        pass
+        

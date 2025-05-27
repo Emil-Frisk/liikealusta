@@ -162,4 +162,10 @@ async def absolute_fault(self):
             await self.shutdown_server()
     except Exception as e:
         self.logger.error(f"Something went wrong in absolute fault action: {e}")
+
+async def read_telemetry(self):
+    try:
+        pass
+    except Exception as e:
+        self.logger.error(f"Something went wrong while reading telemetry data: {e}")
         

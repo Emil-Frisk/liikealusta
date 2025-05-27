@@ -25,6 +25,9 @@ class MotorConfig:
     VFEEDBACK_VELOCITY: int = 361
     SYSTEM_COMMAND: int = 4001
 
+    ### Telemetry registers
+    
+
     ### OPERATION MODES
     COMMAND_MODE = 4303
     DISABLED = 0
