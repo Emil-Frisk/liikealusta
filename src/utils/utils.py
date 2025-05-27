@@ -267,5 +267,5 @@ def get_base_path():
     else:
         return Path(os.path.abspath(__file__)).parent.parent
 
-def get_current_path():
-        return Path(__file__).parent
+def get_current_path(file):
+        return Path(file).parent

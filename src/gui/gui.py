@@ -16,7 +16,7 @@ class ServerStartupGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
-        self.process_manager = ProcessManager(logger=self.logger, target_dir=get_current_path().parent)
+        self.process_manager = ProcessManager(logger=self.logger, target_dir=get_current_path(__file__).parent)
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
