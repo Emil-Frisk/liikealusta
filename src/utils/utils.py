@@ -29,8 +29,8 @@ def find_venv_python():
         raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
 def convert_to_revs(pfeedback):
-    decimal = pfeedback.registers[0] / 65535
-    num = pfeedback.registers[1]
+    decimal = pfeedback[0] / 65535
+    num = pfeedback[1]
     return num + decimal
 
 def get_exe_temp_dir():

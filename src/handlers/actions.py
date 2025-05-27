@@ -158,14 +158,20 @@ async def absolute_fault(self):
     try:
         ### inform all processes that absolute fault has occured -> cleanup
         for client in self.wsclients:
-            client.send("event=absolutefault|message=Motors have gotten absolute fault, something very wrong has happened, they can't be operated with any longer they need repair!|")
+            await client.send("event=absolutefault|message=Motors have gotten absolute fault, something very wrong has happened, they can't be operated with any longer they need repair!|")
             await self.shutdown_server()
     except Exception as e:
         self.logger.error(f"Something went wrong in absolute fault action: {e}")
 
-async def read_telemetry(self):
+async def read_telemetry(self, wsclient):
     try:
-        pass
+        data = await self.motor_api.get_telemetry_data()
+        if not data:
+            await wsclient.send(f"event=error|message=Something went wrong while reading telemetry data|")
+            return False
+         
+        await wsclient.send(f"event=telemetrydata|message=boardtemp:{data[0]}*actuatortemp:{data[1]}*IC:{data[2]}*|")
     except Exception as e:
         self.logger.error(f"Something went wrong while reading telemetry data: {e}")
+        await wsclient.send(f"event=error|message=Something went wrong while reading telemetry data|")
         

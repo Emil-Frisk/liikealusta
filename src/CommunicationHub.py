@@ -29,7 +29,7 @@ class CommunicationHub:
             self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
             self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
-            await helpers.create_hearthbeat_monitor_tasks(self, self.process_manager)
+            # await helpers.create_hearthbeat_monitor_tasks(self, self.process_manager)
             # Connect to both drivers
             connected = await self.clients.connect()
 
@@ -128,7 +128,7 @@ class CommunicationHub:
                     elif action == "absolutefault":
                         await actions.absolute_fault(self)
                     elif action == "readtelemetry":
-                        await actions.read_telemetry(self)
+                        await actions.read_telemetry(self, wsclient)
                     else:
                         await wsclient.send("event=error|message=no action found here is all the actions|")
         except websockets.ConnectionClosed as e:
