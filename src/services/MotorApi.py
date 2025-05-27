@@ -519,6 +519,20 @@ class MotorApi():
         """Reads the motors current board tempereature,
         actuator temperature and continuous current
         and returns their whole number part only"""
-        read()
-        pass
+        vals = await self.read(address=self.config.BOARD_TMP, description="Read board temperature", count=1)
+        if not vals:
+            return False
+        left_board_tmp, right_board_tmp = vals
+
+        vals = await self.read(address=self.config.ACTUATOR_TMP, description="Read actuator temperature", count=1)
+        if not vals:
+            return False
+        left_actuator_tmp, right_actuator_tmp = vals
+
+        vals = await self.read(address=self.config.ICONTINUOUS, description="Read present current ", count=1)
+        if not vals:
+            return False
+        left_IC, right_IC = vals
+
+        return ((left_board_tmp, right_board_tmp), (left_actuator_tmp, right_actuator_tmp), (left_IC, right_IC))
         

@@ -25,8 +25,10 @@ class MotorConfig:
     VFEEDBACK_VELOCITY: int = 361
     SYSTEM_COMMAND: int = 4001
 
-    ### Telemetry registers
-    
+    ### Telemetry registers (high)
+    ICONTINUOUS = 565
+    ACTUATOR_TMP = 15
+    BOARD_TMP = 11
 
     ### OPERATION MODES
     COMMAND_MODE = 4303
