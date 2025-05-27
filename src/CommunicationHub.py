@@ -16,7 +16,7 @@ class CommunicationHub:
     def __init__(self):
         self.wsclients = {}
         self.logger = setup_logging("server", "server.log")
-        self.module_manager = ProcessManager(self.logger, target_dir=get_current_path())
+        self.process_manager = None 
         self.config = None
         self.motor_config = None
         self.clients = None
@@ -26,9 +26,10 @@ class CommunicationHub:
 
     async def init(self):
         try:
-            self.config ,self.motor_config = handle_launch_params(b_motor_config=True)
+            self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
-            await helpers.create_hearthbeat_monitor_tasks(self, self.module_manager)
+            self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
+            await helpers.create_hearthbeat_monitor_tasks(self, self.process_manager)
             # Connect to both drivers
             connected = await self.clients.connect()
 
@@ -48,7 +49,6 @@ class CommunicationHub:
                 self.clients.cleanup()
                 helpers.close_tasks(self)
                 os._exit(1)
-            a = 10
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
 
@@ -74,7 +74,7 @@ class CommunicationHub:
         #########################################################################################
 
         helpers.close_tasks(self)
-        self.module_manager.cleanup_all()
+        self.process_manager.cleanup_all()
         if self.clients is not None:
             self.clients.cleanup()
 
@@ -107,30 +107,28 @@ class CommunicationHub:
                 if not action:
                     await wsclient.send("event=error|message=No action given, example action=<action>|")
                 else:
-                    if receiver:
-                        self.logger.info(f"Receiver: {receiver}")
-                        receiver = receiver.lower()
-
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
                     if action == "write":
-                        result = helpers.validate_pitch_and_roll_values(pitch,roll)
-                        if result:
-                            await actions.demo_control(pitch, roll, self)
+                        await actions.write(self, pitch, roll, wsclient)
                     elif action == "identify":
-                        actions.identify()
+                        await actions.identify(self, identity, wsclient)
                     elif action == "shutdown":
-                        result = await self.shutdown_server(wsclient)
+                        await self.shutdown_server(wsclient)
                     elif action == "stop":
-                        result = await actions.stop_motors(self)
+                        await actions.stop_motors(self)
                     elif action == "setvalues":
-                        actions.set_values(self, pitch, roll)
+                        await actions.set_values(self, pitch, roll, wsclient)
                     elif action == "updatevalues":
-                        result = await actions.update_input_values(self,acceleration,velocity)
+                        await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
-                        await actions.message()
+                        await actions.message(self, receiver, wsclient, message)
                     elif action == "clearfault":
                         await actions.clear_fault(self, wsclient=wsclient)
+                    elif action == "absolutefault":
+                        await actions.absolute_fault(self)
+                    else:
+                        await wsclient.send("event=error|message=no action found here is all the actions|")
            
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
@@ -151,7 +149,7 @@ class CommunicationHub:
 
     async def start_server(self):
         try:
-            self.server = await websockets.serve(self.handle_client, "localhost", 6969, ping_timeout=None)
-            self.logger.info("WebSocket serverwebsocket running on ws://localhost:6969")
+            self.server = await websockets.serve(self.handle_client, "localhost", self.config.WEBSOCKET_SRV_PORT, ping_timeout=None)
+            self.logger.info(f"WebSocket serverwebsocket running on ws://localhost:{self.config.WEBSOCKET_SRV_PORT}")
         except Exception as e:
             self.logger.error(f"Error while launching  server{e}")

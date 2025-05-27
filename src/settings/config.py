@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
+    WEBSOCKET_SRV_PORT = 7000
+    
     ### SERVER CONFIG
     SERVER_IP_LEFT: str = '192.168.0.211'  
     SERVER_IP_RIGHT: str = '192.168.0.212'
@@ -18,5 +20,7 @@ class Config:
     START_TID: int = 10001 # first TID will be startTID + 1
     LAST_TID: int = 20000
     CONNECTION_TRY_COUNT = 5
+    
+    
 
 

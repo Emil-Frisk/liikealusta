@@ -1,9 +1,12 @@
 import asyncio
 import websockets
 from websockets.exceptions import ConnectionClosed
+from settings.config import Config
+
+config = Config()
 
 class WebsocketClient():
-    def __init__(self, logger, identity="unknown", uri="ws://localhost:6969", on_message=None, reconnect_interval = 10, max_reconnect_attempt=5):
+    def __init__(self, logger, identity="unknown", uri=f"ws://localhost:{config.WEBSOCKET_SRV_PORT}", on_message=None, reconnect_interval = 10, max_reconnect_attempt=5):
         self.uri = uri
         self.socket = None
         self.is_running = False

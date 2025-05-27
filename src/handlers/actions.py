@@ -4,12 +4,25 @@ from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_r
 from helpers import communication_hub_helpers as helpers
 import math
 
-async def identify(self, identity, wsclient):
-    if identity:
-        client_info["identity"] = identity.lower()
-        self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
-    else:
+async def write(self, pitch, roll, wsclient):
+    try:
+        result = helpers.validate_pitch_and_roll_values(pitch,roll)
+        if result:
+            await self.motor_api.rotate(pitch, roll)
+    except ValueError:
         await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
+    except Exception:
+        self.logger.error(f"Something went wrong in validating pitch and roll values: {e}")
+        
+async def identify(self, identity, wsclient):
+    try:
+        if identity:
+            self.wsclients[wsclient] = {identity: identity.lower()}
+            self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
+        else:
+            await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
+    except Exception as e:
+        self.logger.error(f"Something went wrong in identify action: {e}")
 
 async def set_values(self, pitch, roll, wsclient):
     try:
@@ -44,11 +57,11 @@ async def clear_fault(self, wsclient):
         self.logger.error("Error clearing motors faults!")
         await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
 
-async def message(self, wsclient, message):
+async def message(self, receiver, wsclient, message):
     try:
-        (success,receiver, msg) = helpers.validate_message(self,receiver,message)
+        (success, receiver_client, msg) = helpers.validate_message(self,receiver,message)
         if success:
-            await receiver.send(msg)
+            await receiver_client.send(msg)
         else:
             await wsclient.send(msg)
     except Exception as e:
@@ -140,3 +153,13 @@ async def update_input_values(self,acceleration,velocity):
     except Exception as e:
         self.logger.error(f"Error while updating motors values: {e}")
         return {"status": "error", "message": "Unexpected error while trying to update motors values"}
+    
+async def absolute_fault(self):
+    try:
+        ### inform all processes that absolute fault has occured -> cleanup
+        for client in self.wsclients:
+            client.send("event=absolutefault|message=Motors have gotten absolute fault, something very wrong has happened, they can't be operated with any longer they need repair!|")
+            await self.shutdown_server()
+    except Exception as e:
+        self.logger.error(f"Something went wrong in absolute fault action: {e}")
+        

@@ -1,4 +1,3 @@
-import atexit
 from time import sleep
 from settings.config import Config
 from utils.setup_logging import setup_logging
@@ -7,7 +6,6 @@ from services.MotorApi import MotorApi
 from utils.launch_params import handle_launch_params
 import asyncio
 from utils.utils import  extract_part
-from helpers.register_val_helpers import get_register_values
 from helpers.fault_helpers import has_faulted, is_critical_fault, is_absolute_fault
 from constants.fault_codes import ABSOLUTE_FAULTS, CRITICAL_FAULTS
 from services.websocket_client import WebsocketClient
@@ -16,6 +14,7 @@ from settings.motors_config import MotorConfig
 class FaultPoller():
     def __init__(self):
         self.has_faulted = False
+        self.wsclient = None
 
     def on_message(self, msg):
         event = extract_part("event=", msg)
@@ -47,6 +46,7 @@ class FaultPoller():
         
         motor_api = MotorApi(logger=self.logger, modbus_clients=clients)
         wsclient = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
+        self.wsclient = wsclient
         await wsclient.connect()
 
         self.logger.info(f"Starting polling loop with polling time interval: {config.POLLING_TIME_INTERVAL}")
@@ -68,26 +68,20 @@ class FaultPoller():
 
                 await asyncio.sleep(1)
 
-                result = await motor_api.check_fault_stauts(log=False)
+                vals = await motor_api.check_fault_stauts(log=False)
 
-                if not result: ### something went wrong
-                    self.logger.error("something went wrong while checkigng ault status")
+                if not vals: ### something went wrong
+                    self.logger.error("something went wrong while checkigng fault status")
                     continue
 
-                left_vals, right_vals = get_register_values(result)
-                l_has_faulted, r_has_faulted = has_faulted((left_vals[0], right_vals[0]))
+                l_has_faulted, r_has_faulted = has_faulted(vals)
 
                 if (l_has_faulted or r_has_faulted):
-                    response = await motor_api.get_recent_fault()
+                    vals = await motor_api.get_recent_fault()
 
-                    if not response:
+                    if not vals:
                         self.logger.error("Getting recent fault was not succesful")
                         continue
-                    
-                    ### 
-                    left_vals, right_vals = get_register_values(result)
-                    left_val, right_val = left_vals[0], right_vals[0]
-                    vals = (left_vals[0], right_vals[0])
 
                     ### check if the fault is absolute
                     if is_absolute_fault(vals):
@@ -100,18 +94,17 @@ class FaultPoller():
                     # Check that its not a critical fault
                     if is_critical_fault(vals):
                         if l_has_faulted:
-                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[left_response]}|receiver=GUI|")
-                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[left_val]}")
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[0]]}|receiver=GUI|")
+                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[0]]}")
                         else:
-                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[right_response]}|receiver=GUI|")
-                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[right_val]}")
+                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[1]]}|receiver=GUI|")
+                            self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[1]]}")
                         self.has_faulted = True
                     else:
                         ### raise reset fault bit and reset the register to 0
                         await motor_api.set_ieg_mode(motor_config.RESET_FAULT_VALUE)
                         await motor_api.set_ieg_mode(0)
                         self.logger.info("Fault cleared")
-
         except KeyboardInterrupt:
             self.logger.info("Polling stopped by user")
         except Exception as e:
@@ -119,8 +112,7 @@ class FaultPoller():
         finally:
             clients.cleanup()
             self.logger.info("Fault poller has been closed")
-            ### websocket wsclient close
-            ### clean tasks
+            self.wsclient.close()
 
 if __name__ == "__main__":
     fault_poller = FaultPoller()
