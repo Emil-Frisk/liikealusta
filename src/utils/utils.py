@@ -151,6 +151,16 @@ def split_20bit_to_components(value):
     
     return sixteen_bit, four_bit
 
+def combine_to_25bit(sixteen_bit, nine_bit):
+    # Ensure inputs are within their bit limits
+    sixteen_bit = sixteen_bit & 0xFFFF
+    nine_bit = nine_bit & 0x1FF      
+    
+    # Shift the 8-bit number 16 positions left and OR it with the 16-bit number
+    result = (nine_bit << 16) | sixteen_bit
+    
+    return result
+
 def combine_to_24bit(sixteen_bit, eight_bit):
     # Ensure inputs are within their bit limits
     sixteen_bit = sixteen_bit & 0xFFFF
