@@ -27,6 +27,7 @@ async def set_values(self, pitch, roll, wsclient):
     try:
         result = helpers.validate_pitch_and_roll_values(pitch, roll)
         if result:
+            (pitch, roll) = result
             await self.motor_api.rotate(pitch,roll)
     except ValueError as e:
         self.logger.error(f"pitch and roll were not numbers: {e}")

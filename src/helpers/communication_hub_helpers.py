@@ -14,9 +14,9 @@ def close_tasks(self):
 
 def validate_pitch_and_roll_values(pitch,roll):
     try:
-        pitch = abs(float(pitch))
-        roll = abs(float(roll))
-        return True
+        pitch = float(pitch)
+        roll = float(roll)
+        return (pitch,roll)
     except ValueError:
         raise
     

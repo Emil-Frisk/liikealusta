@@ -508,7 +508,7 @@ class MotorApi():
     
     async def rotate(self, pitch_value, roll_value):
         try:
-            result = calculate_motor_modbuscntrl_vals(pitch_value=pitch_value, roll_value=roll_value)
+            result = calculate_motor_modbuscntrl_vals(self,pitch_value=pitch_value, roll_value=roll_value)
             if result:
                 left_val, right_val = result 
                 await self.set_analog_modbus_cntrl((left_val, right_val))
