@@ -152,16 +152,16 @@ def split_20bit_to_components(value):
     
     return sixteen_bit, four_bit
 
-def normlize_decimal_ucur32(value):
+def normlize_decimal_ucur32(value): 
        return value / UCUR32_DECIMAL_MAX
 
-def combine_to_25bit(sixteen_bit, nine_bit):
+def combine_to_23bit(sixteen_bit, seven_bit):
     # Ensure inputs are within their bit limits
     sixteen_bit = sixteen_bit & 0xFFFF
-    nine_bit = nine_bit & 0x1FF      
+    seven_bit = seven_bit & 0x7F      
     
     # Shift the 8-bit number 16 positions left and OR it with the 16-bit number
-    result = (nine_bit << 16) | sixteen_bit
+    result = (seven_bit << 16) | sixteen_bit
     
     return result
 
