@@ -1,7 +1,4 @@
-def validate_update_values(values):
-    acc = abs(int(values["acceleration"]))
-    vel = abs(int(values["velocity"]))
-    return True
+
 
 def validate_pitch_and_roll_values(pitch,roll):
     try:

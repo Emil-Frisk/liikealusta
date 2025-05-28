@@ -237,6 +237,10 @@ def convert_vel_rpm_revs(rpm):
         return tuple with higher register value first
         8.24 format
         """
+        try:
+                rpm = int(rpm)
+        except ValueError:
+                raise
         if rpm < 0 or rpm > 350:
                 rpm = 350
         
@@ -252,6 +256,11 @@ def convert_acc_rpm_revs(rpm):
         return tuple with higher register value first
         12.20 format
         """
+        try:
+                rpm = int(rpm)
+        except ValueError:
+                raise
+        
         if rpm < 0 or rpm > 750:
                 rpm = 750
         

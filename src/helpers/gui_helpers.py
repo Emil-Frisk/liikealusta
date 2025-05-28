@@ -224,13 +224,13 @@ async def update_values(self):
     # Update values based on changes
     if changed_fields:
         # Update stored values after successful update
-        self.update_stored_values()
+        update_stored_values(self)
         # Send values to server
         try: ### TODO - muuta tämä lähettämään socket viesti instead
             await self.websocket_client.send(f"""
                                        action=updatevalues|
-                                       acceleration={self.stored_values['accel_input']}|
-                                       velocity={self.stored_values['speed_input']}|
+                                       acc={self.stored_values['accel_input']}|
+                                       vel={self.stored_values['speed_input']}|
                                        """)
         except Exception as e:
             self.logger(f"Error while changing values: {e}")
