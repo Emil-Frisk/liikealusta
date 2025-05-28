@@ -18,6 +18,7 @@ UACC32_RESOLUTION = 1 / (2**20)
 
 UCUR16_RESOLUTION = 1 / (2**7)
 UCUR16_LOW_MAX = 2**7
+UCUR32_DECIMAL_MAX = 2**25
 
 def started_from_exe():
     return getattr(sys, 'frozen', False)
@@ -150,6 +151,9 @@ def split_20bit_to_components(value):
     sixteen_bit = scaled_value & 0xFFFF
     
     return sixteen_bit, four_bit
+
+def normlize_decimal_ucur32(value):
+       return value / UCUR32_DECIMAL_MAX
 
 def combine_to_25bit(sixteen_bit, nine_bit):
     # Ensure inputs are within their bit limits
