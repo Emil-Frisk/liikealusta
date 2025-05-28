@@ -73,7 +73,7 @@ class ServerStartupGUI(QWidget):
         clientmessage = extract_part("message=", message=message)
         if not event:
             self.logger.error("No event specified in message.")
-            return
+            return 
         if not clientmessage: 
             self.logger.error("No client message specified in message.")
             return

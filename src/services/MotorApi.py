@@ -535,7 +535,7 @@ class MotorApi():
         left_actuator_tmp = bit_high_low_both(left_actuator_tmp, 3, "high")
         right_actuator_tmp = bit_high_low_both(right_actuator_tmp, 3, "high")
 
-        vals = await self.read(address=self.config.ICONTINUOUS, description="Read present current ", count=1)
+        vals = await self.read(address=self.config.ICONTINUOUS, description="Read present current ", count=2)
         if not vals:
             return False
         ### 9.7
