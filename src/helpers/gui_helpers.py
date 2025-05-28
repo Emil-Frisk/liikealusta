@@ -85,29 +85,6 @@ def store_current_field_values(self):
 def update_stored_values(self):
     store_current_field_values(self)
     
-def update_values(self):
-    """Update only the values that have changed."""
-    changed_fields = {}
-    # Check text fields for changes
-    if self.general_tab.get_velocity() != self.stored_values['speed_input']:
-        changed_fields.update({"velocity": self.general_tab.get_velocity()})
-        self.logger.info(f"Updating Velocity to {self.general_tab.get_velocity()} RPM")      
-                
-    if self.general_tab.get_acceleration() != self.stored_values['accel_input']:
-        changed_fields.update({"acceleration": self.general_tab.get_acceleration()})
-        self.logger.info(f"Updating Acceleration to {self.general_tab.get_acceleration()} RPM")   
-        
-    # Update values based on changes
-    if changed_fields:
-        # Update stored values after successful update
-        self.update_stored_values()
-        # Send values to server
-        try: ### TODO - muuta tämä lähettämään socket viesti instead - olli
-            pass
-            # print("TÄSSÄ", response)
-        except Exception as e:
-            self.logger(f"Error while changing values: {e}")
-            
 def get_field_values(self):
     ip1 = self.advanced_tab.get_left_motor().strip()
     ip2 = self.advanced_tab.get_right_motor().strip()
@@ -198,15 +175,41 @@ def save_config(self, ip1, ip2, freq, speed, accel):
             "acceleration": accel
         }, f)
 
+    
+def start_server(self):
+    (ip1, ip2, freq, speed, accel)  = get_field_values(self)
+
+    if not ip1 or not ip2:
+        QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
+        return
+
+    save_config(self, ip1, ip2, freq, speed, accel)
+    
+    try:
+        ### Make sure the process main.py is not already running for some reason
+        result = self.process_manager.exterminate_lingering_process("main")
+        if not result:
+            self.logger.error(f"Unable to kill lingering process with name: main. Not launching a new process...")
+            return
+        elif result:
+            self.logger.info(f"No lingering process remaining.")
+        
+        self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", str(accel), "--vel", str(speed)])
+        self.start_button.setEnabled(False)
+        
+        # Update inptu values
+        update_stored_values(self)
+        # Switch button logic to update values
+        self.start_button.setText("Update Values")
+        # Start WebSocket client after server starts
+        self.start_websocket_client()
+    except FileNotFoundError as e:
+        self.logger.error(f"Could not find venv: {e}")
+    except Exception as e:
+        QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
 
-def handle_button_click(self):
-    if not self.is_server_running:
-        self.start_server()
-    else:
-        self.update_values()
-
-def update_values(self):
+async def update_values(self):
     """Update only the values that have changed."""
     changed_fields = {}
     # Check text fields for changes
@@ -224,9 +227,11 @@ def update_values(self):
         self.update_stored_values()
         # Send values to server
         try: ### TODO - muuta tämä lähettämään socket viesti instead
-            pass
-            # response = make_request("http://localhost:5001/updatevalues", changed_fields)
-            # print("TÄSSÄ", response)
+            await self.websocket_client.send(f"""
+                                       action=updatevalues|
+                                       acceleration={self.stored_values['accel_input']}|
+                                       velocity={self.stored_values['speed_input']}|
+                                       """)
         except Exception as e:
             self.logger(f"Error while changing values: {e}")
 
