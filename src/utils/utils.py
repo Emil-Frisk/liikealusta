@@ -18,7 +18,7 @@ UACC32_RESOLUTION = 1 / (2**20)
 
 UCUR16_RESOLUTION = 1 / (2**7)
 UCUR16_LOW_MAX = 2**7
-UCUR32_DECIMAL_MAX = 2**25
+UCUR32_DECIMAL_MAX = 2**23
 
 def started_from_exe():
     return getattr(sys, 'frozen', False)

@@ -26,7 +26,7 @@ class MotorConfig:
     SYSTEM_COMMAND: int = 4001
 
     ### Telemetry registers (high)
-    ICONTINUOUS = 565
+    ICONTINUOUS = 564
     ACTUATOR_TMP = 15
     BOARD_TMP = 11
 
