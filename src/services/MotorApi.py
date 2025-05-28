@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, Union
 from settings.motors_config import MotorConfig
 from pymodbus.exceptions import ConnectionException, ModbusIOException
-from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default
+from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default, combine_to_23bit, normlize_decimal_ucur32
 import asyncio
 from time import sleep, time
 from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both, combine_to_21bit, normalize_decimal_uvolt32, get_twos_complement
@@ -540,8 +540,14 @@ class MotorApi():
             return False
         ### 9.7
         left_IC, right_IC = vals
-        left_IC = bit_high_low_both(left_IC, 7, "high")
-        right_IC = bit_high_low_both(right_IC, 7, "high")
+        (left_IC_high, left_IC_low) = bit_high_low_both(left_IC[1], 7)
+        (right_IC_high, left_IC_low) = bit_high_low_both(right_IC[1], 7)
+        decimal_left = combine_to_23bit(left_IC[0],left_IC_low)
+        deciaml_right = combine_to_23bit(right_IC[0],left_IC_low)
+        normalized_decimal_left = normlize_decimal_ucur32(decimal_left)
+        normalized_decimal_right = normlize_decimal_ucur32(deciaml_right)
+        left_IC = left_IC_high + normalized_decimal_left
+        right_IC = right_IC_high + normalized_decimal_right
 
         vals = await self.read(address=self.config.VBUS, description="Read present VBUS voltage ", count=2)
         ### 11.21
