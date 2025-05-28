@@ -252,8 +252,8 @@ class MotorApi():
                 
                 (OEG_STATUS_right, OEG_STATUS_left) = response
                 
-                ishomed_right = is_nth_bit_on(1, OEG_STATUS_right.registers[0])
-                ishomed_left = is_nth_bit_on(1, OEG_STATUS_left.registers[0])
+                ishomed_right = is_nth_bit_on(1, OEG_STATUS_right)
+                ishomed_left = is_nth_bit_on(1, OEG_STATUS_left)
 
                 # Success
                 if ishomed_right and ishomed_left:

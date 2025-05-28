@@ -29,7 +29,13 @@ class CommunicationHub:
             self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
             self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
-            await helpers.create_hearthbeat_monitor_tasks(self, self.process_manager)
+            #TODO exterminate lingering process
+            """
+            Simuloin absoluuttinen, 
+            benchmark telemeptry dataloop,
+            read_register format methods
+            """
+            await helpers.create_hearthbeat_monitor_tasks(self)
             # Connect to both drivers
             connected = await self.clients.connect()
 
@@ -74,11 +80,12 @@ class CommunicationHub:
         #########################################################################################
 
         helpers.close_tasks(self)
+        await self.motor_api.reset_motors()
+
         self.process_manager.cleanup_all()
+
         if self.clients is not None:
             self.clients.cleanup()
-
-        await self.motor_api.reset_motors()
         await asyncio.sleep(20)
 
         if wsclient:

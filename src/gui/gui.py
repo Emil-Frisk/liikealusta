@@ -20,8 +20,9 @@ class ServerStartupGUI(QWidget):
         self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
-        self.styles_path = helpers.get_gui_path() / "styles.json"
-        self.CONFIG_FILE = helpers.get_gui_path() / "config.json"
+        self.path = Path(__file__).parent
+        self.styles_path = self.path / "styles.json"
+        self.CONFIG_FILE = self.path / "config.json"
         
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -47,43 +48,10 @@ class ServerStartupGUI(QWidget):
         
     def handle_button_click(self):
         if not self.is_server_running:
-            self.start_server()
+            helpers.start_server(self)
         else:
-            helpers.update_values()
-    
-    def start_server(self):
-        (ip1, ip2, freq, speed, accel)  = helpers.get_field_values(self)
+            asyncio.create_task(helpers.update_values(self))
 
-        if not ip1 or not ip2:
-            QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
-            return
-
-        helpers.save_config(self, ip1, ip2, freq, speed, accel)
-        
-        try:
-            ### Make sure the process main.py is not already running for some reason
-            result = self.process_manager.exterminate_lingering_process("main")
-            if not result:
-                self.logger.error(f"Unable to kill lingering process with name: main. Not launching a new process...")
-                return
-            elif result:
-                self.logger.info(f"No lingering process remaining.")
-            
-            self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", str(accel), "--vel", str(speed)])
-            QMessageBox.information(self, "Success", "Server started successfully!")
-            self.start_button.setEnabled(False)
-            
-            # Update inptu values
-            helpers.update_stored_values(self)
-            # Switch button logic to update values
-            self.start_button.setText("Update Values")
-            # Start WebSocket client after server starts
-            self.start_websocket_client()
-        except FileNotFoundError as e:
-            self.logger.error(f"Could not find venv: {e}")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
-        
     def shutdown_websocket_client(self):
         """Shutdown the WebSocket client."""
         asyncio.create_task(self.websocket_client.close())
@@ -132,11 +100,7 @@ class ServerStartupGUI(QWidget):
             self.faults_tab.hide_fault()
     
     def clear_fault(self):
-        asyncio.create_task(helpers.clear_fault(self))
-
-    def fault_reset(self):
-        pass ### TODO - jatka tästä
-        
+        asyncio.create_task(helpers.clear_fault(self))    
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

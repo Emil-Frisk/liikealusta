@@ -29,7 +29,7 @@ class ProcessManager:
                 cmd =  ["C:\liikealusta\.venv\Scripts\python.exe", temp_exe_dir]
             else:
                 file_path = os.path.join(self.target_dir, f"{file_name}.py")
-                venv_python = find_venv_python()
+                venv_python = find_venv_python(__file__)
                 
                 ### adding file_name to the launch options to find and check for its existance later
                 cmd =  [venv_python, file_path, f"entrypoint={file_name}"]
@@ -126,7 +126,7 @@ class ProcessManager:
                 return False
 
             ps_process.kill()
-            self.logger.warning(f"Force killed process with PID {ps_process.pid}")
+            self.logger.warning(f"Force killed process: {process_name} with PID {ps_process.pid}")
             return True
         except Exception as e:
             self.logger.error(f"Something went wrong with trying to kill a process: {e}")

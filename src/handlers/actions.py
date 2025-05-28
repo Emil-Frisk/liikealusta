@@ -1,5 +1,4 @@
 
-from services.validation_service import validate_update_values
 from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_revs
 from helpers import communication_hub_helpers as helpers
 import math
@@ -17,7 +16,7 @@ async def write(self, pitch, roll, wsclient):
 async def identify(self, identity, wsclient):
     try:
         if identity:
-            self.wsclients[wsclient] = {identity: identity.lower()}
+            self.wsclients[wsclient] = {"identity": identity.lower()}
             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
@@ -134,10 +133,7 @@ async def stop_motors(self):
 
 async def update_input_values(self,acceleration,velocity):
     try:
-        values = {acceleration: acceleration, velocity: velocity}
-        if not validate_update_values(values):
-            raise ValueError()
-        
+        values = {"acceleration": int(acceleration), "velocity": int(velocity)}        
         if 'velocity' in values:
             (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(values["velocity"])
             if not await self.motor_api.set_analog_vel_max(velocity_decimal, velocity_whole):

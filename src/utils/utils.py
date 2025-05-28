@@ -22,15 +22,15 @@ UCUR16_LOW_MAX = 2**7
 def started_from_exe():
     return getattr(sys, 'frozen', False)
 
-def find_venv_python():
-        for parent in get_current_path().parents:
+def find_venv_python(file):
+        for parent in get_current_path(file).parents:
                 if (parent / ".venv").exists():
                         return os.path.join(parent, ".venv\Scripts\python.exe")
         raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
 def convert_to_revs(pfeedback):
-    decimal = pfeedback.registers[0] / 65535
-    num = pfeedback.registers[1]
+    decimal = pfeedback[0] / 65535
+    num = pfeedback[1]
     return num + decimal
 
 def get_exe_temp_dir():
@@ -247,6 +247,10 @@ def convert_vel_rpm_revs(rpm):
         return tuple with higher register value first
         8.24 format
         """
+        try:
+                rpm = int(rpm)
+        except ValueError:
+                raise
         if rpm < 0 or rpm > 350:
                 rpm = 350
         
@@ -262,6 +266,11 @@ def convert_acc_rpm_revs(rpm):
         return tuple with higher register value first
         12.20 format
         """
+        try:
+                rpm = int(rpm)
+        except ValueError:
+                raise
+        
         if rpm < 0 or rpm > 750:
                 rpm = 750
         
@@ -271,11 +280,11 @@ def convert_acc_rpm_revs(rpm):
         whole_num_register_bits = combine_12_4bit(int(whole), four_b)
         return (whole_num_register_bits, sixteen_b)
 
-def get_base_path():
+def get_base_path(file):
     if started_from_exe():
         return str(Path(sys.executable).resolve().parent)
     else:
-        return Path(os.path.abspath(__file__)).parent.parent
+        return Path(os.path.abspath(file)).parent.parent
 
 def get_current_path(file):
         return Path(file).parent

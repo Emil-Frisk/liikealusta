@@ -14,8 +14,6 @@ import sys
 from utils.utils import get_exe_temp_dir,started_from_exe, extract_part, get_current_path, find_venv_python
 from pathlib import Path
 
-def get_gui_path():
-    return get_current_path().parent / "gui"
 
 def load_styles(self):
     try:
@@ -23,7 +21,7 @@ def load_styles(self):
             temp_file_path = get_exe_temp_dir()
             styles_path = os.path.join(temp_file_path, "src", "gui", "styles.json")
         else: 
-            styles_path = get_gui_path() / "styles.json"
+            styles_path = self.path / "styles.json"
         with open(styles_path, "r") as f:
             data = json.load(f)
         
@@ -87,29 +85,6 @@ def store_current_field_values(self):
 def update_stored_values(self):
     store_current_field_values(self)
     
-def update_values(self):
-    """Update only the values that have changed."""
-    changed_fields = {}
-    # Check text fields for changes
-    if self.general_tab.get_velocity() != self.stored_values['speed_input']:
-        changed_fields.update({"velocity": self.general_tab.get_velocity()})
-        self.logger.info(f"Updating Velocity to {self.general_tab.get_velocity()} RPM")      
-                
-    if self.general_tab.get_acceleration() != self.stored_values['accel_input']:
-        changed_fields.update({"acceleration": self.general_tab.get_acceleration()})
-        self.logger.info(f"Updating Acceleration to {self.general_tab.get_acceleration()} RPM")   
-        
-    # Update values based on changes
-    if changed_fields:
-        # Update stored values after successful update
-        self.update_stored_values()
-        # Send values to server
-        try: ### TODO - muuta tämä lähettämään socket viesti instead
-            pass
-            # print("TÄSSÄ", response)
-        except Exception as e:
-            self.logger(f"Error while changing values: {e}")
-            
 def get_field_values(self):
     ip1 = self.advanced_tab.get_left_motor().strip()
     ip2 = self.advanced_tab.get_right_motor().strip()
@@ -200,19 +175,41 @@ def save_config(self, ip1, ip2, freq, speed, accel):
             "acceleration": accel
         }, f)
 
-def get_base_path():
-    if started_from_exe():
-        return str(Path(sys.executable).resolve().parent)
-    else:
-        return Path(os.path.abspath(__file__)).parent
+    
+def start_server(self):
+    (ip1, ip2, freq, speed, accel)  = get_field_values(self)
 
-def handle_button_click(self):
-    if not self.is_server_running:
-        self.start_server()
-    else:
-        self.update_values()
+    if not ip1 or not ip2:
+        QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
+        return
 
-def update_values(self):
+    save_config(self, ip1, ip2, freq, speed, accel)
+    
+    try:
+        ### Make sure the process main.py is not already running for some reason
+        result = self.process_manager.exterminate_lingering_process("main")
+        if not result:
+            self.logger.error(f"Unable to kill lingering process with name: main. Not launching a new process...")
+            return
+        elif result:
+            self.logger.info(f"No lingering process remaining.")
+        
+        self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", str(accel), "--vel", str(speed)])
+        self.start_button.setEnabled(False)
+        
+        # Update inptu values
+        update_stored_values(self)
+        # Switch button logic to update values
+        self.start_button.setText("Update Values")
+        # Start WebSocket client after server starts
+        self.start_websocket_client()
+    except FileNotFoundError as e:
+        self.logger.error(f"Could not find venv: {e}")
+    except Exception as e:
+        QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
+
+
+async def update_values(self):
     """Update only the values that have changed."""
     changed_fields = {}
     # Check text fields for changes
@@ -227,79 +224,16 @@ def update_values(self):
     # Update values based on changes
     if changed_fields:
         # Update stored values after successful update
-        self.update_stored_values()
+        update_stored_values(self)
         # Send values to server
         try: ### TODO - muuta tämä lähettämään socket viesti instead
-            pass
-            # response = make_request("http://localhost:5001/updatevalues", changed_fields)
-            # print("TÄSSÄ", response)
+            await self.websocket_client.send(f"""
+                                       action=updatevalues|
+                                       acc={self.stored_values['accel_input']}|
+                                       vel={self.stored_values['speed_input']}|
+                                       """)
         except Exception as e:
             self.logger(f"Error while changing values: {e}")
-
-def start_server(self):
-    ip1 = self.advanced_tab.get_left_motor().strip()
-    ip2 = self.advanced_tab.get_right_motor().strip()
-    freq = self.advanced_tab.get_freq()
-    speed = self.general_tab.get_velocity()
-    accel = self.general_tab.get_acceleration()
-
-    # if not ip1 or not ip2:
-    #     QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
-    #     return
-
-    self.save_config(ip1, ip2, freq, speed, accel)
-    
-    try:   
-        base_path = get_base_path()
-        test = Path(os.path.abspath(__file__)).parent
-        if started_from_exe():
-            exe_temp_dir = get_exe_temp_dir()
-            server_path = os.path.join(exe_temp_dir, "src\motor_api.py")
-            self.logger.info(server_path)
-            venv_python = "C:\liikealusta\.venv\Scripts\python.exe" # TODO - make this dynamic
-        else:
-            base_path = Path(base_path).parent
-            server_path = os.path.join(base_path, "motor_api.py")
-            venv_python = find_venv_python()
-        
-        if venv_python:
-            cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
-        else: 
-            cmd = f'"{venv_python}" "{server_path}" --server_left "{ip1}" --server_right "{ip2}" --acc "{accel}" --vel "{speed}"'
-
-        self.process = subprocess.Popen(cmd)
-
-        self.logger.info(f"Server launched with PID: {self.process.pid}")
-        QMessageBox.information(self, "Success", "Server started successfully!")
-        self.shutdown_button.setEnabled(True)
-        # self.start_button.setEnabled(False)
-        
-        # Update inptu values
-        self.update_stored_values()
-        # Switch button logic to update values
-        self.is_server_running = True # server is running
-        self.start_button.setText("Update Values")
-        # Start WebSocket client after server starts
-        asyncio.ensure_future(self.start_websocket_client())
-    except Exception as e:
-        QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
-
-def shutdown_server(self):
-    try:
-        # First, close the WebSocket client
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.websocket_client.send("action=shutdown|"))
-        # Then attempt to shutdown the server
-        ### TODO - muuta tämä lähettämään socket message action instead
-        # response = make_request("http://localhost:5001/shutdown")
-        # if "success" in response.stdout:  # Fixed: Check status_code, not returncode
-        #     QMessageBox.information(self, "Success", "Server shutdown successfully!")
-        #     self.shutdown_button.setEnabled(False)
-        #     self.start_button.setEnabled(True)
-        # else:
-        #     QMessageBox.warning(self, "Warning", f"Failed to shutdown server: {response.text}")
-    except Exception as e:
-        QMessageBox.critical(self, "Error", f"Failed to shutdown server: {str(e)}")
 
 def handle_client_message(self, message):
     """Update the GUI label with WebSocket messages."""
