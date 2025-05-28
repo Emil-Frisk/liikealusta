@@ -29,6 +29,7 @@ class MotorConfig:
     ICONTINUOUS = 564
     ACTUATOR_TMP = 15
     BOARD_TMP = 11
+    VBUS = 570 # 11.21
 
     ### OPERATION MODES
     COMMAND_MODE = 4303

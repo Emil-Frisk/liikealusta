@@ -4,7 +4,7 @@ from pymodbus.exceptions import ConnectionException, ModbusIOException
 from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default, combine_to_23bit, normlize_decimal_ucur32
 import asyncio
 from time import sleep, time
-from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both
+from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both, combine_to_21bit, normalize_decimal_uvolt32, get_twos_complement
 from helpers.motor_api_helper import calculate_motor_modbuscntrl_vals, get_register_values
 import math
 
@@ -517,7 +517,7 @@ class MotorApi():
 
     async def get_telemetry_data(self):
         """Reads the motors current board tempereature,
-        actuator temperature and continuous current
+        actuator temperature, continuous current and present VBUS voltage
         and returns their whole number part only and drops the decimal part"""
         vals = await self.read(address=self.config.BOARD_TMP, description="Read board temperature", count=1)
         if not vals:
@@ -549,5 +549,29 @@ class MotorApi():
         left_IC = left_IC_high + normalized_decimal_left
         right_IC = right_IC_high + normalized_decimal_right
 
-        return ((left_board_tmp, right_board_tmp), (left_actuator_tmp, right_actuator_tmp), (left_IC, right_IC))
+        vals = await self.read(address=self.config.VBUS, description="Read present VBUS voltage ", count=2)
+        ### 11.21
+        if not vals:
+            return False
+        left_VBUS, right_VBUS = vals
+
+        ### Extract the high value part and deccimal part
+        left_VBUS_high, left_VBUS_low = bit_high_low_both(left_VBUS[1], 5)
+        right_VBUS_high, right_VBUS_low = bit_high_low_both(right_VBUS[1], 5)
+
+        left_vbus_decimal_val = combine_to_21bit(left_VBUS[0], left_VBUS_low)
+        right_vbus_decimal_val = combine_to_21bit(right_VBUS[0], right_VBUS_low)
+
+        left_vbus_decimal_val = normalize_decimal_uvolt32(left_vbus_decimal_val)
+        right_vbus_decimal_val = normalize_decimal_uvolt32(right_vbus_decimal_val)
+
+        ### CONVERT VBUS HIGH INTO ACTUAL VALUE IT USES TWO's COMPLEMENT
+        left_VBUS_high = get_twos_complement(10, left_VBUS_high)
+        right_VBUS_high = get_twos_complement(10, right_VBUS_high)
+
+        left_VBUS = left_VBUS_high + left_vbus_decimal_val
+        right_VBUS = right_VBUS_high + right_vbus_decimal_val
+
+        return ((left_board_tmp, right_board_tmp), (left_actuator_tmp, right_actuator_tmp), (left_IC, right_IC), (left_VBUS, right_VBUS))
+    
         

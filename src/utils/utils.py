@@ -19,6 +19,7 @@ UACC32_RESOLUTION = 1 / (2**20)
 UCUR16_RESOLUTION = 1 / (2**7)
 UCUR16_LOW_MAX = 2**7
 UCUR32_DECIMAL_MAX = 2**23
+UVOLT32_DECIMAL_MAX = 2**21
 
 def started_from_exe():
     return getattr(sys, 'frozen', False)
@@ -155,6 +156,18 @@ def split_20bit_to_components(value):
 def normlize_decimal_ucur32(value): 
        return value / UCUR32_DECIMAL_MAX
 
+def normalize_decimal_uvolt32(value):
+       return value / UVOLT32_DECIMAL_MAX
+
+### TODO - tee geneerinen bitti shiftaus functio
+def combine_to_21bit(sixteen_bit_val, five_bit_val):
+        sixteen_bit_val = sixteen_bit_val & 0xFFFF
+        five_bit_val = five_bit_val & 31
+
+        result = (five_bit_val << 16) | sixteen_bit_val
+
+        return result
+
 def combine_to_23bit(sixteen_bit, seven_bit):
     # Ensure inputs are within their bit limits
     sixteen_bit = sixteen_bit & 0xFFFF
@@ -186,15 +199,20 @@ def combine_to_20bit(sixteen_bit, four_bit):
     return result
 
 def get_twos_complement(bit, value):
-       is_highest_bit_on = value & 1 << (bit - 1)
+       """Bit tells how manieth bit 2^n"""
+       rer= 1 << bit
+       is_highest_bit_on = value & 1 << bit
 
        if is_highest_bit_on:
-                base = 2**(bit-1)
-                lower = value & 0x7F
+                base = 2**bit
+                if bit == 0:
+                        return -1
+                lower = (2**bit) -1
+                lower = value & lower
                 return (lower - base)
                 
        return value
-       
+
 def get_vel32_revs(high, low):
        whole_value_bits = high >> 8
        decimal_high_bits = high & 0xFF

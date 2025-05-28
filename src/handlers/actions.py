@@ -166,8 +166,7 @@ async def read_telemetry(self, wsclient):
         if not data:
             await wsclient.send(f"event=error|message=Something went wrong while reading telemetry data|")
             return False
-        a = f"event=telemetrydata|message=boardtemp:{data[0]}*actuatortemp:{data[1]}*IC:{data[2]}*|"
-        await wsclient.send(f"event=telemetrydata|message=boardtemp:{data[0]}*actuatortemp:{data[1]}*IC:{data[2]}*|")
+        await wsclient.send(f"event=telemetrydata|message=boardtemp:{data[0]}*actuatortemp:{data[1]}*IC:{data[2]}*VBUS:{data[3]}*|")
     except Exception as e:
         self.logger.error(f"Something went wrong while reading telemetry data: {e}")
         await wsclient.send(f"event=error|message=Something went wrong while reading telemetry data|")
