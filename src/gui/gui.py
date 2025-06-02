@@ -17,7 +17,6 @@ class ServerStartupGUI(QWidget):
         super().__init__()
         self.logger = setup_logging("startup", "startup.log")
         self.process_manager = ProcessManager(logger=self.logger, target_dir=get_current_path(__file__).parent)
-        self.is_server_running = False
         self.setWindowTitle("Server Startup")
         self.setGeometry(100, 100, 400, 400) 
         self.path = Path(__file__).parent
@@ -47,11 +46,8 @@ class ServerStartupGUI(QWidget):
         asyncio.create_task(self.websocket_client.connect())
         
     def handle_button_click(self):
-        if not self.is_server_running:
-            helpers.start_server(self)
-        else:
-            asyncio.create_task(helpers.update_values(self))
-
+        helpers.start_server(self)
+        
     def shutdown_websocket_client(self):
         """Shutdown the WebSocket client."""
         asyncio.create_task(self.websocket_client.close())
@@ -90,11 +86,8 @@ class ServerStartupGUI(QWidget):
             self.faults_tab.hide_fault_group()
         elif event == "connected":
             self.shutdown_button.setEnabled(True)
-            self.start_button.setEnabled(True)
-            self.is_server_running = True # server is running
             self.message_label.setText(clientmessage)
         elif event == "shutdown":
-            self.is_server_running = False
             self.start_button.setEnabled(True)
             self.shutdown_button.setEnabled(False)
             self.faults_tab.hide_fault()
