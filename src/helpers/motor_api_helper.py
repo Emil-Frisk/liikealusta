@@ -59,8 +59,8 @@ def calculate_motor_modbuscntrl_vals(self, pitch_value, roll_value):
             modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
             modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
 
-            position_client_left = math.floor(modbus_percentile_left * self.motor_confi.MODBUSCTRL_MAX)
-            position_client_right = math.floor(modbus_percentile_right * self.motor_confi.MODBUSCTRL_MAX)
+            position_client_left = math.floor(modbus_percentile_left * self.config.MODBUSCTRL_MAX)
+            position_client_right = math.floor(modbus_percentile_right * self.config.MODBUSCTRL_MAX)
 
             return position_client_left, position_client_right
         except Exception as e:

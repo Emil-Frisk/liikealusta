@@ -93,16 +93,6 @@ def get_field_values(self):
     accel = self.general_tab.get_acceleration()
     return (ip1, ip2, freq, speed, accel)
 
-def save_config(self, ip1, ip2, freq, speed, accel):
-    with open(self.CONFIG_FILE, "w") as f:
-        json.dump({
-            "servo_ip_1": ip1,
-            "servo_ip_2": ip2,
-            "update_frequency": freq,
-            "speed": speed,
-            "acceleration": accel
-        }, f)
-
 async def clear_fault(self):
     await self.websocket_client.send("action=clearfault|")
     
@@ -195,45 +185,15 @@ def start_server(self):
             self.logger.info(f"No lingering process remaining.")
         
         self.process_manager.launch_process("main", args=["--server_left", ip1, "--server_right", ip2, "--acc", str(accel), "--vel", str(speed)])
-        self.start_button.setEnabled(False)
-        
-        # Update inptu values
-        update_stored_values(self)
-        # Switch button logic to update values
-        self.start_button.setText("Update Values")
+
         # Start WebSocket client after server starts
         self.start_websocket_client()
+        self.start_button.setEnabled(False)
     except FileNotFoundError as e:
         self.logger.error(f"Could not find venv: {e}")
     except Exception as e:
         QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
-
-async def update_values(self):
-    """Update only the values that have changed."""
-    changed_fields = {}
-    # Check text fields for changes
-    if self.general_tab.get_velocity() != self.stored_values['speed_input']:
-        changed_fields.update({"velocity": self.general_tab.get_velocity()})
-        self.logger.info(f"Updating Velocity to {self.general_tab.get_velocity()} RPM")      
-                
-    if self.general_tab.get_acceleration() != self.stored_values['accel_input']:
-        changed_fields.update({"acceleration": self.general_tab.get_acceleration()})
-        self.logger.info(f"Updating Acceleration to {self.general_tab.get_acceleration()} RPM")   
-        
-    # Update values based on changes
-    if changed_fields:
-        # Update stored values after successful update
-        update_stored_values(self)
-        # Send values to server
-        try: ### TODO - muuta tämä lähettämään socket viesti instead
-            await self.websocket_client.send(f"""
-                                       action=updatevalues|
-                                       acc={self.stored_values['accel_input']}|
-                                       vel={self.stored_values['speed_input']}|
-                                       """)
-        except Exception as e:
-            self.logger(f"Error while changing values: {e}")
 
 def handle_client_message(self, message):
     """Update the GUI label with WebSocket messages."""
