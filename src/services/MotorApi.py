@@ -297,7 +297,7 @@ class MotorApi():
 
     async def set_analog_vel_max(self, decimal: int, whole: int) -> bool:
         """
-        Sets the analog velocity maxium for both motors.
+        Sets the analog velocity maximum for both motors.
         Args:
             decimal (int): The decimal part of the velocity limit.
             whole (int): The whole number part of the velocity limit.
@@ -306,7 +306,17 @@ class MotorApi():
         """
         values = [decimal, whole]
         return await self.write(multiple_registers=True, values=values, description="set analog velocity max", address=self.config.ANALOG_VEL_MAXIMUM)
-    
+    async def set_host_vel_max(self, decimal: int, whole: int) -> bool:
+        """
+        Sets the host velocity maximum for both motors.
+        Args:
+            decimal (int): The decimal part of the velocity limit.
+            whole (int): The whole number part of the velocity limit.
+        Returns:
+            bool: True if successful for both motors, False otherwise.
+        """
+        values = [decimal, whole]
+        return await self.write(multiple_registers=True, values=values, description="set host velocity max", address=self.config.HOST_VEL_MAXIMUM)
     async def set_analog_acc_max(self, decimal: int, whole: int) -> bool:
         """
         Sets the analog acceleration maxium for both motors.
@@ -318,7 +328,17 @@ class MotorApi():
         """
         values = [decimal, whole]
         return await self.write(multiple_registers=True, values=values, description="set analog acceleration maxium", address=self.config.ANALOG_ACCELERATION_MAXIMUM)
-
+    async def set_host_acc_max(self, decimal: int, whole: int) -> bool:
+        """
+        Sets the host acceleration maxium for both motors.
+        Args:
+            decimal (int): The decimal part of the acceleration limit.
+            whole (int): The whole number part of the acceleration limit.
+        Returns:
+            bool: True if successful for both motors, False otherwise.
+        """
+        values = [decimal, whole]
+        return await self.write(multiple_registers=True, values=values, description="set host acceleration maxium", address=self.config.HOST_ACCELERATION_MAXIMUM)
     async def set_analog_input_channel(self, value: int) -> bool:
         """
         Sets the analog input channel for both motors.
@@ -353,7 +373,8 @@ class MotorApi():
         """
         value_left, value_right = values
         return await self.write(different_values=True, right_val=value_right, left_val=value_left, description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
-    
+    async def set_host_poisition(self, values ):
+            pass
     async def wait_for_motors_to_stop(self) -> bool:
         """ Polls for motors to stop returns True or False"""
         ### TODO - figure out velocity feedback register
@@ -477,12 +498,28 @@ class MotorApi():
             (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(self.config.VEL)
             if not await self.set_analog_vel_max(velocity_decimal, velocity_whole):
                 return False
-
             ### UACC32 whole number split in 12.4 format
             (acc_whole, acc_decimal) = convert_acc_rpm_revs(self.config.ACC)
             if not await self.set_analog_acc_max(acc_decimal, acc_whole):
                 return False
 
+            ### HOST VEL
+            (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(self.config.VEL)
+            if not await self.set_host_vel_max(velocity_decimal, velocity_whole):
+                return False
+            ### HOST ACC
+            (acc_whole, acc_decimal) = convert_acc_rpm_revs(self.config.ACC)
+            if not await self.set_analog_acc_max(acc_decimal, acc_whole):
+                return False
+            
+            response = await self.get_current_revs_converted()
+            if not response:
+                return False
+            (position_client_left, position_client_right) = response
+            
+            if not await self.set_host_poisition((position_client_left, position_client_right)):
+                return False
+            
             ## Analog input channel set to use modbusctrl (2)
             if not await self.set_analog_input_channel(self.config.ANALOG_MODBUS_CNTRL_VALUE):
                 return False
