@@ -29,7 +29,6 @@ class CommunicationHub:
             self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
             self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
-            #TODO exterminate lingering process
             """
             Simuloin absoluuttinen, 
             benchmark telemeptry dataloop,

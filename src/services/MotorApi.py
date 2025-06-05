@@ -5,7 +5,7 @@ from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default, 
 import asyncio
 from time import sleep, time
 from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both, combine_to_21bit, normalize_decimal_uvolt32, get_twos_complement
-from helpers.motor_api_helper import calculate_motor_modbuscntrl_vals, get_register_values
+from helpers.motor_api_helper import calculate_target_revs, get_register_values
 import math
 
 class MotorApi():
@@ -545,7 +545,7 @@ class MotorApi():
     
     async def rotate(self, pitch_value, roll_value):
         try:
-            result = calculate_motor_modbuscntrl_vals(self,pitch_value=pitch_value, roll_value=roll_value)
+            result = calculate_target_revs(self,pitch_value=pitch_value, roll_value=roll_value)
             if result:
                 left_val, right_val = result 
                 await self.set_analog_modbus_cntrl((left_val, right_val))
