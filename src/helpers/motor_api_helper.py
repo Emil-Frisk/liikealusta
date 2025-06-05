@@ -82,7 +82,7 @@ def calculate_target_revs(self, pitch_value, roll_value):
                  right_pos_low = min(self.config.MAX_POS_DECIMAL, right_pos_low)
                  right_whole = self.config.MAX_POS_WHOLE
 
-            return ((left_decimal, left_whole), (right_decimal, right_whole))
+            return ((left_pos_low, left_whole), (right_pos_low, right_whole))
         except Exception as e:
             self.logger.error(f"soemthing went wrong in trying to calculate modbuscntrl vals")
             return False
