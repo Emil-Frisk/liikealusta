@@ -16,3 +16,36 @@ def is_absolute_fault(data):
     if not left in ABSOLUTE_FAULTS and not right in ABSOLUTE_FAULTS:
         return False
     return True
+
+
+async def validate_fault_register(self, wsclient=None) -> bool:
+    """
+    Check if the fault register have critical or absolute fault. Returns True if there's none.
+    """
+    l_has_faulted, r_has_faulted = has_faulted(vals)
+
+    if (l_has_faulted or r_has_faulted):
+        vals = await self.motor_api.get_recent_fault()
+
+        if not vals:
+            self.logger.error("Getting recent fault was not succesful")
+            return False
+
+        ### check if the fault is absolute
+        if is_absolute_fault(vals):
+            if wsclient:
+                await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
+            return False
+        # Check that its not a critical fault
+        if is_critical_fault(vals):
+            if l_has_faulted:
+                if wsclient: 
+                    await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[0]]}|receiver=GUI|")
+                return False
+            else:
+                if wsclient:
+                    await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[1]]}|receiver=GUI|")
+                self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[1]]}")
+                return False
+        else:
+            return True

@@ -42,6 +42,7 @@ class MotorConfig:
     DISABLED = 0
     DIGITAL_INPUT = 1
     ANALOG_POSITION_MODE = 2
+    HOST_POSITION_MODE = 5
     
     ## Percentile = x - pos_min / (pos_max - pos_min)
     POS_MIN_REVS = 0.393698024

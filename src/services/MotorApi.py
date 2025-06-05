@@ -7,6 +7,7 @@ from time import sleep, time
 from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both, combine_to_21bit, normalize_decimal_uvolt32, get_twos_complement
 from helpers.motor_api_helper import calculate_target_revs, get_register_values
 import math
+from helpers import fault_helpers as fault_helper  
 
 class MotorApi():
     def __init__(self, logger, modbus_clients,config=MotorConfig(), retry_delay = 0.2, max_retries = 10):
@@ -83,7 +84,7 @@ class MotorApi():
             except Exception as e:
                 self.logger.error(f"Unexpected error while {description}: {str(e)}")
                 return False
-        else:
+        else: # Multiple registers
             try:
                 while max_retries > attempt_left and max_retries > attempt_right:
                     if not success_right:
@@ -373,8 +374,12 @@ class MotorApi():
         """
         value_left, value_right = values
         return await self.write(different_values=True, right_val=value_right, left_val=value_left, description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
-    async def set_host_poisition(self, values ):
-            pass
+    async def set_host_poisition(self, values: Tuple[List,List]) -> bool:
+            """
+            Sets the host position values for both motors.
+            """
+            values_left, values_right = values
+            return await self.write(multiple_registers=True,different_values=True, right_vals=values_right, left_vals=values_left, description="Set host position values", address=self.config.HOST_POSITION)
     async def wait_for_motors_to_stop(self) -> bool:
         """ Polls for motors to stop returns True or False"""
         ### TODO - figure out velocity feedback register
@@ -479,30 +484,13 @@ class MotorApi():
     async def initialize_motor(self):
         """ Tries to initialize the motors with initial values returns true if succesful """
         await self.set_host_command_mode(0)
+        if not await fault_helper.validate_fault_register(self):
+            return False
+        
         await self.set_ieg_mode(self.config.RESET_FAULT_VALUE)
         homed = await self.home()
 
         if homed: 
-            ## Prepare motor parameters for operation
-            ### MAX POSITION LIMITS FOR BOTH MOTORS | 147 mm
-            if not await self.set_analog_pos_max(61406, 28):
-                return False
-
-            ### MIN POSITION LIMITS FOR BOTH MOTORS || 2 mm
-            if not await self.set_analog_pos_min(25801, 0):
-                return False
-
-            ### Velocity whole number is in 8.8 where decimal is in little endian format,
-            ### meaning smaller bits come first, so 1 rev would be 2^8
-            
-            (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(self.config.VEL)
-            if not await self.set_analog_vel_max(velocity_decimal, velocity_whole):
-                return False
-            ### UACC32 whole number split in 12.4 format
-            (acc_whole, acc_decimal) = convert_acc_rpm_revs(self.config.ACC)
-            if not await self.set_analog_acc_max(acc_decimal, acc_whole):
-                return False
-
             ### HOST VEL
             (velocity_whole, velocity_decimal) = convert_vel_rpm_revs(self.config.VEL)
             if not await self.set_host_vel_max(velocity_decimal, velocity_whole):
@@ -519,28 +507,14 @@ class MotorApi():
             ### Set host position
             if not await self.set_host_poisition((position_client_left, position_client_right)):
                 return False
-            
-            ## Analog input channel set to use modbusctrl (2)
-            if not await self.set_analog_input_channel(self.config.ANALOG_MODBUS_CNTRL_VALUE):
-                return False
-
-            response = await self.get_modbuscntrl_val()
-            if not response:
-                return False
-            (position_client_left, position_client_right) = response
-
-            # modbus cntrl 0-10k
-            if not await self.set_analog_modbus_cntrl((position_client_left, position_client_right)):
-                return False
 
             # # Finally - Ready for operation
-            if not await self.set_host_command_mode(self.config.ANALOG_POSITION_MODE):
+            if not await self.set_host_command_mode(self.config.HOST_POSITION_MODE):
                 return False
 
             # Enable motors
             if not await self.set_ieg_mode(self.config.ENABLE_MAINTAINED_VALUE):
                 return False
-            
             return True
     
     async def rotate(self, pitch_value, roll_value):
