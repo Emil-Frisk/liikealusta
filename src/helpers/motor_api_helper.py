@@ -1,4 +1,5 @@
 import math
+from utils.utils import unnormalize_decimal
 
 def get_register_values(data):
     left_data, right_data = data
@@ -49,20 +50,41 @@ def calculate_motor_modbuscntrl_vals(self, pitch_value, roll_value):
             VasenServo = ((2 * Keskipituus * Relaatio) / (1 + Relaatio)) / (0.2 * 25.4)
 
             # Oikea servomoottori kierroksina
-            OikeaServo = ((2 * Keskipituus) / (1 + Relaatio)) / (0.2 * 25.4)
+            OikeaServo = ((2 * Keskipituus) / (1 + Relaatio)) / (0.2 * 25.4) 
 
-            ## Percentile = x - pos_min / (pos_max - pos_min)
-            POS_MIN_REVS = 0.393698024
-            POS_MAX_REVS = 28.937007874015748031496062992126
-            modbus_percentile_left = (VasenServo - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-            modbus_percentile_right = (OikeaServo - POS_MIN_REVS) / (POS_MAX_REVS - POS_MIN_REVS)
-            modbus_percentile_left = max(0, min(modbus_percentile_left, 1))
-            modbus_percentile_right = max(0, min(modbus_percentile_right, 1))
+            ### unnormalize decimal values between 0-65535
+            left_decimal, left_whole = math.modf(VasenServo)
+            left_decimal = min(self.config.MAX_POS32_DECIMAL, left_decimal)
+            left_pos_low = unnormalize_decimal(left_decimal, 16)
 
-            position_client_left = math.floor(modbus_percentile_left * self.config.MODBUSCTRL_MAX)
-            position_client_right = math.floor(modbus_percentile_right * self.config.MODBUSCTRL_MAX)
+            right_decimal, right_whole = math.modf(OikeaServo)
+            right_decimal = min(self.config.MAX_POS32_DECIMAL, right_decimal)
+            right_pos_low = unnormalize_decimal(right_decimal, 16)
 
-            return position_client_left, position_client_right
+            ### Clamp position to a safe range
+            ### min 2mm
+            if left_whole <= self.config.MIN_POS_WHOLE: 
+                 left_pos_low = max(self.config.MIN_POS_DECIMAL, left_pos_low)
+                 left_whole = self.config.MIN_POS_WHOLE
+            
+            ### min 2mm
+            if right_whole <= self.config.MIN_POS_WHOLE: 
+                 right_pos_low = max(self.config.MIN_POS_DECIMAL, right_pos_low)
+                 right_whole = self.config.MIN_POS_WHOLE
+
+            #### MAX 147 mm
+            if left_whole >= self.config.MAX_POS_WHOLE:
+                 left_pos_low = min(self.config.MAX_POS_DECIMAL, left_pos_low)
+                 left_whole = self.config.MAX_POS_WHOLE
+
+            #### MAX 147 mm
+            if right_whole >= self.config.MAX_POS_WHOLE:
+                 right_pos_low = min(self.config.MAX_POS_DECIMAL, right_pos_low)
+                 right_whole = self.config.MAX_POS_WHOLE
+
+            return ((left_decimal, left_whole), (right_decimal, right_whole))
         except Exception as e:
             self.logger.error(f"soemthing went wrong in trying to calculate modbuscntrl vals")
             return False
+        
+

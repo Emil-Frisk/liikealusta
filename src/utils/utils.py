@@ -5,7 +5,6 @@ import os
 import asyncio
 import re
 
-
 FAULT_RESET_BIT = 15
 ENABLE_MAINTAINED_BIT = 1
 ALTERNATE_MODE_BIT = 7
@@ -29,6 +28,9 @@ def find_venv_python(file):
                 if (parent / ".venv").exists():
                         return os.path.join(parent, ".venv\Scripts\python.exe")
         raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
+
+def unnormalize_decimal(decimal, max_n):
+        return decimal * 2**max_n
 
 def convert_to_revs(pfeedback):
     decimal = pfeedback[0] / 65535
