@@ -475,7 +475,7 @@ class MotorApi():
         except Exception as e:
             self.logger.error(f"Unexpected error while converting to revs: {e}")
             return False
-        
+    
     async def initialize_motor(self):
         """ Tries to initialize the motors with initial values returns true if succesful """
         await self.set_host_command_mode(0)
@@ -511,12 +511,12 @@ class MotorApi():
             (acc_whole, acc_decimal) = convert_acc_rpm_revs(self.config.ACC)
             if not await self.set_analog_acc_max(acc_decimal, acc_whole):
                 return False
-            
-            response = await self.get_current_revs_converted()
+            ### current revs for initializing host position
+            response = await self.get_current_revs()
             if not response:
                 return False
             (position_client_left, position_client_right) = response
-            
+            ### Set host position
             if not await self.set_host_poisition((position_client_left, position_client_right)):
                 return False
             
