@@ -14,7 +14,7 @@ def get_register_values(data):
     return (left_vals, right_vals)
     
 
-def calculate_motor_modbuscntrl_vals(self, pitch_value, roll_value):
+def calculate_target_revs(self, pitch_value, roll_value):
         try:
             roll_value = max(-15, min(roll_value, 15))
             # Tarkistetaan että annettu pitch -kulma on välillä -8.5 <-> 8.5
