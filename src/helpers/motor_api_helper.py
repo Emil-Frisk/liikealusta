@@ -12,7 +12,45 @@ def get_register_values(data):
         right_vals.append(register)
         
     return (left_vals, right_vals)
+
+def clamp_target_revs(left_revs, right_revs, config) -> tuple[tuple, tuple]:
+    """Clamps the motors revs within the safety limits (2-147mm)
+        Returns:
+            tuple((left_decimal, left_whole), (right_decimal, right_whole))
+    """
+    ### unnormalize decimal values between 0-65535
+    left_decimal, left_whole = math.modf(left_revs)
+    left_decimal = min(config.MAX_POS32_DECIMAL, left_decimal)
+    left_pos_low = unnormalize_decimal(left_decimal, 16)
+
+    right_decimal, right_whole = math.modf(right_revs)
+    right_decimal = min(config.MAX_POS32_DECIMAL, right_decimal)
+    right_pos_low = unnormalize_decimal(right_decimal, 16)
+
+    ### Clamp position to a safe range
+    ### min 2mm
+    if left_whole <= config.MIN_POS_WHOLE: 
+            left_pos_low = max(config.MIN_POS_DECIMAL, left_pos_low)
+            left_whole = config.MIN_POS_WHOLE
     
+    ### min 2mm
+    if right_whole <= config.MIN_POS_WHOLE: 
+            right_pos_low = max(config.MIN_POS_DECIMAL, right_pos_low)
+            right_whole = config.MIN_POS_WHOLE
+
+    #### MAX 147 mm
+    if left_whole >= config.MAX_POS_WHOLE:
+            left_pos_low = min(config.MAX_POS_DECIMAL, left_pos_low)
+            left_whole = config.MAX_POS_WHOLE
+
+    #### MAX 147 mm
+    if right_whole >= config.MAX_POS_WHOLE:
+            right_pos_low = min(config.MAX_POS_DECIMAL, right_pos_low)
+            right_whole = config.MAX_POS_WHOLE
+
+    return ((left_pos_low, left_whole), (right_pos_low, right_whole))
+    
+
 
 def calculate_target_revs(self, pitch_value, roll_value):
         try:
@@ -52,36 +90,7 @@ def calculate_target_revs(self, pitch_value, roll_value):
             # Oikea servomoottori kierroksina
             OikeaServo = ((2 * Keskipituus) / (1 + Relaatio)) / (0.2 * 25.4) 
 
-            ### unnormalize decimal values between 0-65535
-            left_decimal, left_whole = math.modf(VasenServo)
-            left_decimal = min(self.config.MAX_POS32_DECIMAL, left_decimal)
-            left_pos_low = unnormalize_decimal(left_decimal, 16)
-
-            right_decimal, right_whole = math.modf(OikeaServo)
-            right_decimal = min(self.config.MAX_POS32_DECIMAL, right_decimal)
-            right_pos_low = unnormalize_decimal(right_decimal, 16)
-
-            ### Clamp position to a safe range
-            ### min 2mm
-            if left_whole <= self.config.MIN_POS_WHOLE: 
-                 left_pos_low = max(self.config.MIN_POS_DECIMAL, left_pos_low)
-                 left_whole = self.config.MIN_POS_WHOLE
-            
-            ### min 2mm
-            if right_whole <= self.config.MIN_POS_WHOLE: 
-                 right_pos_low = max(self.config.MIN_POS_DECIMAL, right_pos_low)
-                 right_whole = self.config.MIN_POS_WHOLE
-
-            #### MAX 147 mm
-            if left_whole >= self.config.MAX_POS_WHOLE:
-                 left_pos_low = min(self.config.MAX_POS_DECIMAL, left_pos_low)
-                 left_whole = self.config.MAX_POS_WHOLE
-
-            #### MAX 147 mm
-            if right_whole >= self.config.MAX_POS_WHOLE:
-                 right_pos_low = min(self.config.MAX_POS_DECIMAL, right_pos_low)
-                 right_whole = self.config.MAX_POS_WHOLE
-
+            ((left_pos_low, left_whole), (right_pos_low, right_whole)) = clamp_target_revs(VasenServo, OikeaServo, config=self.config)
             return ((left_pos_low, left_whole), (right_pos_low, right_whole))
         except Exception as e:
             self.logger.error(f"soemthing went wrong in trying to calculate modbuscntrl vals")

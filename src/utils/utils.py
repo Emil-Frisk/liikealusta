@@ -30,7 +30,7 @@ def find_venv_python(file):
         raise FileNotFoundError("Could not find project root (containing '.venv' folder)")
 
 def unnormalize_decimal(decimal, max_n):
-        return decimal * 2**max_n
+        return int(decimal * 2**max_n)
 
 def convert_to_revs(pfeedback):
     decimal = pfeedback[0] / 65536

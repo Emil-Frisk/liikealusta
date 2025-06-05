@@ -15,12 +15,8 @@ class Config:
 
     ### 
     MODULE_NAME = None
-    POLLING_TIME_INTERVAL: float = 5.0
+    POLLING_TIME_INTERVAL: int = 5
     POS_UPDATE_HZ: int = 1
     START_TID: int = 10001 # first TID will be startTID + 1
     LAST_TID: int = 20000
     CONNECTION_TRY_COUNT = 5
-    
-    
-
-
