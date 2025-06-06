@@ -534,8 +534,9 @@ class MotorApi():
         try:
             result = calculate_target_revs(self,pitch_value=pitch_value, roll_value=roll_value)
             if result:
-                left_val, right_val = result 
-                await self.set_analog_modbus_cntrl((left_val, right_val)) # TODO - set target host position instead
+                left_vals, right_vals = result 
+                
+                await self.set_host_position((left_vals, right_vals))
         except Exception as e:
             self.logger.error(f"Something went wrong trying to rotate the platform: {e}")
 
