@@ -13,6 +13,7 @@ def test_urev_clamp():
     assert clamp_target_revs(21.99999999999, 19.5, config) == ((65535, 21), (32768, 19))
     assert clamp_target_revs(21.99999999999, 19.99999999999, config) == ((65535, 21), (65535, 19))
     assert clamp_target_revs(21.0, 19.99999999999, config) == ((0, 21), (65535, 19))
+    assert clamp_target_revs(21, 16, config) == ((0, 21), (0, 16))
     
     ### Overshoot
     assert clamp_target_revs(300.99999999999, 20.5, config) == ((61406, 28), (32768, 20))
@@ -33,7 +34,3 @@ def test_urev_clamp():
     assert clamp_target_revs(29.99999999999, -300.01, config) == ((61406, 28), (25801, 0))
     assert clamp_target_revs(29.99999999999, -300.5, config) == ((61406, 28), (32768, 0))
     
-    
-    #61406
-    #25801
-clamp_target_revs(29.99999999999, -300.5, config) == ((61406, 28), (32768, 0))
