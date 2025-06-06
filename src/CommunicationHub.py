@@ -51,6 +51,9 @@ class CommunicationHub:
                                        config = self.motor_config)
 
             if not await self.motor_api.initialize_motor():
+                self.logger.error(f"""
+                                  Failed to initialize motors.
+                                  """)
                 self.clients.cleanup()
                 helpers.close_tasks(self)
                 os._exit(1)
@@ -125,8 +128,8 @@ class CommunicationHub:
                         await actions.stop_motors(self)
                     elif action == "rotate":
                         await actions.set_values(self, pitch, roll, wsclient)
-                    elif action == "updatevalues":
-                        await actions.update_input_values(self,acceleration,velocity)
+                    # elif action == "updatevalues":
+                    #     await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
                         await actions.message(self, receiver, wsclient, message)
                     elif action == "clearfault":
