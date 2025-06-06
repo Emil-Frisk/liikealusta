@@ -14,11 +14,91 @@ ACTUATOR_TEMPERATURE = 8
 
 UVEL32_RESOLUTION = 1 / (2**24)
 UACC32_RESOLUTION = 1 / (2**20)
-
 UCUR16_RESOLUTION = 1 / (2**7)
+
 UCUR16_LOW_MAX = 2**7
 UCUR32_DECIMAL_MAX = 2**23
 UVOLT32_DECIMAL_MAX = 2**21
+    
+def convert_val_into_format(value, format):
+    """
+    Takes in a desired value and register format as a param and returns it in the correct form
+    """
+    formats = format.split(".")
+    if len(formats) < 2:
+        raise ValueError()
+
+    try:
+        format1 = abs(int(formats[0]))
+        format2 = abs(int(formats[1]))
+    except ValueError:
+        raise
+    
+    if format1 <= 16 and format2 <= 16 and format1+format2 == 16:
+        decimal, whole = math.modf(value) 
+        whole = int(whole)
+        
+        if format2 == 0:
+            return whole
+            
+        low_val = unnormalize_decimal(decimal, format2)
+        whole_val = whole << format2
+        result = whole_val | low_val
+        return result
+    else:
+        raise Exception("Unsupported format")
+    
+
+
+def registers_convertion(register,format,signed=False):
+        format_1, format_2 = format.split(".")
+        format_1 = int(format_1)
+        format_2 = int(format_2)
+
+        if len(register) == 1: # Single register Example 9.7
+                # Seperates single register by format
+                register_high, register_low = bit_high_low_both(register[0], format_2)
+                # Normalizes decimal between 0-1
+                register_low_normalized = general_normalize_decimal(register_low, format_2)
+                # If signed checks whether if its two complement
+                if signed: 
+                        register_high = get_twos_complement(format_1 - 1, register_high)
+                return register_high + register_low_normalized
+        else: # Two registers
+                # Checks what's the format. Examples: 16.16, 8.24, 12.20
+                if format_1 <= 16 and format_2 >= 16: 
+                        # Format difference for seperating "shared" register
+                        format_difference = 16 - format_1 
+                        # Seperates "shared" register
+                        register_val_high, register_val_low = bit_high_low_both(register[1], format_difference)
+                        # Combines decimal values into a single binary
+                        register_val_low = combine_bits(register_val_low,register[0])
+                        # Normalizes decimal between 0-1
+                        register_low_normalized = general_normalize_decimal(register_val_low, format_2)
+                        # If signed checks whether if its two complement
+                        if signed: 
+                                register_val_high = get_twos_complement(format_1 - 1, register_val_high)
+                        return register_val_high + register_low_normalized
+                else: # Examples: 32.0 20.12 30.2
+                        # Format difference for seperating "shared" register
+                        format_difference = 32 - format_1
+                        # Seperates "shared" register
+                        register_val_high, register_val_low = bit_high_low_both(register[0], format_difference)
+                        # Combines integer values into a single binary
+                        register_val_high = combine_bits(register[1],register_val_high)
+                        # Normalizes decimal between 0-1
+                        register_low_normalized = general_normalize_decimal(register_val_low, format_2)
+                        # If signed checks whether if its two complement
+                        if signed:
+                                register_val_high = get_twos_complement(format_1 - 1, register_val_high)
+                        return register_val_high + register_low_normalized
+
+def combine_bits(high_bit_part, low_bit_part):
+        result = (high_bit_part << 16) | low_bit_part
+        return result
+
+def general_normalize_decimal(value, max_n):
+        return value / 2**max_n
 
 def started_from_exe():
     return getattr(sys, 'frozen', False)
@@ -100,7 +180,7 @@ def split_24bit_to_components(value):
     These two parts together make up the original 24-bit value.
 
     Args:
-        value (float): A number between 0 and 1 (inclusive). 
+        value (float): A number between 0 and 1 (uninclusive). 
                        Anything outside this range returns None.
 
     Returns:
@@ -110,12 +190,11 @@ def split_24bit_to_components(value):
         None: If the input is less than 0 or greater than 1.
 
    Notes:
-        - UVEL32_RESOLUTION = 1 / (2^24 - 1) ensures the full 24-bit range (0 to 
+        - UVEL32_RESOLUTION = 1 / (2^24) ensures the full 24-bit range (0 to 
           16,777,215) maps to 0-1. So, value * (1 / resolution) gives the 24-bit 
           integer, and the function splits that into 16-bit and 8-bit chunks.
         - Input is capped at 0-1 because it represents a fraction of the max 
           24-bit value (16,777,215).
-
     """
     # Check if input is valid (between 0 and 1)
     if value < 0 or value > 1:
@@ -144,8 +223,6 @@ def split_20bit_to_components(value):
            return None
     
     scaled_value = int(value / UACC32_RESOLUTION)
-    if scaled_value == (2**20-1):
-           scaled_value = scaled_value - 1
     scaled_value = scaled_value & 0xFFFFF # 20 bits 
 
     # Extract 4-bit high part (bits 16-19)
@@ -202,15 +279,14 @@ def combine_to_20bit(sixteen_bit, four_bit):
 
 def get_twos_complement(bit, value):
        """Bit tells how manieth bit 2^n"""
-       rer= 1 << bit
        is_highest_bit_on = value & 1 << bit
 
        if is_highest_bit_on:
                 base = 2**bit
                 if bit == 0:
                         return -1
-                lower = (2**bit) -1
-                lower = value & lower
+                lower_mask = (2**bit) -1
+                lower = value & lower_mask
                 return (lower - base)
                 
        return value
@@ -325,7 +401,3 @@ def bit_high_low_both(number, low_bit, output="both"):
                 return register_val_low
         else:
                 raise Exception
-                
-
-
-

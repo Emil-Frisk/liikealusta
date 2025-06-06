@@ -4,7 +4,7 @@ from pymodbus.exceptions import ConnectionException, ModbusIOException
 from utils.utils import IEG_MODE_bitmask_alternative, IEG_MODE_bitmask_default, combine_to_23bit, normlize_decimal_ucur32
 import asyncio
 from time import sleep, time
-from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both, combine_to_21bit, normalize_decimal_uvolt32, get_twos_complement
+from utils.utils import is_nth_bit_on, convert_to_revs, convert_vel_rpm_revs, convert_acc_rpm_revs, bit_high_low_both, registers_convertion, convert_val_into_format
 from helpers.motor_api_helper import calculate_target_revs, get_register_values
 import math
 from helpers import fault_helpers as fault_helper  
@@ -18,7 +18,7 @@ class MotorApi():
         self.max_retries = max_retries
         self.config = config
     
-    async def write(self, address, description, value=None, multiple_registers=False, values=None, different_values=False, left_val=None, right_val=None, left_vals=None, right_vals=None):
+    async def write(self, address, description, value=None, multiple_registers=False, values=None, different_values=False, left_val=None, right_val=None, left_vals=None, right_vals=None) -> bool:
         attempt_left = 0
         attempt_right = 0
         success_right = False
@@ -124,7 +124,7 @@ class MotorApi():
                 self.logger.error(f"Unexpected error while {description}: {str(e)}")
                 return False
     
-    async def read(self, address, description, count=2, log=True):
+    async def read(self, address, description, count=2, log=True) -> Union[tuple, bool]:
         """Reads the specified register addresses values and returns them
         as a tuple (left, right) or False if the operation was not successful"""
         try:
@@ -190,7 +190,7 @@ class MotorApi():
             self.logger.error(f"Unexpected error while reading motor REVS: {str(e)}")
             return False
     
-    async def reset_motors(self):
+    async def reset_motors(self) -> bool:
         """ 
         Removes all temporary settings from both motors
         and goes back to default ones
@@ -204,7 +204,7 @@ class MotorApi():
         """
         return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=1)
         
-    async def fault_reset(self, mode = "default"):
+    async def fault_reset(self, mode = "default") -> bool:
         # Makes sure bits can be only valid bits that we want to control
         # no matter what you give as a input
         return await self.write(value=IEG_MODE_bitmask_default(65535), address=self.config.IEG_MODE, description="reset faults")
@@ -217,20 +217,20 @@ class MotorApi():
         """
         return await self.read(log=log, address=self.config.OEG_STATUS, description="read driver status",count=1)
     
-    async def get_vel(self):
+    async def get_vel(self) -> bool:
         """
         Gets VEL32_HIGH register for both motors
         """
         return await self.read(address=self.config.VFEEDBACK_VELOCITY,description="read velocity register", count=1)
    
-    async def stop(self):
+    async def stop(self) -> bool:
         """
         Attempts to stop both motors by writing to the IEG_MOTION register.
         Returns True if successful, False if failed after retries.
         """
         return await self.write(address=self.config.IEG_MOTION, value=self.config.STOP_VALUE, description="Stop motors")
 
-    async def home(self):
+    async def home(self) -> bool:
         try:
             ### Reset IEG_MOTION bit to 0 so we can trigger rising edge with our home command
             if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"):
@@ -374,12 +374,19 @@ class MotorApi():
         """
         value_left, value_right = values
         return await self.write(different_values=True, right_val=value_right, left_val=value_left, description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
-    async def set_host_poisition(self, values: Tuple[List,List]) -> bool:
+    async def set_host_position(self, values: Tuple[List,List]) -> bool:
             """
             Sets the host position values for both motors.
             """
             values_left, values_right = values
             return await self.write(multiple_registers=True,different_values=True, right_vals=values_right, left_vals=values_left, description="Set host position values", address=self.config.HOST_POSITION)
+        
+    async def set_host_current(self, value: int) -> bool:
+        """
+        Sets the host maxium current that will override IPEAK value(15A as long as its below it) UCUR16 - 9.7.
+        """
+        return await self.write(value=value, description="Set host maximum current", address=self.config.HOST_CURRENT_MAXIMUM)
+    
     async def wait_for_motors_to_stop(self) -> bool:
         """ Polls for motors to stop returns True or False"""
         ### TODO - figure out velocity feedback register
@@ -424,6 +431,8 @@ class MotorApi():
                 0: disabled
                 1: digital inputs
                 2: analog position
+                5: host position
+                6: host velocity
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
@@ -449,7 +458,7 @@ class MotorApi():
         """
         return await self.write(description="set IEG_MODE", value=IEG_MODE_bitmask_default(value), address=self.config.IEG_MODE)
         
-    async def get_modbuscntrl_val(self):
+    async def get_modbuscntrl_val(self) -> Union[tuple, bool]:
         """
         Gets the current revolutions of both motors and calculates with linear interpolation
         the percentile where they are in the current max_rev - min_rev range.
@@ -481,7 +490,7 @@ class MotorApi():
             self.logger.error(f"Unexpected error while converting to revs: {e}")
             return False
     
-    async def initialize_motor(self):
+    async def initialize_motor(self) -> bool:
         """ Tries to initialize the motors with initial values returns true if succesful """
         await self.set_host_command_mode(0)
         if not await fault_helper.validate_fault_register(self):
@@ -497,7 +506,7 @@ class MotorApi():
                 return False
             ### HOST ACC
             (acc_whole, acc_decimal) = convert_acc_rpm_revs(self.config.ACC)
-            if not await self.set_analog_acc_max(acc_decimal, acc_whole):
+            if not await self.set_host_acc_max(acc_decimal, acc_whole):
                 return False
             ### current revs for initializing host position
             response = await self.get_current_revs()
@@ -505,7 +514,11 @@ class MotorApi():
                 return False
             (position_client_left, position_client_right) = response
             ### Set host position
-            if not await self.set_host_poisition((position_client_left, position_client_right)):
+            if not await self.set_host_position((position_client_left, position_client_right)):
+                return False
+
+            ### set host current limit
+            if not await self.set_host_current(value=convert_val_into_format(4, format="9.7")):
                 return False
 
             # # Finally - Ready for operation
@@ -517,19 +530,21 @@ class MotorApi():
                 return False
             return True
     
-    async def rotate(self, pitch_value, roll_value):
+    async def rotate(self, pitch_value, roll_value) -> None:
         try:
             result = calculate_target_revs(self,pitch_value=pitch_value, roll_value=roll_value)
             if result:
                 left_val, right_val = result 
-                await self.set_analog_modbus_cntrl((left_val, right_val))
+                await self.set_analog_modbus_cntrl((left_val, right_val)) # TODO - set target host position instead
         except Exception as e:
             self.logger.error(f"Something went wrong trying to rotate the platform: {e}")
 
-    async def get_telemetry_data(self):
+    async def get_telemetry_data(self) -> Union[tuple, bool]:
         """Reads the motors current board tempereature,
         actuator temperature, continuous current and present VBUS voltage
-        and returns their whole number part only and drops the decimal part"""
+        Returns:
+            ((left_board_tmp, right_board_tmp), (left_actuator_tmp, right_actuator_tmp), (left_IC, right_IC), (left_VBUS, right_VBUS))
+        """
         vals = await self.read(address=self.config.BOARD_TMP, description="Read board temperature", count=1)
         if not vals:
             return False
@@ -549,16 +564,10 @@ class MotorApi():
         vals = await self.read(address=self.config.ICONTINUOUS, description="Read present current ", count=2)
         if not vals:
             return False
-        ### 9.7
+        
         left_IC, right_IC = vals
-        (left_IC_high, left_IC_low) = bit_high_low_both(left_IC[1], 7)
-        (right_IC_high, left_IC_low) = bit_high_low_both(right_IC[1], 7)
-        decimal_left = combine_to_23bit(left_IC[0],left_IC_low)
-        deciaml_right = combine_to_23bit(right_IC[0],left_IC_low)
-        normalized_decimal_left = normlize_decimal_ucur32(decimal_left)
-        normalized_decimal_right = normlize_decimal_ucur32(deciaml_right)
-        left_IC = left_IC_high + normalized_decimal_left
-        right_IC = right_IC_high + normalized_decimal_right
+        left_VBUS = registers_convertion(left_IC, "9.23")
+        right_VBUS = registers_convertion(right_VBUS, "9.23")
 
         vals = await self.read(address=self.config.VBUS, description="Read present VBUS voltage ", count=2)
         ### 11.21
@@ -566,23 +575,10 @@ class MotorApi():
             return False
         left_VBUS, right_VBUS = vals
 
-        ### Extract the high value part and deccimal part
-        left_VBUS_high, left_VBUS_low = bit_high_low_both(left_VBUS[1], 5)
-        right_VBUS_high, right_VBUS_low = bit_high_low_both(right_VBUS[1], 5)
-
-        left_vbus_decimal_val = combine_to_21bit(left_VBUS[0], left_VBUS_low)
-        right_vbus_decimal_val = combine_to_21bit(right_VBUS[0], right_VBUS_low)
-
-        left_vbus_decimal_val = normalize_decimal_uvolt32(left_vbus_decimal_val)
-        right_vbus_decimal_val = normalize_decimal_uvolt32(right_vbus_decimal_val)
-
-        ### CONVERT VBUS HIGH INTO ACTUAL VALUE IT USES TWO's COMPLEMENT
-        left_VBUS_high = get_twos_complement(10, left_VBUS_high)
-        right_VBUS_high = get_twos_complement(10, right_VBUS_high)
-
-        left_VBUS = left_VBUS_high + left_vbus_decimal_val
-        right_VBUS = right_VBUS_high + right_vbus_decimal_val
-
+        ### Extract the high value part and deccimal part 11.21
+        left_VBUS = registers_convertion(left_VBUS, "11.21", signed=True)
+        right_VBUS = registers_convertion(right_VBUS, "11.21", signed=True)
+        
         return ((left_board_tmp, right_board_tmp), (left_actuator_tmp, right_actuator_tmp), (left_IC, right_IC), (left_VBUS, right_VBUS))
     
         

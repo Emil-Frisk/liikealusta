@@ -44,6 +44,7 @@ class CommunicationHub:
                             Right motors ips: {self.config.SERVER_IP_RIGHT},
                             shutting down the server """)
                 helpers.close_tasks(self)
+                self.process_manager.cleanup_all()
                 os._exit(1)
 
             self.motor_api = MotorApi(logger=self.logger,
@@ -56,6 +57,7 @@ class CommunicationHub:
                                   """)
                 self.clients.cleanup()
                 helpers.close_tasks(self)
+                self.process_manager.cleanup_all()
                 os._exit(1)
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")

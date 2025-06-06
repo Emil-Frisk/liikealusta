@@ -22,7 +22,8 @@ async def validate_fault_register(self, wsclient=None) -> bool:
     """
     Check if the fault register have critical or absolute fault. Returns True if there's none.
     """
-    l_has_faulted, r_has_faulted = has_faulted(vals)
+    vals = await self.motor_api.check_fault_stauts(log=True)
+    l_has_faulted, r_has_faulted = has_faulted(vals) 
 
     if (l_has_faulted or r_has_faulted):
         vals = await self.motor_api.get_recent_fault()
