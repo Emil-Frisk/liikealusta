@@ -14,7 +14,7 @@ def get_register_values(data):
         
     return (left_vals, right_vals)
 
-def clamp_target_revs(left_revs, right_revs, config) -> tuple[tuple, tuple]:
+def clamp_target_revs(left_revs, right_revs, config) -> list[list, list]:
     """Clamps the motors revs within the safety limits (2-147mm)
         Returns:
             tuple((left_decimal, left_whole), (right_decimal, right_whole))
@@ -51,9 +51,9 @@ def clamp_target_revs(left_revs, right_revs, config) -> tuple[tuple, tuple]:
             right_pos_low = min(config.MAX_POS_DECIMAL, right_pos_low)
             right_whole = config.MAX_POS_WHOLE
 
-    return ((left_pos_low, left_whole), (right_pos_low, right_whole))
+    return [[left_pos_low, left_whole], [right_pos_low, right_whole]]
 
-def calculate_target_revs(self, pitch_value, roll_value) -> Union[tuple, None]:
+def calculate_target_revs(self, pitch_value, roll_value) -> Union[list, None]:
     """Calculates the target revolutions and unnormalizes the decimal part
     while respecting the  motors safety limits
     Args:
@@ -100,8 +100,8 @@ def calculate_target_revs(self, pitch_value, roll_value) -> Union[tuple, None]:
         # Oikea servomoottori kierroksina
         OikeaServo = ((2 * Keskipituus) / (1 + Relaatio)) / (0.2 * 25.4) 
 
-        ((left_pos_low, left_whole), (right_pos_low, right_whole)) = clamp_target_revs(VasenServo, OikeaServo, config=self.config)
-        return ((left_pos_low, left_whole), (right_pos_low, right_whole))
+        revolutions = clamp_target_revs(VasenServo, OikeaServo, config=self.config)
+        return revolutions
     except Exception as e:
         self.logger.error(f"soemthing went wrong in trying to calculate modbuscntrl vals")
         return None

@@ -2,8 +2,6 @@ import math
 import sys
 from pathlib import Path
 import os
-import asyncio
-import re
 
 FAULT_RESET_BIT = 15
 ENABLE_MAINTAINED_BIT = 1
@@ -238,7 +236,6 @@ def normlize_decimal_ucur32(value):
 def normalize_decimal_uvolt32(value):
        return value / UVOLT32_DECIMAL_MAX
 
-### TODO - tee geneerinen bitti shiftaus functio
 def combine_to_21bit(sixteen_bit_val, five_bit_val):
         sixteen_bit_val = sixteen_bit_val & 0xFFFF
         five_bit_val = five_bit_val & 31
