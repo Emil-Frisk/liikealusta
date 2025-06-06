@@ -19,11 +19,13 @@ def clamp_target_revs(left_revs, right_revs, config) -> tuple[tuple, tuple]:
             tuple((left_decimal, left_whole), (right_decimal, right_whole))
     """
     ### unnormalize decimal values between 0-65535
-    left_decimal, left_whole = math.modf(left_revs)
-    left_decimal = min(config.MAX_POS32_DECIMAL, left_decimal)
+    left_decimal, left_whole = math.modf(left_revs) 
+    left_whole = int(left_whole)
+    left_decimal = min(config.MAX_POS32_DECIMAL, left_decimal) 
     left_pos_low = unnormalize_decimal(left_decimal, 16)
 
     right_decimal, right_whole = math.modf(right_revs)
+    right_whole = int(right_whole)
     right_decimal = min(config.MAX_POS32_DECIMAL, right_decimal)
     right_pos_low = unnormalize_decimal(right_decimal, 16)
 
@@ -49,8 +51,6 @@ def clamp_target_revs(left_revs, right_revs, config) -> tuple[tuple, tuple]:
             right_whole = config.MAX_POS_WHOLE
 
     return ((left_pos_low, left_whole), (right_pos_low, right_whole))
-    
-
 
 def calculate_target_revs(self, pitch_value, roll_value):
         try:
