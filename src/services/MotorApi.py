@@ -518,7 +518,7 @@ class MotorApi():
                 return False
 
             ### set host current limit
-            if not await self.set_host_current(value=convert_val_into_format(4, format="9.7")):
+            if not await self.set_host_current(value=convert_val_into_format(5, format="9.7")):
                 return False
 
             # # Finally - Ready for operation
