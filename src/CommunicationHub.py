@@ -29,7 +29,6 @@ class CommunicationHub:
             self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
             self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
-            #TODO exterminate lingering process
             """
             Simuloin absoluuttinen, 
             benchmark telemeptry dataloop,
@@ -45,6 +44,7 @@ class CommunicationHub:
                             Right motors ips: {self.config.SERVER_IP_RIGHT},
                             shutting down the server """)
                 helpers.close_tasks(self)
+                self.process_manager.cleanup_all()
                 os._exit(1)
 
             self.motor_api = MotorApi(logger=self.logger,
@@ -52,8 +52,12 @@ class CommunicationHub:
                                        config = self.motor_config)
 
             if not await self.motor_api.initialize_motor():
+                self.logger.error(f"""
+                                  Failed to initialize motors.
+                                  """)
                 self.clients.cleanup()
                 helpers.close_tasks(self)
+                self.process_manager.cleanup_all()
                 os._exit(1)
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
@@ -124,8 +128,8 @@ class CommunicationHub:
                         await self.shutdown_server(wsclient)
                     elif action == "stop":
                         await actions.stop_motors(self)
-                    # elif action == "rotate":
-                    #     await actions.set_values(self, pitch, roll, wsclient)
+                    elif action == "rotate":
+                        await actions.set_values(self, pitch, roll, wsclient)
                     # elif action == "updatevalues":
                     #     await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":

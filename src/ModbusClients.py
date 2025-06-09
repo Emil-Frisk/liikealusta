@@ -69,8 +69,9 @@ class ModbusClients:
     def cleanup(self):
         try:
             self.logger.info(f"cleanup function executed at module {self.config.MODULE_NAME}")
-            if self.client_left is not None and self.client_right is not None:
+            if self.client_left is not None:
                 self.client_left.close()
+            if self.client_right is not None:
                 self.client_right.close()    
         except Exception as e:
             self.logger.info(f"error happened: {e}")
