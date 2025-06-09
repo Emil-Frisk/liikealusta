@@ -196,12 +196,12 @@ class MotorApi():
         """
         return await self.write(address=self.config.SYSTEM_COMMAND, value=self.config.RESTART_VALUE, description="force a software power-on restart of the drive")
 
-    async def get_recent_fault(self) -> tuple[Optional[int], Optional[int]]:
+    async def get_recent_fault(self, count=1) -> tuple[Optional[int], Optional[int]]:
         """
         Read fault registers from both clients.
         Returns tuple of (left_fault, right_fault), None if read fails
         """
-        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=1)
+        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=count)
         
     async def fault_reset(self, mode = "default"):
         # Makes sure bits can be only valid bits that we want to control

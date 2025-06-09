@@ -124,10 +124,10 @@ class CommunicationHub:
                         await self.shutdown_server(wsclient)
                     elif action == "stop":
                         await actions.stop_motors(self)
-                    elif action == "rotate":
-                        await actions.set_values(self, pitch, roll, wsclient)
-                    elif action == "updatevalues":
-                        await actions.update_input_values(self,acceleration,velocity)
+                    # elif action == "rotate":
+                    #     await actions.set_values(self, pitch, roll, wsclient)
+                    # elif action == "updatevalues":
+                    #     await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
                         await actions.message(self, receiver, wsclient, message)
                     elif action == "clearfault":
