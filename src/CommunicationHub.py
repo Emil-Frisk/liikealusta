@@ -24,12 +24,15 @@ class CommunicationHub:
         self.is_process_done = False
         self.server = None
         self.motors_initialized = False
+        self.config , self.motor_config = handle_launch_params(b_motor_config=True)
+        self.clients = ModbusClients(self.config, self.logger)
+        self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
+        self.motor_api = MotorApi(logger=self.logger,
+                            modbus_clients=self.clients,
+                            config = self.motor_config)
 
-    async def init(self):
+    async def init(self, gui_socket):
         try:
-            self.config , self.motor_config = handle_launch_params(b_motor_config=True)
-            self.clients = ModbusClients(self.config, self.logger)
-            self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
             """
             Simuloin absoluuttinen, 
             benchmark telemeptry dataloop,
@@ -46,23 +49,20 @@ class CommunicationHub:
                             shutting down the server """)
                 helpers.close_tasks(self)
                 self.process_manager.cleanup_all()
-                os._exit(1)
+                return 1
 
-            self.motor_api = MotorApi(logger=self.logger,
-                                       modbus_clients=self.clients,
-                                       config = self.motor_config)
-
-            if not await self.motor_api.initialize_motor():
+            if not await self.motor_api.initialize_motor(gui_socket):
                 self.logger.error(f"""
                                   Failed to initialize motors.
                                   """)
                 self.clients.cleanup()
                 helpers.close_tasks(self)
                 self.process_manager.cleanup_all()
-                os._exit(1)
+                return 1
             
-            ### success
+            ## success
             self.motors_initialized = True
+            await gui_socket.send("event=motors_initialized|")
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
 
@@ -141,7 +141,7 @@ class CommunicationHub:
                     elif action == "clearfault":
                         await actions.clear_fault(self, wsclient=wsclient)
                     elif action == "absolutefault":
-                        await actions.absolute_fault(self)
+                        await actions.absolutefault(self)
                     elif action == "readtelemetry":
                         await actions.read_telemetry(self, wsclient)
                     else:

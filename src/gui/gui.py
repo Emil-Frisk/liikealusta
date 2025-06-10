@@ -80,15 +80,16 @@ class ServerStartupGUI(QWidget):
             QMessageBox.warning(self, "Error", clientmessage+"\n Check faults tab for more info")
             self.faults_tab.update_fault_message(clientmessage)
             self.faults_tab.show_fault_group()
+        elif event == "absolutefault":
+            QMessageBox.warning(self, "Error", "Absolute fault has occured! DO NOT continue using the motors anymore, they need some serious maintance.")
         elif event == "faultcleared":
             self.logger.info("Fault cleared event has reached gui")
             QMessageBox.information(self, "Info", "fault was cleared successfully")
             self.faults_tab.hide_fault_group()
-        elif event == "connected":
-            ### TODO - send server initialied event to actually
-            ### indicate the motors are ready for operation n
-            ### do not enable shutdown button here yet
+        elif event == "motors_initialized":
             self.shutdown_button.setEnabled(True)
+            QMessageBox.information(self, "Info", "Motors have been initialized successfully")
+        elif event == "connected":
             self.message_label.setText(clientmessage)
         elif event == "shutdown":
             self.start_button.setEnabled(True)
