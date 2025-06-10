@@ -490,9 +490,11 @@ class MotorApi():
             self.logger.error(f"Unexpected error while converting to revs: {e}")
             return False
     
-    async def initialize_motor(self) -> bool:
+    async def initialize_motor(self, gui_socket=None) -> bool:
         """ Tries to initialize the motors with initial values returns true if succesful """
         await self.set_host_command_mode(0)
+        #### TODO - tell GUI if there is an asolute fault before closing the 
+        ### server
         if not await fault_helper.validate_fault_register(self):
             return False
         

@@ -4,6 +4,8 @@ from CommunicationHub import CommunicationHub
 async def main():
     try:
         hub = CommunicationHub()
+        ### TODO - run hub.init() only after gui identification 
+        ### so it can be communicated if there is a fault
         await hub.init()
 
         await hub.start_server()

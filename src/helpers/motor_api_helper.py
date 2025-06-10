@@ -17,7 +17,7 @@ def get_register_values(data):
 def clamp_target_revs(left_revs, right_revs, config) -> list[list, list]:
     """Clamps the motors revs within the safety limits (2-147mm)
         Returns:
-            tuple((left_decimal, left_whole), (right_decimal, right_whole))
+            list[[left_decimal, left_whole], [right_decimal, right_whole]]
     """
     ### unnormalize decimal values between 0-65535
     left_decimal, left_whole = math.modf(left_revs) 
@@ -59,7 +59,6 @@ def calculate_target_revs(self, pitch_value, roll_value) -> Union[list, None]:
     Args:
         pitch_value (float): -8.5-8.5
         roll_value (float): -15.0-15.0
-
     Returns:
         tuple or None: ((left_pos_low, left_whole), (right_pos_low, right_whole))
         if success, None if something went wrong
