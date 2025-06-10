@@ -100,7 +100,7 @@ if __name__ == "__main__":
     # Initialize qasync event loop
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
-    
+    # TODO Tarkista onko mevea prosesseja päällä
     window = ServerStartupGUI()
     window.show()
     

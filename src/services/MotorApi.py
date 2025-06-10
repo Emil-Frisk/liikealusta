@@ -376,7 +376,7 @@ class MotorApi():
         return await self.write(different_values=True, right_val=value_right, left_val=value_left, description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
     async def set_host_position(self, values: Tuple[List,List]) -> bool:
             """
-            Sets the host position values for both motors.
+            Sets the host position values for both motors. 
             """
             values_left, values_right = values
             return await self.write(multiple_registers=True,different_values=True, right_vals=values_right, left_vals=values_left, description="Set host position values", address=self.config.HOST_POSITION)
