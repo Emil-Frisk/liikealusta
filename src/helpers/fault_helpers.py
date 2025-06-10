@@ -43,11 +43,11 @@ async def validate_fault_register(self, gui_socket) -> bool:
         if is_critical_fault(vals):
             if l_has_faulted:
                 if gui_socket: 
-                    await gui_socket.send(f"event=fault|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[0]]}|")
+                    await gui_socket.send(f"event=fault|message=CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[0]]}|")
                 return False
             else:
                 if gui_socket:
-                    await gui_socket.send(f"event=fault|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[1]]}|")
+                    await gui_socket.send(f"event=fault|message=CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[1]]}|")
                 self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[1]]}")
                 return False
     else:
