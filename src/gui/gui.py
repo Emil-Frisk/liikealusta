@@ -99,13 +99,30 @@ class ServerStartupGUI(QWidget):
     def clear_fault(self):
         asyncio.create_task(helpers.clear_fault(self))    
 
+        
+    def checkMeveaProcesses(self):
+        """
+        Checks if any mevea releated process are on going. 
+        Terminates gui process if so.
+        """
+        try:
+            meVEAMotionPlatformUIApp = helpers.findProcessByName("MeVEAMotionPlatformUIApp")
+            meveaSimulatorWatchdog = helpers.findProcessByName("MeveaSimulatorWatchdog")
+            if meVEAMotionPlatformUIApp.returncode == 0 or meveaSimulatorWatchdog.returncode == 0:
+                QMessageBox.warning("Mevea processes are running. Please terminate them first.")
+                os._exit(0)
+        except Exception as e:
+            self.logger.error(f"Error checking mevea processes. Error: {e}")
+            os._exit(0)
+        
+        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     # Initialize qasync event loop
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
-    # TODO Tarkista onko mevea prosesseja päällä
     window = ServerStartupGUI()
+    window.checkMeveaProcesses()
     window.show()
     
     with loop:

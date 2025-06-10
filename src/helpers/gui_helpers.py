@@ -213,3 +213,19 @@ def handle_client_message(self, message):
                 self.speed_input.setValue(int(value))
         except Exception as e:
             self.logger.error(f"Error parsing message: {str(e)}")
+
+
+
+def findProcessByName(processname):
+    """
+    Finds process by given name. Returns result object. 
+    """
+    try:
+        result = subprocess.run(
+            ["powershell", "-Command", f"Get-Process -Name {processname} -ErrorAction SilentlyContinue"],
+            capture_output=True,
+            text=True
+        )
+        return result
+    except:
+        raise
