@@ -140,7 +140,7 @@ class CommunicationHub:
                     elif action == "clearfault":
                         await actions.clear_fault(self, wsclient=wsclient)
                     elif action == "absolutefault":
-                        await actions.absolute_fault(self)
+                        await actions.absolutefault(self)
                     elif action == "readtelemetry":
                         await actions.read_telemetry(self, wsclient)
                     else:

@@ -85,7 +85,7 @@ class FaultPoller():
                     ## check if the fault is absolute
                     if is_absolute_fault(vals):
                         await wsclient.send(f"event=fault|action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
-                        self.logger.error(f"ABSOLUTE_FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}")
+                        self.logger.error(f"absolutefault DETECTED: {ABSOLUTE_FAULTS[2048]}")
                         self.logger.error(f"Stopping polling...")
                         self.has_faulted = True
                         continue

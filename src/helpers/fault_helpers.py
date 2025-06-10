@@ -36,7 +36,7 @@ async def validate_fault_register(self, gui_socket) -> bool:
         ### check if the fault is absolute
         if is_absolute_fault(vals):
             if gui_socket:
-                await gui_socket.send(f"event=absolute_fault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|")
+                await gui_socket.send(f"event=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|")
             return False
         
         # Check that its not a critical fault

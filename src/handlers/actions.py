@@ -21,7 +21,7 @@ async def identify(self, identity, wsclient):
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
         if identity and identify == "gui":
-            self.logger.info("Gui has been identied ")
+            self.logger.info("Gui has been identified")
             if not self.motors_initialized:
                 self.logger.info("Starting to initialize the motors")
                 self.init(wsclient)
@@ -61,9 +61,8 @@ async def clear_fault(self, wsclient):
 
             ### if motors have not been initialized -> initialize them
             if not self.motors_initialized:
-                self.logger.warning("Motors have not been initialized, initiaalizing..")
+                self.logger.warning("Motors have not been initialized, starting to initialize...")
                 self.init(wsclient)
-
     except Exception as e:
         self.logger.error("Error clearing motors faults!")
         await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
@@ -162,7 +161,7 @@ async def update_input_values(self,acceleration,velocity):
         self.logger.error(f"Error while updating motors values: {e}")
         return {"status": "error", "message": "Unexpected error while trying to update motors values"}
     
-async def absolute_fault(self):
+async def absolutefault(self):
     try:
         ### inform all processes that absolute fault has occured -> cleanup
         for client in self.wsclients:

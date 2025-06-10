@@ -80,7 +80,7 @@ class ServerStartupGUI(QWidget):
             QMessageBox.warning(self, "Error", clientmessage+"\n Check faults tab for more info")
             self.faults_tab.update_fault_message(clientmessage)
             self.faults_tab.show_fault_group()
-        elif event == "absolute_fault":
+        elif event == "absolutefault":
             QMessageBox.warning(self, "Error", "Absolute fault has occured! DO NOT continue using the motors anymore, they need some serious maintance.")
         elif event == "faultcleared":
             self.logger.info("Fault cleared event has reached gui")
