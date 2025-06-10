@@ -442,7 +442,7 @@ class MotorApi():
         """
         Sets IEG_MODE bits
         !!! IMPORTANT NOTE !!! 
-        DO NOT EVER ACTIVATE ALL BITS IT WILL DEFINE NEW HOME AND THE WHOLE SYSTEM
+        WDO NOT EVER ACTIVATE ALL BITS IT WILL DEFINE NEW HOME AND THE HOLE SYSTEM
         WILL BRAKE, IT WILL ALSO DISABLE THE MOTORS BREAKS MAKE SURE TO USE
         BIT MAKS DEFINED IN THE UTILS (IEG_MODE_bitmask_default) and (IEG_MODE_bitmask_alternative)
         THESE BITMASKS WILL MAKE SURE DANGEROUS BITS WILL NEVER BE ON EVEN IF YOU USE MAX UINT32 VALUE
@@ -452,6 +452,9 @@ class MotorApi():
                 0: enable momentary
                 1: enable maintained
                 7: alt mode
+                10: define home ( danger)
+                11: define home 2(danger)¨
+                14: release break ( danger )
                 15: reset fault
         Returns:
             bool: True if successful for both motors, False otherwise.

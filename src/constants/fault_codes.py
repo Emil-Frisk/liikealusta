@@ -8,5 +8,6 @@ CRITICAL_FAULTS = {
 }
 
 ABSOLUTE_FAULTS = {
+    4: "ABSOLUTE FAULT: Position tracking error. Motors need to be repaired", 
     2048: "ABSOLUTE FAULT: Something is seriously wrong with the DC bus wirings DO NOT use this system anymore it needs repair"
 }
