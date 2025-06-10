@@ -18,10 +18,13 @@ async def identify(self, identity, wsclient):
         if identity:
             self.wsclients[wsclient] = {"identity": identity.lower()}
             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
-        elif identify == "gui":
-            pass ## init motorsa
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
+        if identity and identify == "gui":
+            self.logger.info("Gui has been identied ")
+            if not self.motors_initialized:
+                self.logger.info("Starting to initialize the motors")
+                self.init(wsclient)
     except Exception as e:
         self.logger.error(f"Something went wrong in identify action: {e}")
 
@@ -55,7 +58,13 @@ async def clear_fault(self, wsclient):
                     break
             if not fault_poller_found:
                 self.logger.error("Fault poller not found from wsclients list at server")
-    except:
+
+            ### if motors have not been initialized -> initialize them
+            if not self.motors_initialized:
+                self.logger.warning("Motors have not been initialized, initiaalizing..")
+                self.init(wsclient)
+
+    except Exception as e:
         self.logger.error("Error clearing motors faults!")
         await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")
 

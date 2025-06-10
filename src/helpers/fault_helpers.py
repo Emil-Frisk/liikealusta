@@ -18,12 +18,13 @@ def is_absolute_fault(data):
     return True
 
 
-async def validate_fault_register(self, wsclient=None) -> bool:
+async def validate_fault_register(self, gui_socket) -> bool:
     """
     Check if the fault register have critical or absolute fault. Returns True if there's none.
     """
     vals = await self.check_fault_stauts(log=True)
     l_has_faulted, r_has_faulted = has_faulted(vals) 
+    l_has_faulted = True
 
     if (l_has_faulted or r_has_faulted):
         vals = await self.get_recent_fault()
@@ -34,18 +35,19 @@ async def validate_fault_register(self, wsclient=None) -> bool:
 
         ### check if the fault is absolute
         if is_absolute_fault(vals):
-            if wsclient:
-                await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
+            if gui_socket:
+                await gui_socket.send(f"event=absolute_fault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|")
             return False
+        
         # Check that its not a critical fault
         if is_critical_fault(vals):
             if l_has_faulted:
-                if wsclient: 
-                    await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[0]]}|receiver=GUI|")
+                if gui_socket: 
+                    await gui_socket.send(f"event=fault|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[0]]}|")
                 return False
             else:
-                if wsclient:
-                    await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[1]]}|receiver=GUI|")
+                if gui_socket:
+                    await gui_socket.send(f"event=fault|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[1]]}|")
                 self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[1]]}")
                 return False
     else:

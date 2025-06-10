@@ -84,7 +84,7 @@ class FaultPoller():
 
                     ## check if the fault is absolute
                     if is_absolute_fault(vals):
-                        await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
+                        await wsclient.send(f"event=fault|action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
                         self.logger.error(f"ABSOLUTE_FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}")
                         self.logger.error(f"Stopping polling...")
                         self.has_faulted = True
@@ -93,10 +93,10 @@ class FaultPoller():
                     # Check that its not a critical fault
                     if is_critical_fault(vals):
                         if l_has_faulted:
-                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[0]]}|receiver=GUI|")
+                            await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[0]]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[0]]}")
                         else:
-                            await wsclient.send(f"action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[1]]}|receiver=GUI|")
+                            await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {self.critical_faults[vals[1]]}|receiver=GUI|")
                             self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[vals[1]]}")
                         self.has_faulted = True
                     else:
