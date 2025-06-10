@@ -27,6 +27,9 @@ class CommunicationHub:
         self.config , self.motor_config = handle_launch_params(b_motor_config=True)
         self.clients = ModbusClients(self.config, self.logger)
         self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
+        self.motor_api = MotorApi(logger=self.logger,
+                            modbus_clients=self.clients,
+                            config = self.motor_config)
 
     async def init(self, gui_socket):
         try:
@@ -47,10 +50,6 @@ class CommunicationHub:
                 helpers.close_tasks(self)
                 self.process_manager.cleanup_all()
                 return 1
-
-            self.motor_api = MotorApi(logger=self.logger,
-                                       modbus_clients=self.clients,
-                                       config = self.motor_config)
 
             if not await self.motor_api.initialize_motor(gui_socket):
                 self.logger.error(f"""
