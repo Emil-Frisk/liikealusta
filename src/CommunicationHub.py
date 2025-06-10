@@ -24,12 +24,12 @@ class CommunicationHub:
         self.is_process_done = False
         self.server = None
         self.motors_initialized = False
+        self.config , self.motor_config = handle_launch_params(b_motor_config=True)
+        self.clients = ModbusClients(self.config, self.logger)
+        self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
 
     async def init(self, gui_socket):
         try:
-            self.config , self.motor_config = handle_launch_params(b_motor_config=True)
-            self.clients = ModbusClients(self.config, self.logger)
-            self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
             """
             Simuloin absoluuttinen, 
             benchmark telemeptry dataloop,
@@ -46,6 +46,7 @@ class CommunicationHub:
                             shutting down the server """)
                 helpers.close_tasks(self)
                 self.process_manager.cleanup_all()
+                return 1
 
             self.motor_api = MotorApi(logger=self.logger,
                                        modbus_clients=self.clients,
@@ -58,10 +59,11 @@ class CommunicationHub:
                 self.clients.cleanup()
                 helpers.close_tasks(self)
                 self.process_manager.cleanup_all()
+                return 1
             
             ## success
             self.motors_initialized = True
-            gui_socket.send("event=motors_initialized|")
+            await gui_socket.send("event=motors_initialized|")
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
 

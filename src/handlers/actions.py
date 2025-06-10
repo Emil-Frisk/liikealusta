@@ -20,11 +20,11 @@ async def identify(self, identity, wsclient):
             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
-        if identity and identify == "gui":
+        if identity and identity == "gui":
             self.logger.info("Gui has been identified")
             if not self.motors_initialized:
                 self.logger.info("Starting to initialize the motors")
-                self.init(wsclient)
+                await self.init(wsclient)
     except Exception as e:
         self.logger.error(f"Something went wrong in identify action: {e}")
 
