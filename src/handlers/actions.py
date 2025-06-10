@@ -62,7 +62,7 @@ async def clear_fault(self, wsclient):
             ### if motors have not been initialized -> initialize them
             if not self.motors_initialized:
                 self.logger.warning("Motors have not been initialized, starting to initialize...")
-                self.init(wsclient)
+                await self.init(wsclient)
     except Exception as e:
         self.logger.error("Error clearing motors faults!")
         await wsclient.send(f"event=error|message=Error clearing motors faults {e}!|")

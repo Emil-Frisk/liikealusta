@@ -24,12 +24,6 @@ class CommunicationHub:
         self.is_process_done = False
         self.server = None
         self.motors_initialized = False
-        self.config , self.motor_config = handle_launch_params(b_motor_config=True)
-        self.clients = ModbusClients(self.config, self.logger)
-        self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
-        self.motor_api = MotorApi(logger=self.logger,
-                            modbus_clients=self.clients,
-                            config = self.motor_config)
 
     async def init(self, gui_socket):
         try:
@@ -165,6 +159,13 @@ class CommunicationHub:
 
     async def start_server(self):
         try:
+            self.config , self.motor_config = handle_launch_params(b_motor_config=True)
+            self.clients = ModbusClients(self.config, self.logger)
+            await self.clients.connect()
+            self.process_manager = ProcessManager(self.logger, target_dir=Path(__file__).parent)
+            self.motor_api = MotorApi(logger=self.logger,
+                            modbus_clients=self.clients,
+                            config = self.motor_config)
             self.server = await websockets.serve(self.handle_client, "localhost", self.config.WEBSOCKET_SRV_PORT, ping_timeout=None)
             self.logger.info(f"WebSocket serverwebsocket running on ws://localhost:{self.config.WEBSOCKET_SRV_PORT}")
         except Exception as e:
