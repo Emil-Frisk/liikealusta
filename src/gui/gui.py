@@ -85,6 +85,9 @@ class ServerStartupGUI(QWidget):
             QMessageBox.information(self, "Info", "fault was cleared successfully")
             self.faults_tab.hide_fault_group()
         elif event == "connected":
+            ### TODO - send server initialied event to actually
+            ### indicate the motors are ready for operation n
+            ### do not enable shutdown button here yet
             self.shutdown_button.setEnabled(True)
             self.message_label.setText(clientmessage)
         elif event == "shutdown":

@@ -60,11 +60,11 @@ class FaultPoller():
                     continue
 
                 ### simulated critical fault situation
-                if counter == 4:
-                    await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[256]}|receiver=GUI|")
-                    self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[256]}")
-                    self.has_faulted = True
-                    continue
+                # if counter == 4:
+                #     await wsclient.send(f"event=fault|action=message|message=CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[256]}|receiver=GUI|")
+                #     self.logger.error(f"CRITICAL FAULT DETECTED: {CRITICAL_FAULTS[256]}")
+                #     self.has_faulted = True
+                #     continue
 
                 await asyncio.sleep(1)
 
@@ -75,7 +75,6 @@ class FaultPoller():
                     continue
 
                 l_has_faulted, r_has_faulted = has_faulted(vals)
-
                 if (l_has_faulted or r_has_faulted):
                     vals = await motor_api.get_recent_fault()
 
@@ -83,7 +82,7 @@ class FaultPoller():
                         self.logger.error("Getting recent fault was not succesful")
                         continue
 
-                    ### check if the fault is absolute
+                    ## check if the fault is absolute
                     if is_absolute_fault(vals):
                         await wsclient.send(f"action=absolutefault|message=ABSOLUTE FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}|receiver=GUI|")
                         self.logger.error(f"ABSOLUTE_FAULT DETECTED: {ABSOLUTE_FAULTS[2048]}")

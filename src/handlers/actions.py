@@ -18,6 +18,8 @@ async def identify(self, identity, wsclient):
         if identity:
             self.wsclients[wsclient] = {"identity": identity.lower()}
             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
+        elif identify == "gui":
+            pass ## init motorsa
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
     except Exception as e:

@@ -23,6 +23,7 @@ class CommunicationHub:
         self.motor_api = None
         self.is_process_done = False
         self.server = None
+        self.motors_initialized = False
 
     async def init(self):
         try:
@@ -59,6 +60,9 @@ class CommunicationHub:
                 helpers.close_tasks(self)
                 self.process_manager.cleanup_all()
                 os._exit(1)
+            
+            ### success
+            self.motors_initialized = True
         except Exception as e:
             self.logger.error(f"Initialization failed: {e}")
 
