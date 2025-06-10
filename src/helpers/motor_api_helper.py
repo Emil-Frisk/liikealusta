@@ -17,7 +17,7 @@ def get_register_values(data):
 def clamp_target_revs(left_revs, right_revs, config) -> list[list, list]:
     """Clamps the motors revs within the safety limits (2-147mm)
         Returns:
-            list[[left_decimal, left_whole], [right_decimal, right_whole]]
+            list[[left_decimal, left_whole], [right_decimal, right_whole)]]
     """
     ### unnormalize decimal values between 0-65535
     left_decimal, left_whole = math.modf(left_revs) 

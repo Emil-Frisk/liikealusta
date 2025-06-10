@@ -59,10 +59,11 @@ class MotorConfig:
 
     ###
     MODBUSCTRL_MAX = 10000
-    ACC = 123  
-    VEL = 321
+    ACC = 120
+    VEL = 120
 
     ### SAFETY POSITION LIMITS
+    ### change w caution 
     MIN_POS_DECIMAL=25801
     MIN_POS_WHOLE = 0
     MAX_POS_WHOLE = 28

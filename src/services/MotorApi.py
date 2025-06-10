@@ -197,12 +197,12 @@ class MotorApi():
         """
         return await self.write(address=self.config.SYSTEM_COMMAND, value=self.config.RESTART_VALUE, description="force a software power-on restart of the drive")
 
-    async def get_recent_fault(self) -> tuple[Optional[int], Optional[int]]:
+    async def get_recent_fault(self, count=1) -> tuple[Optional[int], Optional[int]]:
         """
         Read fault registers from both clients.
         Returns tuple of (left_fault, right_fault), None if read fails
         """
-        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=1)
+        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=count)
         
     async def fault_reset(self, mode = "default") -> bool:
         # Makes sure bits can be only valid bits that we want to control
@@ -442,7 +442,7 @@ class MotorApi():
         """
         Sets IEG_MODE bits
         !!! IMPORTANT NOTE !!! 
-        DO NOT EVER ACTIVATE ALL BITS IT WILL DEFINE NEW HOME AND THE WHOLE SYSTEM
+        WDO NOT EVER ACTIVATE ALL BITS IT WILL DEFINE NEW HOME AND THE HOLE SYSTEM
         WILL BRAKE, IT WILL ALSO DISABLE THE MOTORS BREAKS MAKE SURE TO USE
         BIT MAKS DEFINED IN THE UTILS (IEG_MODE_bitmask_default) and (IEG_MODE_bitmask_alternative)
         THESE BITMASKS WILL MAKE SURE DANGEROUS BITS WILL NEVER BE ON EVEN IF YOU USE MAX UINT32 VALUE
@@ -452,6 +452,9 @@ class MotorApi():
                 0: enable momentary
                 1: enable maintained
                 7: alt mode
+                10: define home ( danger)
+                11: define home 2(danger)¨
+                14: release break ( danger )
                 15: reset fault
         Returns:
             bool: True if successful for both motors, False otherwise.
@@ -520,7 +523,7 @@ class MotorApi():
                 return False
 
             ### set host current limit
-            if not await self.set_host_current(value=convert_val_into_format(4, format="9.7")):
+            if not await self.set_host_current(value=convert_val_into_format(5, format="9.7")):
                 return False
 
             # # Finally - Ready for operation
