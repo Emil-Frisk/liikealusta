@@ -17,7 +17,51 @@ class MotorApi():
         self.retry_delay = retry_delay
         self.max_retries = max_retries
         self.config = config
-    
+
+    async def write_right_motor(self, address, val):
+        return self.client_right.write_register(
+            address=address,
+            value=val,
+            slave=self.config.SLAVE_ID
+        )
+
+    async def write_left_motor(self, address, val):
+        return self.client_left.write_register(
+            address=address,
+            value=val,
+            slave=self.config.SLAVE_ID
+        )
+
+    async def writes_right_motor(self, address, vals):
+        return self.client_right.write_registers(
+            address=address,
+            value=vals,
+            slave=self.config.SLAVE_ID
+        )
+
+    async def writes_left_motor(self, address, vals):
+        return self.client_left.write_registers(
+            address=address,
+            value=vals,
+            slave=self.config.SLAVE_ID
+        )
+
+    def check_gather_result(self, results):
+        left_result, right_result = results
+        success_left = False
+        success_right = False
+        if isinstance(left_result, Exception):
+            success_left = False
+        else:
+            success_left = True
+
+        if isinstance(right_result, Exception):
+            right_result = False
+        else:
+            success_right = True
+        return success_left, success_right 
+
+
     async def write(self, address, description, value=None, multiple_registers=False, values=None, different_values=False, left_val=None, right_val=None, left_vals=None, right_vals=None) -> bool:
         attempt_left = 0
         attempt_right = 0
@@ -47,6 +91,12 @@ class MotorApi():
         
         if not multiple_registers:
             try:
+                ### tries to write to both registers in parallel first
+                results = await asyncio.gather(self.write_left_motor(address, val=left_motor_val), self.write_right_motor(address=address, val=right_motor_val), return_exceptions=True)
+                success_left, success_right = self.check_gather_result(results)
+                if success_left and success_right:
+                    return True
+                
                 while max_retries > attempt_left and max_retries > attempt_right:
                     if not success_right:
                         response_right = await self.client_right.write_register(
@@ -86,6 +136,12 @@ class MotorApi():
                 return False
         else: # Multiple registers
             try:
+                ### tries to write to both registers in parallel first
+                results = await asyncio.gather(self.writes_left_motor(address, vals=left_motor_vals), self.writes_right_motor(address=address, vals=right_motor_vals), return_exceptions=True)
+                success_left, success_right = self.check_gather_result(results)
+                if success_left and success_right:
+                    return True
+                
                 while max_retries > attempt_left and max_retries > attempt_right:
                     if not success_right:
                         response_right = await self.client_right.write_registers(
@@ -204,6 +260,13 @@ class MotorApi():
         """
         return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=count)
         
+    async def get_present_fault(self, count=1) -> tuple[Optional[int], Optional[int]]:
+        """
+        Read fault registers from both clients.
+        Returns tuple of (left_fault, right_fault), None if read fails
+        """
+        return await self.read(address=self.config.PRESENT_FAULT_ADDRESS, description="read present disabling fault status register", count=count)
+    
     async def fault_reset(self, mode = "default") -> bool:
         # Makes sure bits can be only valid bits that we want to control
         # no matter what you give as a input
