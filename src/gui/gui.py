@@ -107,10 +107,14 @@ class ServerStartupGUI(QWidget):
         try:
             meVEAMotionPlatformUIApp = helpers.findProcessByName("MeVEAMotionPlatformUIApp")
             meveaSimulatorWatchdog = helpers.findProcessByName("MeveaSimulatorWatchdog")
+            simulatorLauncher = helpers.findProcessByName("SimulatorLauncher")
+
             if meVEAMotionPlatformUIApp.stdout:
-                self.process_manager.kill_process(self,meVEAMotionPlatformUIApp.stdout.strip())
+                self.process_manager.kill_process(meVEAMotionPlatformUIApp.stdout.strip())
+            if simulatorLauncher.stdout:
+                self.process_manager.kill_process(simulatorLauncher.stdout.strip())
             if meveaSimulatorWatchdog.stdout:
-                self.process_manager.kill_process(self,meveaSimulatorWatchdog.stdout.strip())
+                self.process_manager.kill_process(meveaSimulatorWatchdog.stdout.strip())
         except Exception as e:
             self.logger.error(f"Error checking mevea processes. Error: {e}")
             os._exit(0)

@@ -25,7 +25,7 @@ class CommunicationHub:
         self.is_process_done = False
         self.server = None
         self.motors_initialized = False
-        self.server_shutdown = False
+        self.shutdown = False
 
     async def init(self, gui_socket):
         try:

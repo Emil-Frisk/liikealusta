@@ -113,7 +113,7 @@ class ProcessManager:
     def kill_process(self,pid) -> bool:
         try:
             # Checks if the process is still running and
-            ps_process = psutil.Process(pid)
+            ps_process = psutil.Process(int(pid))
             process_name = ps_process.name().lower()
             self.logger.info((f"process_name {process_name}"))
             ps_process.kill()
