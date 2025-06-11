@@ -114,20 +114,21 @@ class CommunicationHub:
         try:
             async for message in wsclient:
                 print(f"Received: {message}")
-                if not self.motors_initialized or self.shutdown:
-                    await wsclient.send(format_response("event=error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
-                    continue
 
-                if not rate_limit(self.wsclients[wsclient]["last_call"]):
-                    format_response("event=error", message="message=rate limit exceeded")
-                    continue
+                # if not rate_limit(self.wsclients[wsclient]["last_call"]):
+                #     format_response("event=error", message="message=rate limit exceeded")
+                #     continue
 
                 self.wsclients[wsclient]["last_call"] = time()
 
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
 
+                if action != "identify" and not self.motors_initialized or self.shutdown:
+                    await wsclient.send(format_response(event="error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
+                    continue
+
                 if not action:
-                    await wsclient.send(format_response("event=error", message="message=No action given, example action=<action>"))
+                    await wsclient.send(format_response(event="error", message="message=No action given, example action=<action>"))
                 else:
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
@@ -152,7 +153,7 @@ class CommunicationHub:
                     elif action == "readtelemetry":
                         await actions.read_telemetry(self, wsclient)
                     else:
-                        await wsclient.send(format_response("event=error", message="message=no action found here is all the actions"))
+                        await wsclient.send(format_response(event="error", message="message=no action found here is all the actions"))
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:

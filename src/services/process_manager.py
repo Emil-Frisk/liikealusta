@@ -103,14 +103,26 @@ class ProcessManager:
         if not pid:
             return True
         
-        result = self.kill_process(pid)
+        result = self.kill_python_process(pid)
         
         ### lingering process found but not killed 
         if pid and not result:
             return False
         return True
+    
+    def kill_process(self,pid) -> bool:
+        try:
+            # Checks if the process is still running and
+            ps_process = psutil.Process(pid)
+            process_name = ps_process.name().lower()
+            self.logger.info((f"process_name {process_name}"))
+            ps_process.kill()
+            self.logger.warning(f"Force killed process: {process_name} with PID {ps_process.pid}")
+            return True
+        except Exception as e:
+            self.logger.error
 
-    def kill_process(self, pid) -> bool:
+    def kill_python_process(self, pid) -> bool:
         try:
             # Check if the process is still running and is a Python process
             ps_process = psutil.Process(pid)
