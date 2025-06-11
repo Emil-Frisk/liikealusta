@@ -356,8 +356,8 @@ def convert_vel_rpm_revs(rpm):
                 rpm = int(rpm)
         except ValueError:
                 raise
-        if rpm < 0 or rpm > 350:
-                rpm = 350
+        if rpm < 0 or rpm > 300:
+                rpm = 300
         
         revs = rpm/60.0
         decimal, whole = math.modf(revs)
@@ -376,8 +376,8 @@ def convert_acc_rpm_revs(rpm):
         except ValueError:
                 raise
         
-        if rpm < 0 or rpm > 750:
-                rpm = 750
+        if rpm < 0 or rpm > 300:
+                rpm = 300
         
         revs = rpm/60.0
         decimal, whole = math.modf(revs)

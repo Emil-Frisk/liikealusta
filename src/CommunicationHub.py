@@ -11,6 +11,7 @@ from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
 from pathlib import Path
+from time import time
 
 class CommunicationHub:
     def __init__(self):
@@ -106,7 +107,7 @@ class CommunicationHub:
 
     async def handle_client(self, wsclient, path=None):
         # Store client metadata
-        client_info = {"identity": "unknown"}
+        client_info = {"identity": "unknown", "last_call": 0}
         self.wsclients[wsclient] = client_info
         self.logger.info(f"Client {wsclient.remote_address} connected! Path: {path or '/'}")
 
@@ -114,8 +115,14 @@ class CommunicationHub:
             async for message in wsclient:
                 print(f"Received: {message}")
                 if not self.motors_initialized or self.shutdown:
-                    await wsclient.send("event=error|message=Motors are not initialized or server has been given an order to shutdown|")    
+                    await wsclient.send(format_response("event=error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
                     continue
+
+                if not rate_limit(self.wsclients[wsclient]["last_call"]):
+                    format_response("event=error", message="message=rate limit exceeded")
+                    continue
+
+                self.wsclients[wsclient]["last_call"] = time()
 
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
 
@@ -145,7 +152,7 @@ class CommunicationHub:
                     elif action == "readtelemetry":
                         await actions.read_telemetry(self, wsclient)
                     else:
-                        await wsclient.send("event=error|message=no action found here is all the actions|")
+                        await wsclient.send(format_response("event=error", message="message=no action found here is all the actions"))
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:
