@@ -1,5 +1,5 @@
 
-from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_revs
+from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_revs,format_response
 from helpers import communication_hub_helpers as helpers
 import math
 
@@ -9,8 +9,9 @@ async def write(self, pitch, roll, wsclient):
         if result:
             await self.motor_api.rotate(pitch, roll)
     except ValueError:
-        await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
-    except Exception:
+        
+        await wsclient.send(format_response("event=error", message="message=No identity was given, example action=identify|identity=<identity>|"))
+    except Exception as e:
         self.logger.error(f"Something went wrong in validating pitch and roll values: {e}")
         
 async def identify(self, identity, wsclient):
@@ -28,12 +29,13 @@ async def identify(self, identity, wsclient):
     except Exception as e:
         self.logger.error(f"Something went wrong in identify action: {e}")
 
-async def set_values(self, pitch, roll, wsclient):
+async def rotate(self, pitch, roll, wsclient):
     try:
-        result = helpers.validate_pitch_and_roll_values(pitch, roll)
-        if result:
-            (pitch, roll) = result
-            await self.motor_api.rotate(pitch,roll)
+         
+            result = helpers.validate_pitch_and_roll_values(pitch, roll)
+            if result:
+                (pitch, roll) = result
+                await self.motor_api.rotate(pitch,roll)
     except ValueError as e:
         self.logger.error(f"pitch and roll were not numbers: {e}")
         await wsclient.send("event=error|message=pitch and roll were not numbers. Please give integers|")
