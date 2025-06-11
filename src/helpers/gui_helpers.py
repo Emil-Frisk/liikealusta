@@ -222,7 +222,7 @@ def findProcessByName(processname):
     """
     try:
         result = subprocess.run(
-            ["powershell", "-Command", f"Get-Process -Name {processname} -ErrorAction SilentlyContinue"],
+            ["powershell", "-Command", f"(Get-Process -Name {processname} -ErrorAction SilentlyContinue).Id"],
             capture_output=True,
             text=True
         )
