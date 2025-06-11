@@ -46,7 +46,15 @@ def convert_val_into_format(value, format):
     else:
         raise Exception("Unsupported format")
     
-
+def format_response(**kwargs):
+       """
+       Expects possible kwargs of event=event, action=action, message=message
+       """
+       msg_parts = []
+       for key, val in kwargs.items():
+              msg_parts.append(f"|{key}={val}|")
+        
+       return "".join(msg_parts)
 
 def registers_convertion(register,format,signed=False):
         format_1, format_2 = format.split(".")
@@ -348,8 +356,8 @@ def convert_vel_rpm_revs(rpm):
                 rpm = int(rpm)
         except ValueError:
                 raise
-        if rpm < 0 or rpm > 350:
-                rpm = 350
+        if rpm < 0 or rpm > 300:
+                rpm = 300
         
         revs = rpm/60.0
         decimal, whole = math.modf(revs)
@@ -368,8 +376,8 @@ def convert_acc_rpm_revs(rpm):
         except ValueError:
                 raise
         
-        if rpm < 0 or rpm > 750:
-                rpm = 750
+        if rpm < 0 or rpm > 300:
+                rpm = 300
         
         revs = rpm/60.0
         decimal, whole = math.modf(revs)

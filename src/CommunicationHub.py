@@ -6,11 +6,12 @@ from ModbusClients import ModbusClients
 from services.process_manager import ProcessManager
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
-from utils.utils import get_current_path
+from utils.utils import format_response
 from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
 from pathlib import Path
+from time import time
 
 class CommunicationHub:
     def __init__(self):
@@ -24,6 +25,7 @@ class CommunicationHub:
         self.is_process_done = False
         self.server = None
         self.motors_initialized = False
+        self.server_shutdown = False
 
     async def init(self, gui_socket):
         try:
@@ -63,7 +65,7 @@ class CommunicationHub:
     async def shutdown_server(self, wsclient=None):
         """stops and disables motors and closes sub processes"""
         self.logger.info("Shutdown request received. Cleaning up...")
-
+        self.server_shutdown = True
         try:
             success = await self.motor_api.stop()
             if not success:
@@ -105,16 +107,27 @@ class CommunicationHub:
 
     async def handle_client(self, wsclient, path=None):
         # Store client metadata
-        client_info = {"identity": "unknown"}
+        client_info = {"identity": "unknown", "last_call": 0}
         self.wsclients[wsclient] = client_info
         self.logger.info(f"Client {wsclient.remote_address} connected! Path: {path or '/'}")
 
         try:
             async for message in wsclient:
                 print(f"Received: {message}")
+                if not self.motors_initialized or self.shutdown:
+                    await wsclient.send(format_response("event=error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
+                    continue
+
+                if not rate_limit(self.wsclients[wsclient]["last_call"]):
+                    format_response("event=error", message="message=rate limit exceeded")
+                    continue
+
+                self.wsclients[wsclient]["last_call"] = time()
+
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
+
                 if not action:
-                    await wsclient.send("event=error|message=No action given, example action=<action>|")
+                    await wsclient.send(format_response("event=error", message="message=No action given, example action=<action>"))
                 else:
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
@@ -127,7 +140,7 @@ class CommunicationHub:
                     elif action == "stop":
                         await actions.stop_motors(self)
                     elif action == "rotate":
-                        await actions.set_values(self, pitch, roll, wsclient)
+                        await actions.rotate(self, pitch, roll, wsclient)
                     # elif action == "updatevalues":
                     #     await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
@@ -139,7 +152,7 @@ class CommunicationHub:
                     elif action == "readtelemetry":
                         await actions.read_telemetry(self, wsclient)
                     else:
-                        await wsclient.send("event=error|message=no action found here is all the actions|")
+                        await wsclient.send(format_response("event=error", message="message=no action found here is all the actions"))
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:
