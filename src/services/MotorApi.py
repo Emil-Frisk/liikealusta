@@ -17,52 +17,42 @@ class MotorApi():
         self.retry_delay = retry_delay
         self.max_retries = max_retries
         self.config = config
-
-    async def write_right_motor(self, address, val):
-        return self.client_right.write_register(
+    async def _write_registers_left(self, address, val):
+        return await self.client_left.write_registers(
             address=address,
-            value=val,
+            values=val,
             slave=self.config.SLAVE_ID
         )
-
-    async def write_left_motor(self, address, val):
-        return self.client_left.write_register(
+    async def _write_registers_right(self, address, vals):
+        return await self.client_right.write_registers(
             address=address,
-            value=val,
+            values=vals,
             slave=self.config.SLAVE_ID
         )
-
-    async def writes_right_motor(self, address, vals):
-        return self.client_right.write_registers(
-            address=address,
-            value=vals,
-            slave=self.config.SLAVE_ID
-        )
-
-    async def writes_left_motor(self, address, vals):
-        return self.client_left.write_registers(
-            address=address,
-            value=vals,
-            slave=self.config.SLAVE_ID
-        )
-
+    async def _read_registers_left(self, address, count):
+        return await self.client_left.read_holding_registers(
+                address=address,
+                count=count,
+                slave=self.config.SLAVE_ID
+            )
+    async def _read_registers_right(self, address, count):
+        return await self.client_right.read_holding_registers(
+                address=address,
+                count=count,
+                slave=self.config.SLAVE_ID
+            )
     def check_gather_result(self, results):
         left_result, right_result = results
         success_left = False
         success_right = False
-        if isinstance(left_result, Exception):
-            success_left = False
-        else:
+        
+        if not isinstance(left_result, Exception):
             success_left = True
 
-        if isinstance(right_result, Exception):
-            right_result = False
-        else:
+        if not isinstance(right_result, Exception):
             success_right = True
         return success_left, success_right 
-
-
-    async def write(self, address, description, value=None, multiple_registers=False, values=None, different_values=False, left_val=None, right_val=None, left_vals=None, right_vals=None) -> bool:
+    async def _write(self, address, description, values=None, different_values=False, left_vals=None, right_vals=None) -> bool:
         attempt_left = 0
         attempt_right = 0
         success_right = False
@@ -71,116 +61,60 @@ class MotorApi():
         
         ### Figure out the settings based on the context
         try:
-            if not multiple_registers and different_values:
-                left_motor_val = left_val 
-                right_motor_val = right_val 
-            elif not multiple_registers and not different_values:
-                left_motor_val = value
-                right_motor_val = value
-            elif multiple_registers and not different_values:
+            if not different_values:
                 left_motor_vals = values
                 right_motor_vals = values
-            elif multiple_registers and different_values:
+            elif different_values:
                 left_motor_vals = left_vals
                 right_motor_vals = right_vals
-            else:
-                self.logger.error("Wrong settings given to register write function")
+        except Exception as e:
+            self.logger.error(f"Error while trying to setup settings for register _write operation: {e}")
+    
+        try:
+            ### tries to _write to both registers in parallel first
+            results = await asyncio.gather(self._write_registers_left(address, vals=left_motor_vals), self._write_registers_right(address=address, vals=right_motor_vals), return_exceptions=True)
+            success_left, success_right = self.check_gather_result(results)
+            if success_left and success_right:
+                return True
+            
+            while max_retries > attempt_left and max_retries > attempt_right:
+                if not success_right:
+                    response_right = await self.client_right.write_registers(
+                        address=address,
+                        values=right_motor_vals,
+                        slave=self.config.SLAVE_ID)
+                if not success_left:
+                    response_left = await self.client_left.write_registers(
+                        address=address,
+                        values=left_motor_vals,
+                        slave=self.config.SLAVE_ID)
+
+                if response_left.isError():
+                    attempt_left += 1
+                    self.logger.error(f"Failed to {description} on left. Attempt {attempt_left}")
+                else:
+                    success_left = True
+
+                if response_right.isError():
+                    attempt_right += 1
+                    self.logger.error(f"Failed to {description} on right motor. Attempt {attempt_right}")
+                else:
+                    success_right = True
+                
+                if success_left and success_right:
+                    self.logger.info(f"succesfully {description} on both motors!")
+                    return True
+                
+                # Delay between retries
+                await asyncio.sleep(self.retry_delay)
+            
+            if not success_left or not success_right:
+                self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | Right: {success_right}")
                 return False
         except Exception as e:
-            self.logger.error(f"Error while trying to setup settings for register write operation: {e}")
-        
-        if not multiple_registers:
-            try:
-                ### tries to write to both registers in parallel first
-                results = await asyncio.gather(self.write_left_motor(address, val=left_motor_val), self.write_right_motor(address=address, val=right_motor_val), return_exceptions=True)
-                success_left, success_right = self.check_gather_result(results)
-                if success_left and success_right:
-                    return True
-                
-                while max_retries > attempt_left and max_retries > attempt_right:
-                    if not success_right:
-                        response_right = await self.client_right.write_register(
-                            address=address,
-                            value=right_motor_val,
-                            slave=self.config.SLAVE_ID)
-                    if not success_left:
-                        response_left = await self.client_left.write_register(
-                            address=address,
-                            value=left_motor_val,
-                            slave=self.config.SLAVE_ID)
-
-                    if response_left.isError():
-                        attempt_left += 1
-                        self.logger.error(f"Failed to {description} on left. Attempt {attempt_left}")
-                    else:
-                        success_left = True
-
-                    if response_right.isError():
-                        attempt_right += 1
-                        self.logger.error(f"Failed to {description} on right motor. Attempt {attempt_right}")
-                    else:
-                        success_right = True
-                    
-                    if success_left and success_right:
-                        self.logger.info(f"succesfully {description} on both motors!")
-                        return True
-                    
-                    # Delay between retries
-                    await asyncio.sleep(self.retry_delay)
-                
-                if not success_left or not success_right:
-                    self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | Right: {success_right}")
-                    return False
-            except Exception as e:
-                self.logger.error(f"Unexpected error while {description}: {str(e)}")
-                return False
-        else: # Multiple registers
-            try:
-                ### tries to write to both registers in parallel first
-                results = await asyncio.gather(self.writes_left_motor(address, vals=left_motor_vals), self.writes_right_motor(address=address, vals=right_motor_vals), return_exceptions=True)
-                success_left, success_right = self.check_gather_result(results)
-                if success_left and success_right:
-                    return True
-                
-                while max_retries > attempt_left and max_retries > attempt_right:
-                    if not success_right:
-                        response_right = await self.client_right.write_registers(
-                            address=address,
-                            values=right_motor_vals,
-                            slave=self.config.SLAVE_ID)
-                    if not success_left:
-                        response_left = await self.client_left.write_registers(
-                            address=address,
-                            values=left_motor_vals,
-                            slave=self.config.SLAVE_ID)
-
-                    if response_left.isError():
-                        attempt_left += 1
-                        self.logger.error(f"Failed to {description} on left. Attempt {attempt_left}")
-                    else:
-                        success_left = True
-
-                    if response_right.isError():
-                        attempt_right += 1
-                        self.logger.error(f"Failed to {description} on right motor. Attempt {attempt_right}")
-                    else:
-                        success_right = True
-                    
-                    if success_left and success_right:
-                        self.logger.info(f"succesfully {description} on both motors!")
-                        return True
-                    
-                    # Delay between retries
-                    await asyncio.sleep(self.retry_delay)
-                
-                if not success_left or not success_right:
-                    self.logger.error(f"Failed to {description} on both motors. Left: {success_left} | Right: {success_right}")
-                    return False
-            except Exception as e:
-                self.logger.error(f"Unexpected error while {description}: {str(e)}")
-                return False
-    
-    async def read(self, address, description, count=2, log=True) -> Union[tuple, bool]:
+            self.logger.error(f"Unexpected error while {description}: {str(e)}")
+            return False
+    async def _read(self, address, description, count=2, log=True) -> Union[tuple, bool]:
         """Reads the specified register addresses values and returns them
         as a tuple (left, right) or False if the operation was not successful"""
         try:
@@ -190,8 +124,18 @@ class MotorApi():
             success_right = False
             max_retries = self.max_retries
 
+            ### tries to _read to both registers in parallel first
+            results = await asyncio.gather(self._read_registers_left(address, count=count), self._read_registers_right(address=address, count=count), return_exceptions=True)
+            success_left, success_right = self.check_gather_result(results)
+            if success_left and success_right:
+                left_vals, right_vals = get_register_values(results)
+                if count==1:
+                    return (left_vals[0], right_vals[0])
+                else:
+                    return (left_vals, right_vals)
+
             while max_retries > attempt_left and max_retries > attempt_right:
-                # Write to left motor if not yet successful
+                # _write to left motor if not yet successful
                 if not success_left:
                     response_left = await self.client_left.read_holding_registers(
                         address=address,
@@ -206,7 +150,7 @@ class MotorApi():
                         if log:
                             self.logger.info(f"Successfully {description} on left motor")
 
-                # Read from right motor if not yet successful
+                # _read from right motor if not yet successful
                 if not success_right:
                     response_right = await self.client_right.read_holding_registers(
                         address=address,
@@ -245,62 +189,54 @@ class MotorApi():
         except Exception as e:
             self.logger.error(f"Unexpected error while reading motor REVS: {str(e)}")
             return False
-    
     async def reset_motors(self) -> bool:
         """ 
         Removes all temporary settings from both motors
         and goes back to default ones
         """
-        return await self.write(address=self.config.SYSTEM_COMMAND, value=self.config.RESTART_VALUE, description="force a software power-on restart of the drive")
-
+        return await self._write(address=self.config.SYSTEM_COMMAND, values=[self.config.RESTART_VALUE], description="force a software power-on restart of the drive")
     async def get_recent_fault(self, count=1) -> tuple[Optional[int], Optional[int]]:
         """
-        Read fault registers from both clients.
-        Returns tuple of (left_fault, right_fault), None if read fails
+        _read fault registers from both clients.
+        Returns tuple of (left_fault, right_fault), None if _read fails
         """
-        return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=count)
-        
+        return await self._read(address=self.config.RECENT_FAULT_ADDRESS, description="_read fault register", count=count)
     async def get_present_fault(self, count=1) -> tuple[Optional[int], Optional[int]]:
         """
-        Read fault registers from both clients.
-        Returns tuple of (left_fault, right_fault), None if read fails
+        _read fault registers from both clients.
+        Returns tuple of (left_fault, right_fault), None if _read fails
         """
-        return await self.read(address=self.config.PRESENT_FAULT_ADDRESS, description="read present disabling fault status register", count=count)
-    
-    async def fault_reset(self, mode = "default") -> bool:
+        return await self._read(address=self.config.PRESENT_FAULT_ADDRESS, description="_read present disabling fault status register", count=count)
+    async def fault_reset(self) -> bool:
         # Makes sure bits can be only valid bits that we want to control
         # no matter what you give as a input
-        return await self.write(value=IEG_MODE_bitmask_default(65535), address=self.config.IEG_MODE, description="reset faults")
-
+        return await self._write(values=[IEG_MODE_bitmask_default(65535)], address=self.config.IEG_MODE, description="reset faults")
     async def check_fault_stauts(self, log=True) -> Optional[bool]:
         """
-        Read drive status from both motors.
+        _read drive status from both motors.
         Returns (left, right) values as a tuple if success
         or False if it fails
         """
-        return await self.read(log=log, address=self.config.OEG_STATUS, description="read driver status",count=1)
-    
+        return await self._read(log=log, address=self.config.OEG_STATUS, description="_read driver status",count=1)
     async def get_vel(self) -> bool:
         """
         Gets VEL32_HIGH register for both motors
         """
-        return await self.read(address=self.config.VFEEDBACK_VELOCITY,description="read velocity register", count=1)
-   
+        return await self._read(address=self.config.VFEEDBACK_VELOCITY,description="_read velocity register", count=1)
     async def stop(self) -> bool:
         """
         Attempts to stop both motors by writing to the IEG_MOTION register.
         Returns True if successful, False if failed after retries.
         """
-        return await self.write(address=self.config.IEG_MOTION, value=self.config.STOP_VALUE, description="Stop motors")
-
+        return await self._write(address=self.config.IEG_MOTION, values=[self.config.STOP_VALUE], description="Stop motors")
     async def home(self) -> bool:
         try:
             ### Reset IEG_MOTION bit to 0 so we can trigger rising edge with our home command
-            if not await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0"):
+            if not await self._write(address=self.config.IEG_MOTION, values=[0], description="reset IEG_MOTION to 0"):
                 return False
                 
             ### Initiate homing command
-            if not await self.write(value=self.config.HOME_VALUE, address=self.config.IEG_MOTION, description="initiate homing command"): 
+            if not await self._write(values=[self.config.HOME_VALUE], address=self.config.IEG_MOTION, description="initiate homing command"): 
                 return False
             
             ### homing order was success for both motos make a poller coroutine to poll when the homing is done.
@@ -309,7 +245,7 @@ class MotorApi():
             start_time = time()
             elapsed_time = 0
             while elapsed_time <= homing_max_duration:
-                response = await self.read(address=self.config.OEG_STATUS, description="Read OEG_STATUS",count=1)
+                response = await self._read(address=self.config.OEG_STATUS, description="_read OEG_STATUS",count=1)
                 if not response:
                     await asyncio.sleep(self.retry_delay)
                     continue
@@ -322,7 +258,7 @@ class MotorApi():
                 # Success
                 if ishomed_right and ishomed_left:
                     self.logger.info(f"Both motors homes successfully:")
-                    await self.write(address=self.config.IEG_MOTION, value=0, description="reset IEG_MOTION to 0")
+                    await self._write(address=self.config.IEG_MOTION, values=[0], description="reset IEG_MOTION to 0")
                     return True
                 
                 await asyncio.sleep(1)
@@ -334,7 +270,6 @@ class MotorApi():
         except Exception as e:
             self.logger.error(f"Unexpected error while homing motors: {e}")
             return False
-    
     async def set_analog_pos_max(self, decimal: int, whole: int) -> bool:
         """
         Sets the analog position maximum for both motors.
@@ -345,8 +280,7 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         values = [decimal, whole]
-        return await self.write(multiple_registers=True, values=values, description="set analog positition max", address=self.config.ANALOG_POSITION_MAXIMUM)
-                
+        return await self._write(values=values, description="set analog positition max", address=self.config.ANALOG_POSITION_MAXIMUM)
     async def set_analog_pos_min(self, decimal: int, whole: int) -> bool:
         """
         Sets the analog position minium for both motors.
@@ -357,8 +291,7 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         values = [decimal, whole]
-        return await self.write(multiple_registers=True, values=values, description="set analog position min", address=self.config.ANALOG_POSITION_MINIMUM)
-
+        return await self._write(values=values, description="set analog position min", address=self.config.ANALOG_POSITION_MINIMUM)
     async def set_analog_vel_max(self, decimal: int, whole: int) -> bool:
         """
         Sets the analog velocity maximum for both motors.
@@ -369,7 +302,7 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         values = [decimal, whole]
-        return await self.write(multiple_registers=True, values=values, description="set analog velocity max", address=self.config.ANALOG_VEL_MAXIMUM)
+        return await self._write(values=values, description="set analog velocity max", address=self.config.ANALOG_VEL_MAXIMUM)
     async def set_host_vel_max(self, decimal: int, whole: int) -> bool:
         """
         Sets the host velocity maximum for both motors.
@@ -380,7 +313,7 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         values = [decimal, whole]
-        return await self.write(multiple_registers=True, values=values, description="set host velocity max", address=self.config.HOST_VEL_MAXIMUM)
+        return await self._write(values=values, description="set host velocity max", address=self.config.HOST_VEL_MAXIMUM)
     async def set_analog_acc_max(self, decimal: int, whole: int) -> bool:
         """
         Sets the analog acceleration maxium for both motors.
@@ -391,7 +324,7 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         values = [decimal, whole]
-        return await self.write(multiple_registers=True, values=values, description="set analog acceleration maxium", address=self.config.ANALOG_ACCELERATION_MAXIMUM)
+        return await self._write(values=values, description="set analog acceleration maxium", address=self.config.ANALOG_ACCELERATION_MAXIMUM)
     async def set_host_acc_max(self, decimal: int, whole: int) -> bool:
         """
         Sets the host acceleration maxium for both motors.
@@ -402,7 +335,7 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         values = [decimal, whole]
-        return await self.write(multiple_registers=True, values=values, description="set host acceleration maxium", address=self.config.HOST_ACCELERATION_MAXIMUM)
+        return await self._write(values=values, description="set host acceleration maxium", address=self.config.HOST_ACCELERATION_MAXIMUM)
     async def set_analog_input_channel(self, value: int) -> bool:
         """
         Sets the analog input channel for both motors.
@@ -411,8 +344,7 @@ class MotorApi():
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
-        return await self.write(value=value, address=self.config.ANALOG_INPUT_CHANNEL, description="set analog input channel")
-        
+        return await self._write(values=[value], address=self.config.ANALOG_INPUT_CHANNEL, description="set analog input channel")
     async def get_current_revs(self) ->  Union[Tuple[List[int], List[int]], bool]:
         """
         Gets the current REVS for both motors
@@ -422,8 +354,7 @@ class MotorApi():
             - response_right: [decimal_part, whole_part] for the right motor
             Returns False if the operation is not successful.
         """
-        return await self.read(address=self.config.PFEEDBACK_POSITION, description="read current REVS", count=2)
-    
+        return await self._read(address=self.config.PFEEDBACK_POSITION, description="_read current REVS", count=2)
     async def set_analog_modbus_cntrl(self, values: Tuple[int, int]) -> bool:
         """
         Sets the analog input Modbus control value for both motors,
@@ -436,20 +367,18 @@ class MotorApi():
             bool: True if successful for both motors, False otherwise.
         """
         value_left, value_right = values
-        return await self.write(different_values=True, right_val=value_right, left_val=value_left, description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
+        return await self._write(different_values=True, right_vals=[value_right], left_vals=[value_left], description="Set analog modbus control value", address=self.config.ANALOG_MODBUS_CNTRL)
     async def set_host_position(self, values: Tuple[List,List]) -> bool:
             """
             Sets the host position values for both motors. 
             """
             values_left, values_right = values
-            return await self.write(multiple_registers=True,different_values=True, right_vals=values_right, left_vals=values_left, description="Set host position values", address=self.config.HOST_POSITION)
-        
+            return await self._write(different_values=True, right_vals=[values_right], left_vals=[values_left], description="Set host position values", address=self.config.HOST_POSITION)
     async def set_host_current(self, value: int) -> bool:
         """
         Sets the host maxium current that will override IPEAK value(15A as long as its below it) UCUR16 - 9.7.
         """
-        return await self.write(value=value, description="Set host maximum current", address=self.config.HOST_CURRENT_MAXIMUM)
-    
+        return await self._write(values=[value], description="Set host maximum current", address=self.config.HOST_CURRENT_MAXIMUM)
     async def wait_for_motors_to_stop(self) -> bool:
         """ Polls for motors to stop returns True or False"""
         ### TODO - figure out velocity feedback register
@@ -484,7 +413,6 @@ class MotorApi():
         except Exception as e:
             self.logger.error(f"Unexpected error while waiting for motors to stop: {e}")
             return False
-
     async def set_host_command_mode(self, value: int) -> bool:
         """
         Sets both of the motors host command mode to value
@@ -499,8 +427,7 @@ class MotorApi():
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
-        return await self.write(address=self.config.COMMAND_MODE, value=value, description="set host command mode")
-        
+        return await self._write(address=self.config.COMMAND_MODE, values=[value], description="set host command mode")
     async def set_ieg_mode(self, value: int) -> bool:
         """
         Sets IEG_MODE bits
@@ -522,8 +449,7 @@ class MotorApi():
         Returns:
             bool: True if successful for both motors, False otherwise.
         """
-        return await self.write(description="set IEG_MODE", value=IEG_MODE_bitmask_default(value), address=self.config.IEG_MODE)
-        
+        return await self._write(description="set IEG_MODE", values=[IEG_MODE_bitmask_default(value)], address=self.config.IEG_MODE)
     async def get_modbuscntrl_val(self) -> Union[tuple, bool]:
         """
         Gets the current revolutions of both motors and calculates with linear interpolation
@@ -555,7 +481,6 @@ class MotorApi():
         except Exception as e:
             self.logger.error(f"Unexpected error while converting to revs: {e}")
             return False
-    
     async def initialize_motor(self, gui_socket) -> bool:
         """ Tries to initialize the motors with initial values returns true if succesful """
         await self.set_host_command_mode(0)
@@ -595,7 +520,6 @@ class MotorApi():
             if not await self.set_ieg_mode(self.config.ENABLE_MAINTAINED_VALUE):
                 return False
             return True
-    
     async def rotate(self, pitch_value, roll_value) -> None:
         try:
             result = calculate_target_revs(self,pitch_value=pitch_value, roll_value=roll_value)
@@ -605,14 +529,13 @@ class MotorApi():
                 await self.set_host_position((left_vals, right_vals))
         except Exception as e:
             self.logger.error(f"Something went wrong trying to rotate the platform: {e}")
-
     async def get_telemetry_data(self) -> Union[tuple, bool]:
         """Reads the motors current board tempereature,
         actuator temperature, continuous current and present VBUS voltage
         Returns:
             ((left_board_tmp, right_board_tmp), (left_actuator_tmp, right_actuator_tmp), (left_IC, right_IC), (left_VBUS, right_VBUS))
         """
-        vals = await self.read(address=self.config.BOARD_TMP, description="Read board temperature", count=1)
+        vals = await self._read(address=self.config.BOARD_TMP, description="_read board temperature", count=1)
         if not vals:
             return False
         ### 11.5
@@ -620,7 +543,7 @@ class MotorApi():
         left_board_tmp = bit_high_low_both(left_board_tmp, 5, "high")
         right_board_tmp = bit_high_low_both(right_board_tmp, 5, "high")
 
-        vals = await self.read(address=self.config.ACTUATOR_TMP, description="Read actuator temperature", count=1)
+        vals = await self._read(address=self.config.ACTUATOR_TMP, description="_read actuator temperature", count=1)
         if not vals:
             return False
         ### 13.3
@@ -628,7 +551,7 @@ class MotorApi():
         left_actuator_tmp = bit_high_low_both(left_actuator_tmp, 3, "high")
         right_actuator_tmp = bit_high_low_both(right_actuator_tmp, 3, "high")
 
-        vals = await self.read(address=self.config.ICONTINUOUS, description="Read present current ", count=2)
+        vals = await self._read(address=self.config.ICONTINUOUS, description="_read present current ", count=2)
         if not vals:
             return False
         
@@ -636,7 +559,7 @@ class MotorApi():
         left_VBUS = registers_convertion(left_IC, "9.23")
         right_VBUS = registers_convertion(right_VBUS, "9.23")
 
-        vals = await self.read(address=self.config.VBUS, description="Read present VBUS voltage ", count=2)
+        vals = await self._read(address=self.config.VBUS, description="_read present VBUS voltage ", count=2)
         ### 11.21
         if not vals:
             return False
