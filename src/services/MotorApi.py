@@ -17,10 +17,10 @@ class MotorApi():
         self.retry_delay = retry_delay
         self.max_retries = max_retries
         self.config = config
-    async def _write_registers_left(self, address, val):
+    async def _write_registers_left(self, address, vals):
         return await self.client_left.write_registers(
             address=address,
-            values=val,
+            values=vals,
             slave=self.config.SLAVE_ID
         )
     async def _write_registers_right(self, address, vals):
@@ -79,15 +79,9 @@ class MotorApi():
             
             while max_retries > attempt_left and max_retries > attempt_right:
                 if not success_right:
-                    response_right = await self.client_right.write_registers(
-                        address=address,
-                        values=right_motor_vals,
-                        slave=self.config.SLAVE_ID)
+                    response_right = await self._write_registers_right(values=right_motor_vals, address=address)
                 if not success_left:
-                    response_left = await self.client_left.write_registers(
-                        address=address,
-                        values=left_motor_vals,
-                        slave=self.config.SLAVE_ID)
+                    response_left = await self._write_registers_left(values=left_vals, address=address)
 
                 if response_left.isError():
                     attempt_left += 1
@@ -137,11 +131,7 @@ class MotorApi():
             while max_retries > attempt_left and max_retries > attempt_right:
                 # _write to left motor if not yet successful
                 if not success_left:
-                    response_left = await self.client_left.read_holding_registers(
-                        address=address,
-                        count=count,
-                        slave=self.config.SLAVE_ID
-                    )
+                    response_left = await self._read_registers_left(address=address, count=count)
                     if response_left.isError():
                         attempt_left += 1
                         self.logger.error(f"Failed to {description} on left motor. Attempt {attempt_left}/{max_retries}")
@@ -152,11 +142,7 @@ class MotorApi():
 
                 # _read from right motor if not yet successful
                 if not success_right:
-                    response_right = await self.client_right.read_holding_registers(
-                        address=address,
-                        count=count,
-                        slave=self.config.SLAVE_ID
-                    )
+                    response_right = await self._read_registers_right(address=address, count=count)
                     if response_right.isError():
                         attempt_right += 1
                         self.logger.error(f"Failed to {description} on right motor. Attempt {attempt_right}/{max_retries}")
