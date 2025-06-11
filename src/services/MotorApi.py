@@ -260,6 +260,13 @@ class MotorApi():
         """
         return await self.read(address=self.config.RECENT_FAULT_ADDRESS, description="read fault register", count=count)
         
+    async def get_present_fault(self, count=1) -> tuple[Optional[int], Optional[int]]:
+        """
+        Read fault registers from both clients.
+        Returns tuple of (left_fault, right_fault), None if read fails
+        """
+        return await self.read(address=self.config.PRESENT_FAULT_ADDRESS, description="read present disabling fault status register", count=count)
+    
     async def fault_reset(self, mode = "default") -> bool:
         # Makes sure bits can be only valid bits that we want to control
         # no matter what you give as a input
