@@ -24,7 +24,6 @@ async def validate_fault_register(self, gui_socket) -> bool:
     """
     vals = await self.check_fault_stauts(log=True)
     l_has_faulted, r_has_faulted = has_faulted(vals) 
-    l_has_faulted = True
 
     if (l_has_faulted or r_has_faulted):
         vals = await self.get_recent_fault()

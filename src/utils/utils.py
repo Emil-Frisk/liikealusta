@@ -46,7 +46,15 @@ def convert_val_into_format(value, format):
     else:
         raise Exception("Unsupported format")
     
-
+def format_response(**kwargs):
+       """
+       Expects possible kwargs of event=event, action=action, message=message
+       """
+       msg_parts = []
+       for key, val in kwargs.items():
+              msg_parts.append(f"|{key}={val}|")
+        
+       return "".join(msg_parts)
 
 def registers_convertion(register,format,signed=False):
         format_1, format_2 = format.split(".")

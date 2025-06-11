@@ -6,7 +6,7 @@ from ModbusClients import ModbusClients
 from services.process_manager import ProcessManager
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
-from utils.utils import get_current_path
+from utils.utils import format_response
 from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
@@ -24,6 +24,7 @@ class CommunicationHub:
         self.is_process_done = False
         self.server = None
         self.motors_initialized = False
+        self.server_shutdown = False
 
     async def init(self, gui_socket):
         try:
@@ -63,7 +64,7 @@ class CommunicationHub:
     async def shutdown_server(self, wsclient=None):
         """stops and disables motors and closes sub processes"""
         self.logger.info("Shutdown request received. Cleaning up...")
-
+        self.server_shutdown = True
         try:
             success = await self.motor_api.stop()
             if not success:
@@ -112,9 +113,14 @@ class CommunicationHub:
         try:
             async for message in wsclient:
                 print(f"Received: {message}")
+                if not self.motors_initialized or self.shutdown:
+                    await wsclient.send("event=error|message=Motors are not initialized or server has been given an order to shutdown|")    
+                    continue
+
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
+
                 if not action:
-                    await wsclient.send("event=error|message=No action given, example action=<action>|")
+                    await wsclient.send(format_response("event=error", message="message=No action given, example action=<action>"))
                 else:
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
@@ -127,7 +133,7 @@ class CommunicationHub:
                     elif action == "stop":
                         await actions.stop_motors(self)
                     elif action == "rotate":
-                        await actions.set_values(self, pitch, roll, wsclient)
+                        await actions.rotate(self, pitch, roll, wsclient)
                     # elif action == "updatevalues":
                     #     await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
