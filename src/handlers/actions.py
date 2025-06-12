@@ -2,7 +2,7 @@
 from utils.utils import convert_acc_rpm_revs, convert_to_revs, convert_vel_rpm_revs,format_response
 from helpers import communication_hub_helpers as helpers
 import math
-
+from time import time
 async def write(self, pitch, roll, wsclient):
     try:
         result = helpers.validate_pitch_and_roll_values(pitch,roll)
@@ -31,11 +31,11 @@ async def identify(self, identity, wsclient):
 
 async def rotate(self, pitch, roll, wsclient):
     try:
-         
-            result = helpers.validate_pitch_and_roll_values(pitch, roll)
-            if result:
-                (pitch, roll) = result
-                await self.motor_api.rotate(pitch,roll)
+        result = helpers.validate_pitch_and_roll_values(pitch, roll)
+        if result:
+            (pitch, roll) = result
+            await self.motor_api.rotate(pitch,roll)
+            self.logger.info(f"Overhead time rotate: {self.start_time - time()}")
     except ValueError as e:
         self.logger.error(f"pitch and roll were not numbers: {e}")
         await wsclient.send("event=error|message=pitch and roll were not numbers. Please give integers|")

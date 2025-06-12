@@ -26,7 +26,7 @@ class CommunicationHub:
         self.server = None
         self.motors_initialized = False
         self.shutdown = False
-
+        self.start_time = None
     async def init(self, gui_socket):
         try:
             """
@@ -113,6 +113,7 @@ class CommunicationHub:
 
         try:
             async for message in wsclient:
+                self.start_time = time()
                 print(f"Received: {message}")
                 if not self.motors_initialized or self.shutdown:
                     await wsclient.send(format_response("event=error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
