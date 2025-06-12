@@ -359,7 +359,7 @@ class MotorApi():
             Sets the host position values for both motors. 
             """
             values_left, values_right = values
-            return await self._write(different_values=True, right_vals=[values_right], left_vals=[values_left], description="Set host position values", address=self.config.HOST_POSITION)
+            return await self._write(different_values=True, right_vals=values_right, left_vals=values_left, description="Set host position values", address=self.config.HOST_POSITION)
     async def set_host_current(self, value: int) -> bool:
         """
         Sets the host maxium current that will override IPEAK value(15A as long as its below it) UCUR16 - 9.7.
