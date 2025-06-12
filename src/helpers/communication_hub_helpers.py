@@ -100,6 +100,9 @@ async def create_hearthbeat_monitor_tasks(self):
     self.monitor_fault_poller = asyncio.create_task(monitor_fault_poller(self))
 
 def rate_limit(lastcall, max_freq):
+    """
+    Limits rate of requests to server.
+    """
     min_interval = 1.0 / max_freq
     current_time = time()
     delta_time = current_time - lastcall

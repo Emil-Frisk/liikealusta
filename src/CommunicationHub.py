@@ -26,7 +26,7 @@ class CommunicationHub:
         self.server = None
         self.motors_initialized = False
         self.shutdown = False
-
+        self.start_time = None
     async def init(self, gui_socket):
         try:
             """
@@ -113,6 +113,7 @@ class CommunicationHub:
 
         try:
             async for message in wsclient:
+                self.start_time = time()
                 print(f"Received: {message}")
 
                 if not helpers.rate_limit(self.wsclients[wsclient]["last_call"], max_freq=60):
