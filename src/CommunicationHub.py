@@ -25,7 +25,7 @@ class CommunicationHub:
         self.is_process_done = False
         self.server = None
         self.motors_initialized = False
-        self.server_shutdown = False
+        self.shutdown = False
 
     async def init(self, gui_socket):
         try:
@@ -126,8 +126,12 @@ class CommunicationHub:
 
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
 
+                if action != "identify" and not self.motors_initialized or self.shutdown:
+                    await wsclient.send(format_response(event="error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
+                    continue
+
                 if not action:
-                    await wsclient.send(format_response("event=error", message="message=No action given, example action=<action>"))
+                    await wsclient.send(format_response(event="error", message="message=No action given, example action=<action>"))
                 else:
                     # "endpoints"
                     self.logger.info(f"processing action: {action}")
@@ -152,7 +156,7 @@ class CommunicationHub:
                     elif action == "readtelemetry":
                         await actions.read_telemetry(self, wsclient)
                     else:
-                        await wsclient.send(format_response("event=error", message="message=no action found here is all the actions"))
+                        await wsclient.send(format_response(event="error", message="message=no action found here is all the actions"))
         except websockets.ConnectionClosed as e:
             self.logger.error(f"Client {wsclient.remote_address} (identity: {client_info['identity']}) disconnected with code {e.code}, reason: {e.reason}")
         except Exception as e:

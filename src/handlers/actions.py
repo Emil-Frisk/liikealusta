@@ -10,7 +10,7 @@ async def write(self, pitch, roll, wsclient):
             await self.motor_api.rotate(pitch, roll)
     except ValueError:
         
-        await wsclient.send(format_response("event=error", message="message=No identity was given, example action=identify|identity=<identity>|"))
+        await wsclient.send(format_response(event="error", message="message=No identity was given, example action=identify|identity=<identity>|"))
     except Exception as e:
         self.logger.error(f"Something went wrong in validating pitch and roll values: {e}")
         

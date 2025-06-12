@@ -26,7 +26,8 @@ async def validate_fault_register(self, gui_socket) -> bool:
     l_has_faulted, r_has_faulted = has_faulted(vals) 
 
     if (l_has_faulted or r_has_faulted):
-        vals = await self.get_recent_fault()
+
+        vals = await self.get_present_fault()
 
         if not vals:
             self.logger.error("Getting recent fault was not succesful")
