@@ -118,7 +118,7 @@ class CommunicationHub:
                     await wsclient.send(format_response("event=error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
                     continue
 
-                if not rate_limit(self.wsclients[wsclient]["last_call"]):
+                if not helpers.rate_limit(self.wsclients[wsclient]["last_call"], max_freq=60):
                     format_response("event=error", message="message=rate limit exceeded")
                     continue
 
