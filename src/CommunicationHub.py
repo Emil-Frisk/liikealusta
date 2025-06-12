@@ -127,7 +127,7 @@ class CommunicationHub:
 
                 (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
 
-                if action != "identify" and not self.motors_initialized or self.shutdown:
+                if action != "identify" and action != "clearfault" and not self.motors_initialized or self.shutdown:
                     await wsclient.send(format_response(event="error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
                     continue
 
