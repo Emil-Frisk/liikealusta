@@ -2,6 +2,7 @@
 CRITICAL_FAULTS = {
     1: "Current in the actuator was too large.",
     2: "Continuous current in the actuator was too large",
+    16: "Low bus voltage",
     32: "High DC Bus Voltage, voltage was too large: decrease the acceleration",
     64: "Following error: this should not happen",
     128: "Board temperature is too high",

@@ -71,9 +71,9 @@ class ServerStartupGUI(QWidget):
             self.logger.error("No event specified in message.")
             return 
         if not clientmessage: 
-            self.logger.error("No client message specified in message.")
-            return
-        elif event == "error":
+            self.logger.info("No client message specified in message.")
+
+        if event == "error":
             self.logger.error(message)
         elif event == "fault":
             self.logger.warning("Fault event has arrived to GUI!")

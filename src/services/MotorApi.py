@@ -19,30 +19,30 @@ class MotorApi():
         self.config = config
 
     async def write_right_motor(self, address, val):
-        return self.client_right.write_register(
+        return await self.client_right.write_register(
             address=address,
             value=val,
             slave=self.config.SLAVE_ID
         )
 
     async def write_left_motor(self, address, val):
-        return self.client_left.write_register(
+        return await self.client_left.write_register(
             address=address,
             value=val,
             slave=self.config.SLAVE_ID
         )
 
     async def writes_right_motor(self, address, vals):
-        return self.client_right.write_registers(
+        return await self.client_right.write_registers(
             address=address,
-            value=vals,
+            values=vals,
             slave=self.config.SLAVE_ID
         )
 
     async def writes_left_motor(self, address, vals):
-        return self.client_left.write_registers(
+        return await self.client_left.write_registers(
             address=address,
-            value=vals,
+            values=vals,
             slave=self.config.SLAVE_ID
         )
 
