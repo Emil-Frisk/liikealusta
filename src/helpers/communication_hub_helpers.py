@@ -39,9 +39,6 @@ def extract_parts(msg): # example message: "action=STOP|receiver=startup|identit
     receiver = extract_part("receiver=", message=msg)
     identity = extract_part("identity=", message=msg)
     message = extract_part("message=", message=msg)
-    action = extract_part("action=", message=msg)
-    pitch = extract_part("pitch=", message=msg)
-    roll = extract_part("roll=", message=msg)
     event = extract_part("event=", message=msg)
     acceleration = extract_part("acc=", message=msg)
     velocity = extract_part("vel=", message=msg)
@@ -51,7 +48,7 @@ def extract_parts(msg): # example message: "action=STOP|receiver=startup|identit
     if message and event:
         message = f"event={event}|message={message}|"
 
-    return (receiver, identity, message,action,pitch,roll,acceleration,velocity)
+    return (receiver, identity, message,acceleration,velocity)
 
 import asyncio
 import psutil

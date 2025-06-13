@@ -12,12 +12,12 @@ class GeneralTab(QWidget):
 
         # Speed Field
         self.speed_input = QSpinBox()
-        self.speed_input.setRange(1, 500)
+        self.speed_input.setRange(1, 300)
         self.layout.addRow("Velocity (RPM):", self.speed_input)
 
         # Acceleration Field
         self.accel_input = QSpinBox()
-        self.accel_input.setRange(1, 1000)
+        self.accel_input.setRange(1, 300)
         self.layout.addRow("Acceleration (RPM):", self.accel_input)
 
     def set_acceleration(self, val):

@@ -120,11 +120,6 @@ def create_status_label(self):
     
     self.setLayout(self.main_layout)
 
-    # Initialize WebSocket client
-    self.websocket_client = WebsocketClientQT(logger=self.logger)
-    self.websocket_client.message_received.connect(self.handle_client_message)
-
-    # store initial values of the input fields
     self.stored_values = {
         'ip_input1': self.advanced_tab.get_left_motor(),
         'ip_input2': self.advanced_tab.get_right_motor(),
@@ -168,7 +163,6 @@ def save_config(self, ip1, ip2, freq, speed, accel):
     
 def start_server(self):
     (ip1, ip2, freq, speed, accel)  = get_field_values(self)
-
     if not ip1 or not ip2:
         QMessageBox.warning(self, "Input Error", "Please enter valid IP addresses for both servo arms.")
         return
@@ -195,24 +189,6 @@ def start_server(self):
         QMessageBox.critical(self, "Error", f"Failed to start server: {str(e)}")
 
 
-def handle_client_message(self, message):
-    """Update the GUI label with WebSocket messages."""
-    event = extract_part("event=", message=message)
-    if not event:
-        self.message_label.setText(message)
-    elif event == "fault":
-        pass
-
-    if "Received: " in message:
-        try:
-            # Assuming server sends messages like "identity=1|data=value"
-            msg_content = message.split("Received: ")[1]
-            if "data=" in msg_content:
-                value = msg_content.split("data=")[1].split("|")[0]
-                # Update GUI based on data (e.g., set speed_input)
-                self.speed_input.setValue(int(value))
-        except Exception as e:
-            self.logger.error(f"Error parsing message: {str(e)}")
 
 
 

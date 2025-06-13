@@ -64,7 +64,7 @@ def calculate_target_revs(self, pitch_value, roll_value) -> Union[list, None]:
         if success, None if something went wrong
     """
     try:
-        roll_value = max(-15, min(roll_value, 15))
+        roll_value = max(-8.5, min(roll_value, 8.5))
         # Tarkistetaan että annettu pitch -kulma on välillä -8.5 <-> 8.5
         pitch_value = max(-8.5, min(pitch_value, 8.5))
 

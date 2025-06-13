@@ -6,7 +6,7 @@ from ModbusClients import ModbusClients
 from services.process_manager import ProcessManager
 from utils.launch_params import handle_launch_params
 from utils.setup_logging import setup_logging
-from utils.utils import format_response
+from utils.utils import format_response, extract_part
 from services.MotorApi import MotorApi
 from handlers import actions
 from helpers import communication_hub_helpers as helpers
@@ -27,6 +27,7 @@ class CommunicationHub:
         self.motors_initialized = False
         self.shutdown = False
         self.start_time = None
+        self.counter = 0
     async def init(self, gui_socket):
         try:
             """
@@ -34,7 +35,7 @@ class CommunicationHub:
             benchmark telemeptry dataloop,
             read_register format methods
             """
-            await helpers.create_hearthbeat_monitor_tasks(self)
+            # await helpers.create_hearthbeat_monitor_tasks(self)
             # Connect to both drivers
             connected = await self.clients.connect()
 
@@ -117,17 +118,25 @@ class CommunicationHub:
                 print(f"Received: {message}")
 
                 if not helpers.rate_limit(self.wsclients[wsclient]["last_call"], max_freq=60):
-                    format_response("event=error", message="message=rate limit exceeded")
+                    format_response(event="error", message="message=rate limit exceeded")
+                    self.logger.error("RATE TOO FAST")
                     continue
 
                 self.wsclients[wsclient]["last_call"] = time()
 
-                (receiver, identity, message,action,pitch,roll,acceleration,velocity) = helpers.extract_parts(message)
+                action = extract_part("action=", message)
+                pitch = extract_part("pitch=", message)
+                roll = extract_part("roll=", message)
+                if action and action == "rotate":
+                    await actions.rotate(self, pitch, roll, wsclient)
+                    continue
+
+                (receiver, identity, message,acceleration,velocity) = helpers.extract_parts(message)
 
                 if action != "identify" and action != "clearfault" and not self.motors_initialized or self.shutdown:
                     await wsclient.send(format_response(event="error", message="message=Motors are not initialized or server has been given an order to shutdown"))    
                     continue
-
+                    
                 if not action:
                     await wsclient.send(format_response(event="error", message="message=No action given, example action=<action>"))
                 else:
@@ -141,8 +150,7 @@ class CommunicationHub:
                         await self.shutdown_server(wsclient)
                     elif action == "stop":
                         await actions.stop_motors(self)
-                    elif action == "rotate":
-                        await actions.rotate(self, pitch, roll, wsclient)
+                        
                     # elif action == "updatevalues":
                     #     await actions.update_input_values(self,acceleration,velocity)
                     elif action == "message":
@@ -153,6 +161,9 @@ class CommunicationHub:
                         await actions.absolutefault(self)
                     elif action == "readtelemetry":
                         await actions.read_telemetry(self, wsclient)
+                    elif action == "closefile":
+                        self.ow_file.close()
+                        self.logger.warning("Closed file!")
                     else:
                         await wsclient.send(format_response(event="error", message="message=no action found here is all the actions"))
         except websockets.ConnectionClosed as e:
@@ -174,6 +185,7 @@ class CommunicationHub:
 
     async def start_server(self):
         try:
+            self.ow_file = open("overhead.txt" , "w")
             self.config , self.motor_config = handle_launch_params(b_motor_config=True)
             self.clients = ModbusClients(self.config, self.logger)
             await self.clients.connect()

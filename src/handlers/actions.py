@@ -17,7 +17,7 @@ async def write(self, pitch, roll, wsclient):
 async def identify(self, identity, wsclient):
     try:
         if identity:
-            self.wsclients[wsclient] = {"identity": identity.lower()}
+            self.wsclients[wsclient]["identity"] = identity.lower()
             self.logger.info(f"Updated identity for {wsclient.remote_address}: {identity}")
         else:
             await wsclient.send("event=error|message=No identity was given, example action=identify|identity=<identity>|")
@@ -35,7 +35,8 @@ async def rotate(self, pitch, roll, wsclient):
         if result:
             (pitch, roll) = result
             await self.motor_api.rotate(pitch,roll)
-            self.logger.info(f"Overhead time rotate: {self.start_time - time()}")
+            self.ow_file.write(f"{time() - self.start_time}\n")
+
     except ValueError as e:
         self.logger.error(f"pitch and roll were not numbers: {e}")
         await wsclient.send("event=error|message=pitch and roll were not numbers. Please give integers|")

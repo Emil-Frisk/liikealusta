@@ -38,8 +38,7 @@ class ServerStartupGUI(QWidget):
         self.faults_tab.update_fault_message("test")
 
         # Initialize WebSocket client
-        self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger)
-        self.websocket_client.message_received.connect(self.handle_client_message)
+        self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger, on_message=self.handle_client_message)
 
     def start_websocket_client(self):
         """Start the WebSocket client."""
@@ -92,6 +91,7 @@ class ServerStartupGUI(QWidget):
         elif event == "connected":
             self.message_label.setText(clientmessage)
         elif event == "shutdown":
+            asyncio.create_task(self.websocket_client.close())
             self.start_button.setEnabled(True)
             self.shutdown_button.setEnabled(False)
             self.faults_tab.hide_fault()
