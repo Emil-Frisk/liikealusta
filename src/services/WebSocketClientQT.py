@@ -20,22 +20,15 @@ class WebsocketClientQT(QObject):
         self.reconnect_count = 0
         self.logger = logger
         self.identity = identity
-        self._connection_lock = asyncio.Lock()  # Add lock for connection operations
-        self._reconnecting = False  # Prevent multiple reconnection attempts
+        self._connection_lock = asyncio.Lock()
         
     async def connect(self):
-        async with self._connection_lock:  # Protect connection operations
+        async with self._connection_lock:
             try:
                 if self.is_running:
                     self.logger.info("Client is already connected, can't connect again")
                     return 
                 
-                if self._reconnecting:
-                    self.logger.info("Reconnection already in progress")
-                    return
-                
-                self._reconnecting = True  
-                # Clean up any existing connection
                 await self._cleanup_connection()
                 
                 self.socket = await websockets.connect(
@@ -46,30 +39,24 @@ class WebsocketClientQT(QObject):
                 await self.socket.send(f"action=identify|identity={self.identity}|")
                 self.is_running = True
                 self.reconnect_count = 0
-                self._reconnecting = False
                 self.logger.info(f"client connected to server: {self.uri}")
                 
                 if self.on_message:
                     self.on_message(f"event=connected|message=Client connected to server.|")
-                
                 # Create new listen task
                 self._listen_task = asyncio.create_task(self._listen())
-                
             except asyncio.TimeoutError:
                 await self.handle_connection_failure(f"Connection timed out")
             except Exception as e:
                 await self.handle_connection_failure(f"Error connecting to the server: {e}")
             finally:
-                self._reconnecting = False
+                pass
     
     async def handle_connection_failure(self, error_msg):
         """Handle a connection failure by scheduling a reconnect or closing the client."""
         async with self._connection_lock:
             self.logger.error(f"Connection failed: {error_msg}")
             self.is_running = False
-            
-            if self._reconnecting:
-                return  # Already handling reconnection
                 
             self.reconnect_count += 1
             if self.reconnect_count < self.max_reconnect_attempt:
@@ -98,18 +85,16 @@ class WebsocketClientQT(QObject):
             self.logger.error(f"Exception in the listen coroutine: {e}")
         finally:
             # Only trigger reconnection if we were supposed to be running
-            if self.is_running and not self._reconnecting:
+            if self.is_running:
                 await self.handle_connection_failure("Listen coroutine ended unexpectedly")
 
     async def _schedule_reconnect(self):
         """Schedule a reconnection attempt after a delay."""
         try:
             await asyncio.sleep(self.reconnect_interval)
-            if self._reconnecting:  # Only reconnect if still in reconnecting state
-                await self.connect()
+            await self.connect()
         except Exception as e:
             self.logger.error(f"Error during reconnection: {e}")
-            self._reconnecting = False
 
     async def send(self, message):
         try:
@@ -153,7 +138,6 @@ class WebsocketClientQT(QObject):
         async with self._connection_lock:
             try:
                 self.is_running = False
-                self._reconnecting = False
                 await self._cleanup_connection()
                 self.logger.info("Client socket closed")
             except Exception as e:
