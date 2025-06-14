@@ -6,10 +6,8 @@ from settings.config import Config
 
 config = Config()
 
-
-class WebsocketClientQT(QObject):
+class WebSocketClient():
     def __init__(self, logger, identity="unknown", uri=f"ws://localhost:{config.WEBSOCKET_SRV_PORT}", on_message=None, reconnect_interval=2.5, max_reconnect_attempt=10):
-        super().__init__()
         self.uri = uri
         self.socket = None
         self.is_running = False
@@ -46,13 +44,13 @@ class WebsocketClientQT(QObject):
                 # Create new listen task
                 self._listen_task = asyncio.create_task(self._listen())
             except asyncio.TimeoutError:
-                await self.handle_connection_failure(f"Connection timed out")
+                await self._handle_connection_failure(f"Connection timed out")
             except Exception as e:
-                await self.handle_connection_failure(f"Error connecting to the server: {e}")
+                await self._handle_connection_failure(f"Error connecting to the server: {e}")
             finally:
                 pass
     
-    async def handle_connection_failure(self, error_msg):
+    async def _handle_connection_failure(self, error_msg):
         """Handle a connection failure by scheduling a reconnect or closing the client."""
         async with self._connection_lock:
             self.logger.error(f"Connection failed: {error_msg}")
@@ -60,12 +58,10 @@ class WebsocketClientQT(QObject):
                 
             self.reconnect_count += 1
             if self.reconnect_count < self.max_reconnect_attempt:
-                # Schedule reconnect without blocking
                 asyncio.create_task(self._schedule_reconnect())
             else:
                 self.logger.info("Maximum reconnect attempts reached, closing client")
                 await self._cleanup_connection()
-    
     async def _listen(self):
         try:
             self.logger.info("Creating listening coroutine for client")
@@ -86,7 +82,7 @@ class WebsocketClientQT(QObject):
         finally:
             # Only trigger reconnection if we were supposed to be running
             if self.is_running:
-                await self.handle_connection_failure("Listen coroutine ended unexpectedly")
+                await self._handle_connection_failure("Listen coroutine ended unexpectedly")
 
     async def _schedule_reconnect(self):
         """Schedule a reconnection attempt after a delay."""
@@ -106,11 +102,11 @@ class WebsocketClientQT(QObject):
             return True
         except ConnectionClosed:
             self.logger.warning("Connection closed while sending message")
-            await self.handle_connection_failure("Connection closed during send")
+            await self._handle_connection_failure("Connection closed during send")
             return False
         except Exception as e:
             self.logger.error(f"Error while client was sending a message: {e}")
-            await self.handle_connection_failure(f"Send error: {e}")
+            await self._handle_connection_failure(f"Send error: {e}")
             return False
 
     async def _cleanup_connection(self):
@@ -143,7 +139,7 @@ class WebsocketClientQT(QObject):
             except Exception as e:
                 self.logger.error(f"Exception while closing client: {e}")
 
-    async def wait_for_connection(self, timeout=10):
+    async def _wait_for_connection(self, timeout=10):
         """Wait for the client to be connected, useful for testing."""
         start_time = asyncio.get_event_loop().time()
         while not self.is_running and (asyncio.get_event_loop().time() - start_time) < timeout:

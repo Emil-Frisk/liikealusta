@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from utils.setup_logging import setup_logging
-from services.WebSocketClientQT import WebsocketClientQT
+from services.WebSocketClient import WebSocketClient
 from widgets.FaultTab import FaultTab
 from widgets.GeneralTab import GeneralTab
 from widgets.AdvancedTab import AdvancedTab

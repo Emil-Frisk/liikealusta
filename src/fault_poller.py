@@ -8,7 +8,7 @@ import asyncio
 from utils.utils import  extract_part
 from helpers.fault_helpers import has_faulted, is_critical_fault, is_absolute_fault
 from constants.fault_codes import ABSOLUTE_FAULTS, CRITICAL_FAULTS
-from services.websocket_client import WebsocketClient
+from services.WebSocketClient import WebSocketClient
 from settings.motors_config import MotorConfig
 
 class FaultPoller():
@@ -45,7 +45,7 @@ class FaultPoller():
             return
         
         motor_api = MotorApi(logger=self.logger, modbus_clients=clients)
-        wsclient = WebsocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
+        wsclient = WebSocketClient(identity="fault poller", logger=self.logger, on_message=self.on_message)
         self.wsclient = wsclient
         await wsclient.connect()
 

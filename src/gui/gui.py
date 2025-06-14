@@ -4,7 +4,7 @@ import qasync
 from PyQt6.QtWidgets import QApplication, QWidget, QWidget, QVBoxLayout, QLabel,QMessageBox
 from PyQt6.QtGui import QFont
 from utils.setup_logging import setup_logging
-from services.WebSocketClientQT import WebsocketClientQT
+from services.WebSocketClient import WebSocketClient
 import os
 import subprocess
 from utils.utils import get_exe_temp_dir,find_venv_python,started_from_exe, get_base_path, get_current_path, extract_part
@@ -38,7 +38,7 @@ class ServerStartupGUI(QWidget):
         self.faults_tab.update_fault_message("test")
 
         # Initialize WebSocket client
-        self.websocket_client = WebsocketClientQT(identity="gui", logger=self.logger, on_message=self.handle_client_message)
+        self.websocket_client = WebSocketClient(identity="gui", logger=self.logger, on_message=self.handle_client_message)
 
     def start_websocket_client(self):
         """Start the WebSocket client."""
